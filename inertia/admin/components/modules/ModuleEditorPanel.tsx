@@ -90,6 +90,17 @@ function isPlainObject(val: any): val is Record<string, any> {
   return val !== null && typeof val === 'object' && !Array.isArray(val)
 }
 
+function supportsSelection(
+  el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+): el is HTMLInputElement | HTMLTextAreaElement {
+  if (!el) return false
+  if (el instanceof HTMLTextAreaElement) return true
+  if (el instanceof HTMLInputElement) {
+    return ['text', 'search', 'url', 'tel', 'password'].includes(el.type)
+  }
+  return false
+}
+
 function mergeFields(
   props: Record<string, any>,
   overrides: Record<string, any> | null
@@ -2247,6 +2258,17 @@ const FieldBySchemaInternal = memo(
   }
 )
 
+type FieldGroup = {
+  label?: string
+  description?: string
+  fields: CustomFieldDefinition[]
+  showIf?: CustomFieldDefinition['showIf']
+}
+type TabSection = {
+  label: string
+  groups: FieldGroup[]
+}
+
 const ModuleFieldsRenderer = memo(
   ({
     schema,
@@ -2263,10 +2285,12 @@ const ModuleFieldsRenderer = memo(
     isNoFieldModule: boolean
     fallbackDraftKeys: string[]
   }) => {
-
     if (schema && schema.length > 0) {
       // Helper function to check showIf conditions
-      const checkShowIf = (field: CustomFieldDefinition, draftValues: Record<string, any>): boolean => {
+      const checkShowIf = (
+        field: CustomFieldDefinition,
+        draftValues: Record<string, any>
+      ): boolean => {
         const showIf = (field as any).showIf
         if (!showIf || typeof showIf !== 'object') return true
 
@@ -2293,17 +2317,6 @@ const ModuleFieldsRenderer = memo(
 
       // Organize fields into tabs and groups
       const cleanedSections = useMemo(() => {
-        type FieldGroup = {
-          label?: string
-          description?: string
-          fields: CustomFieldDefinition[]
-          showIf?: CustomFieldDefinition['showIf']
-        }
-        type TabSection = {
-          label: string
-          groups: FieldGroup[]
-        }
-
         const sections: TabSection[] = []
         let currentTab: TabSection = { label: 'General', groups: [{ fields: [] }] }
         sections.push(currentTab)
@@ -2711,7 +2724,7 @@ export function ModuleEditorPanel({
         if (el.value !== value) {
           el.value = value
         }
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        if (supportsSelection(el)) {
           // Always restore cursor if we have a pending value, as re-renders can mangle it
           // even if the value itself is correct.
           if (el.selectionStart !== cursorPos || el.selectionEnd !== cursorPos) {
@@ -2928,10 +2941,9 @@ export function ModuleEditorPanel({
                   ? pendingInputValueRef.current.value
                   : null
               if (storedValue !== null && currentValue === storedValue) return
-              const cursorPos =
-                el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-                  ? (el.selectionStart ?? currentValue.length)
-                  : currentValue.length
+              const cursorPos = supportsSelection(el)
+                ? el.selectionStart ?? currentValue.length
+                : currentValue.length
               if (rootId)
                 pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
               setDraft((prev) => {
@@ -3034,6 +3046,21 @@ export function ModuleEditorPanel({
           fieldKey={agentFieldKey}
           fieldType={agentFieldType}
           viewMode={viewMode}
+          onSuccess={(resp) => {
+            // Best effort: if the agent returned a value for the specific field, update local draft
+            if (resp.suggestions?.value !== undefined || resp.suggestions?.content !== undefined) {
+              const val = resp.suggestions.value ?? resp.suggestions.content
+              setDraft((prev) => {
+                const next = { ...prev }
+                // Use the leaf part of the field key (e.g. 'prose' from 'module.tabbed-features.tabs.0.prose')
+                const path = agentFieldKey.split('.').slice(2).join('.')
+                if (path) {
+                  setByPath(next, path, val)
+                }
+                return next
+              })
+            }
+          }}
         />
       )}
     </div>,
@@ -3224,7 +3251,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
         if (el.value !== value) {
           el.value = value
         }
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        if (supportsSelection(el)) {
           // Always restore cursor if we have a pending value, as re-renders can mangle it
           // even if the value itself is correct.
           if (el.selectionStart !== cursorPos || el.selectionEnd !== cursorPos) {
@@ -3422,10 +3449,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
                 ? pendingInputValueRef.current.value
                 : null
             if (storedValue !== null && currentValue === storedValue) return
-            const cursorPos =
-              el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-                ? (el.selectionStart ?? currentValue.length)
-                : currentValue.length
+            const cursorPos = supportsSelection(el)
+              ? el.selectionStart ?? currentValue.length
+              : currentValue.length
             if (rootId)
               pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
             setDraft((prev) => {
@@ -3507,6 +3533,21 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
           fieldKey={agentFieldKey}
           fieldType={agentFieldType}
           viewMode={viewMode}
+          onSuccess={(resp) => {
+            // Best effort: if the agent returned a value for the specific field, update local draft
+            if (resp.suggestions?.value !== undefined || resp.suggestions?.content !== undefined) {
+              const val = resp.suggestions.value ?? resp.suggestions.content
+              setDraft((prev) => {
+                const next = { ...prev }
+                // Use the leaf part of the field key (e.g. 'prose' from 'module.tabbed-features.tabs.0.prose')
+                const path = agentFieldKey.split('.').slice(2).join('.')
+                if (path) {
+                  setByPath(next, path, val)
+                }
+                return next
+              })
+            }
+          }}
         />
       )}
     </div>

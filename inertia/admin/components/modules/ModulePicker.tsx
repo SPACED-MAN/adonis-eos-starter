@@ -135,9 +135,13 @@ export function ModulePicker({
   const [modules, setModules] = useState<ModuleConfig[]>([])
   const [globals, setGlobals] = useState<GlobalItem[]>([])
   const [tab, setTab] = useState<'library' | 'globals'>('library')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setSearchQuery('')
+      return
+    }
     let cancelled = false
     async function load() {
       try {
@@ -261,6 +265,24 @@ export function ModulePicker({
     )
   }
 
+  const filteredModules = modules.filter((m) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      m.name?.toLowerCase().includes(query) ||
+      m.type.toLowerCase().includes(query) ||
+      m.description?.toLowerCase().includes(query)
+    )
+  })
+
+  const filteredGlobals = globals.filter((g) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      g.label?.toLowerCase().includes(query) ||
+      g.globalSlug?.toLowerCase().includes(query) ||
+      g.type.toLowerCase().includes(query)
+    )
+  })
+
   return (
     <div className="relative">
       <button
@@ -274,10 +296,37 @@ export function ModulePicker({
         {open && (
           <AlertDialogContent className="w-full max-w-3xl">
             <AlertDialogHeader>
-              <AlertDialogTitle>Add Module</AlertDialogTitle>
-              <AlertDialogDescription>
-                Select a module from Library or choose an existing Global module to insert.
-              </AlertDialogDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <AlertDialogTitle>Add Module</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Select a module from Library or choose an existing Global module to insert.
+                  </AlertDialogDescription>
+                </div>
+                <div className="w-full sm:w-64 relative">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Filter modules..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-sm border border-line-low bg-backdrop-input text-neutral-high rounded-md focus:ring-2 focus:ring-standout-high/20 outline-none"
+                  />
+                  <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-low pointer-events-none">
+                    <FontAwesomeIcon icon="search" size="xs" />
+                  </div>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-low hover:text-neutral-high p-1"
+                    >
+                      <span className="sr-only">Clear search</span>
+                      <span aria-hidden="true">✕</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </AlertDialogHeader>
             <div className="mt-2">
               <div className="border-b border-line-low mb-2">
@@ -307,10 +356,12 @@ export function ModulePicker({
               </div>
               {tab === 'library' ? (
                 <div className="divide-y divide-line max-h-[60vh] overflow-auto">
-                  {modules.length === 0 && !loading && (
-                    <div className="px-4 py-6 text-neutral-low text-sm">No modules available</div>
+                  {filteredModules.length === 0 && !loading && (
+                    <div className="px-4 py-6 text-neutral-low text-sm text-center italic">
+                      {searchQuery ? `No modules matching "${searchQuery}"` : 'No modules available'}
+                    </div>
                   )}
-                  {modules.map((m) => {
+                  {filteredModules.map((m) => {
                     const isReact = m.renderingMode === 'react'
                     return (
                       <div
@@ -360,10 +411,14 @@ export function ModulePicker({
                 </div>
               ) : (
                 <div className="divide-y divide-line max-h-[60vh] overflow-auto">
-                  {globals.length === 0 && !loading && (
-                    <div className="px-4 py-6 text-neutral-low text-sm">No global modules yet</div>
+                  {filteredGlobals.length === 0 && !loading && (
+                    <div className="px-4 py-6 text-neutral-low text-sm text-center italic">
+                      {searchQuery
+                        ? `No global modules matching "${searchQuery}"`
+                        : 'No global modules yet'}
+                    </div>
                   )}
-                  {globals.map((g) => (
+                  {filteredGlobals.map((g) => (
                     <div
                       key={g.id}
                       className="px-3 py-4 hover:bg-backdrop-medium flex items-start gap-4"

@@ -1,4 +1,9 @@
-export default {
+import type { PostTypeConfig } from '../types/post_type.ts'
+
+const profilePostType: PostTypeConfig = {
+  type: 'profile',
+  label: 'Profile',
+  pluralLabel: 'Profiles',
   hideCoreFields: ['title'],
   hierarchyEnabled: false,
   fields: [
@@ -16,4 +21,6 @@ export default {
   modulesEnabled: true,
   // URL patterns
   urlPatterns: [{ locale: 'en', pattern: '/profile/{slug}', isDefault: true }],
-} as const
+}
+
+export default profilePostType

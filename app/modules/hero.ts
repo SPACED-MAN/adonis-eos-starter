@@ -102,12 +102,12 @@ export default class HeroModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: "We invest in the world's potential",
+        title: 'Lorem ipsum dolor sit amet',
         subtitle:
-          'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         ctas: [
           {
-            label: 'Get started',
+            label: 'Lorem Ipsum',
             url: '#',
             style: 'primary',
           },

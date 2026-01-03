@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import sitemapService from '#services/sitemap_service'
+import urlPatternService from '#services/url_pattern_service'
 
 export default class SeoController {
   async sitemapStatus({ request, response }: HttpContext) {
@@ -24,5 +25,13 @@ export default class SeoController {
     await sitemapService.generate({ protocol, host })
     response.type('application/json')
     return response.ok({ message: 'Sitemap rebuilt' })
+  }
+
+  async populateCanonicalUrls({ response }: HttpContext) {
+    const result = await urlPatternService.populateCanonicalUrls()
+    return response.ok({
+      message: `Updated ${result.updated} posts, failed ${result.failed}`,
+      data: result,
+    })
   }
 }

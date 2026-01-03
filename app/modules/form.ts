@@ -70,8 +70,8 @@ export default class FormModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Contact us',
-        subtitle: 'Fill out the form and our team will get back to you shortly.',
+        title: 'Lorem ipsum',
+        subtitle: 'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         formSlug: 'contact',
         theme: 'low',
       },

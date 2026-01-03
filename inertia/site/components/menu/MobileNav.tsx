@@ -37,7 +37,7 @@ export function MobileNav({
 
   if (!mounted) {
     return (
-      <div className="md:hidden flex items-center">
+      <div className="lg:hidden flex items-center">
         <button
           className={cn(
             'flex items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none transition-all duration-300',
@@ -52,7 +52,7 @@ export function MobileNav({
   }
 
   return (
-    <div className="md:hidden flex items-center">
+    <div className="lg:hidden flex items-center">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button

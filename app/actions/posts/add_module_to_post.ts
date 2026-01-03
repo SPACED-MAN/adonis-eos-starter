@@ -133,17 +133,30 @@ export default class AddModuleToPost {
       } else {
         // Create local or static module instance
         const moduleConfig = moduleRegistry.get(moduleType).getConfig()
-        const initialProps = coerceJsonObject(
-          props === null ||
-            props === undefined ||
-            (typeof props === 'object' && Object.keys(props).length === 0)
-            ? moduleConfig.defaultValues || {}
-            : { ...(moduleConfig.defaultValues || {}), ...coerceJsonObject(props) }
-        )
+        const initialProps = (() => {
+          const isAiReview = mode === 'ai-review'
+          const providedProps = coerceJsonObject(props)
+          const hasProvidedProps = Object.keys(providedProps).length > 0
 
-        // Important: ensure we don't save empty objects if we have defaults
+          if (isAiReview) {
+            // For AI review, if no props provided, start blank (don't use defaults)
+            // If props provided, use them exactly as provided
+            return providedProps
+          }
+
+          // Default behavior for manual/standard creation: merge defaults with provided props
+          return props === null ||
+            props === undefined ||
+            !hasProvidedProps
+            ? moduleConfig.defaultValues || {}
+            : { ...(moduleConfig.defaultValues || {}), ...providedProps }
+        })()
+
+        // Important: ensure we don't save empty objects if we have defaults AND not in AI review
         const propsToSave =
-          Object.keys(initialProps).length > 0 ? initialProps : moduleConfig.defaultValues || {}
+          Object.keys(initialProps).length > 0
+            ? initialProps
+            : (mode === 'ai-review' ? {} : moduleConfig.defaultValues || {})
 
         const [newInstance] = await trx
           .table('module_instances')

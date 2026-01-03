@@ -25,46 +25,49 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <header className="bg-backdrop-low border-b border-line-low">
-        <div className="h-18 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-3 items-center">
-            <div className="flex items-center gap-1">
+      <header className="bg-backdrop-low border-b border-line-low sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-4">
+            <div className="flex items-center gap-2 min-w-0">
               {showAdminLinks && <SidebarTrigger />}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      href="/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center w-9 h-9 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all cursor-pointer"
-                    >
-                      <FontAwesomeIcon icon={faSquareArrowUpRight} size="lg" />
-                      <span className="sr-only">View Site</span>
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View site</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              
+              <div className="flex items-center gap-1 min-w-0">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href="/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all cursor-pointer"
+                      >
+                        <FontAwesomeIcon icon={faSquareArrowUpRight} size="lg" />
+                        <span className="sr-only">View Site</span>
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View site</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {title && title !== 'Admin' && (
+                  <h1 className="text-base sm:text-lg font-semibold text-neutral-high truncate ml-1">
+                    {title}
+                  </h1>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-center">
-              {title && title !== 'Admin' && (
-                <>
-                  <h1 className="text-lg font-semibold text-neutral-high">{title}</h1>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-4">
-              <ThemeToggle />
+            <div className="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
+              <div className="hidden sm:block">
+                <ThemeToggle />
+              </div>
               <Link
                 href={adminPath('logout')}
                 method="post"
                 as="button"
-                className="px-2 py-0.5 border border-line-low rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium cursor-pointer"
+                className="px-3 py-1.5 border border-line-low rounded-lg text-xs sm:text-sm text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high transition-colors cursor-pointer whitespace-nowrap"
               >
                 Logout
               </Link>

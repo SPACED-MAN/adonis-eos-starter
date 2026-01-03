@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
+import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,6 +232,7 @@ export function AgentModal({
 
         // Perform a background reload to update the UI while the modal is still open
         if (contextId && scope !== 'global') {
+          bypassUnsavedChanges(true)
           router.reload({
             only: ['post', 'modules', 'aiReviewDraft', 'reviewDraft'],
           })
@@ -661,12 +663,13 @@ export function AgentModal({
                   onOpenChange(false)
                   // For post context, reload data
                   if (contextId && scope !== 'global') {
-                    const targetMode = 'ai-review'
+                    const targetMode = scope === 'field' ? (viewMode || 'source') : 'ai-review'
                     const url = new URL(window.location.href)
                     url.searchParams.set('view', targetMode)
                     window.history.replaceState({}, '', url.toString())
+                    bypassUnsavedChanges(true)
                     router.reload({
-                      only: ['aiReviewDraft', 'post', 'modules'],
+                      only: scope === 'field' ? ['post', 'modules'] : ['aiReviewDraft', 'post', 'modules'],
                       onSuccess: () => {
                         if (onSuccess) {
                           onSuccess(agentResponse)
@@ -680,7 +683,7 @@ export function AgentModal({
                   }
                 }}
               >
-                View Changes
+                {scope === 'field' ? 'OK' : 'View Changes'}
               </AlertDialogAction>
             </>
           ) : (

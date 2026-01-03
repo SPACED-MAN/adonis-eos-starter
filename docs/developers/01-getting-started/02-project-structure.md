@@ -18,7 +18,7 @@ The heart of the application.
 - **`middleware/`**: HTTP middleware for authentication, locale detection, rate limiting, and redirects.
 - **`models/`**: Lucid ORM models representing the database schema (Posts, Modules, Media, etc.).
 - **`modules/`**: CMS module definitions. Each file defines the schema, default props, and AI guidance for a content block.
-- **`post_types/`**: Code-first post type configurations (e.g., Blog, Page, Documentation).
+- **`post_types/`**: Code-first post type configurations. Each file defines labels, UI behavior, custom fields, and SEO defaults using the `PostTypeConfig` interface.
 - **`roles/`**: RBAC (Role-Based Access Control) definitions.
 - **`services/`**: Long-lived singleton services handling registries, serialization, preview tokens, and more.
 - **`taxonomies/`**: Code-first taxonomy definitions for categories and tags.

@@ -61,9 +61,9 @@ export default class TestimonialListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Testimonials',
+        title: 'Lorem ipsum',
         subtitle:
-          'Hear from customers and partners. Testimonials are pulled from the Testimonial post type so they stay in sync.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         testimonials: [],
         theme: 'low',
       },

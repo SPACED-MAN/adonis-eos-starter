@@ -60,7 +60,7 @@ export default function Home({ recentPosts = [], widgets = [] }: Props) {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-standout-low to-backdrop-low rounded-2xl border border-line-low p-8 shadow-sm">
+          <div className="bg-gradient-to-r from-standout-low to-backdrop-low rounded-2xl border border-line-low p-6 sm:p-8 shadow-sm">
             <h1 className="text-2xl font-bold text-neutral-high mb-2">Welcome back!</h1>
             <p className="text-neutral-medium max-w-2xl">
               Here is what's happening with your site today. You can manage your content,

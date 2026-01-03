@@ -83,7 +83,7 @@ function LiveModuleList({ postId }: { postId: string }) {
   const anchors = useMemo(() => getModuleAnchors(modules), [modules])
 
   return (
-    <main className="overflow-x-hidden">
+    <main className="overflow-x-clip">
       {modules.map((module) => {
         const Component = getModuleComponent(module.type)
         if (!Component) return null

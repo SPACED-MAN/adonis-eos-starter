@@ -14,12 +14,12 @@ export default class AuthController {
 
   async login({ request, response, auth, session }: HttpContext) {
     // Validate request
-    const { email, password } = await request.validateUsing(loginValidator)
+    const { uid, password } = await request.validateUsing(loginValidator)
 
     try {
       // Verify credentials using the AuthFinder mixin method
       // This is timing-attack safe as per AdonisJS docs
-      const user = await User.verifyCredentials(email, password)
+      const user = await User.verifyCredentials(uid, password)
 
       // Login the user
       await auth.use('web').login(user)
@@ -40,11 +40,11 @@ export default class AuthController {
         userId: null,
         ip: request.ip(),
         userAgent: request.header('user-agent') || null,
-        metadata: { email },
+        metadata: { uid },
       })
 
       // verifyCredentials throws E_INVALID_CREDENTIALS on failure
-      session.flash('error', 'Invalid email or password')
+      session.flash('error', 'Invalid credentials')
       return response.redirect().back()
     }
   }

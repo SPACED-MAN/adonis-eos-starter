@@ -31,6 +31,7 @@ export const createPostValidator = vine.compile(
     socialImageId: vine.string().uuid().nullable().optional(),
     noindex: vine.boolean().optional(),
     nofollow: vine.boolean().optional(),
+    robotsJson: vine.any().optional(),
     moduleGroupId: vine.string().uuid().nullable().optional(),
   })
 )

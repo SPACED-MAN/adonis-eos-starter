@@ -88,12 +88,12 @@ export default class AccordionModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: '',
-        subtitle: '',
+        title: 'Lorem ipsum',
+        subtitle: 'Consectetur adipiscing elit, sed do eiusmod tempor.',
         items: [
           {
-            title: 'How do I use this?',
-            content: '<p>Simply click the title to expand the content.</p>',
+            title: 'Lorem ipsum dolor sit amet?',
+            content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
           },
         ],
         allowMultiple: false,

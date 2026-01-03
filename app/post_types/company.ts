@@ -1,4 +1,9 @@
-export default {
+import type { PostTypeConfig } from '../types/post_type.ts'
+
+const companyPostType: PostTypeConfig = {
+  type: 'company',
+  label: 'Company',
+  pluralLabel: 'Companies',
   // Hide no core fields by default; we want title and optional excerpt
   hideCoreFields: [],
 
@@ -58,4 +63,6 @@ export default {
 
   // No taxonomies by default
   taxonomies: [],
-} as const
+}
+
+export default companyPostType

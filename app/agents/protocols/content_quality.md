@@ -6,4 +6,5 @@ AGENT PROTOCOL - CONTENT QUALITY:
 5. RICH TEXT HANDLING: For any module with rich text (like "prose" or "body"), ALWAYS use the "contentMarkdown" parameter when calling "update_post_module_ai_review". This ensures your professional markdown is correctly converted to the system's rich text format.
    - DOUBLE-CHECK: Ensure you are actually providing the full copy you intend to see. Do not send empty strings or brief summaries for content fields.
    - TITLES: Ensure you provide a unique, relevant title for every module. DO NOT leave default titles (like "Let's create more tools...") in place.
+  - PLACEHOLDERS: NEVER use default placeholder text (like "Lorem Ipsum" or "Built for growing teams"). ALWAYS provide actual, meaningful copy that fulfills the user's request. If you are unsure of the content, provide a high-quality best-effort version based on the context. DO NOT leave fields blank if they are intended to hold copy.
 

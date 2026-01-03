@@ -91,38 +91,38 @@ export default class FeaturesListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Designed for business teams like yours',
+        title: 'Lorem ipsum dolor sit amet',
         subtitle:
-          'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         features: [
           {
             icon: 'bullhorn',
-            title: 'Marketing',
-            body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization and hit your marketing goals every month.',
+            title: 'Consectetur',
+            body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization.',
           },
           {
             icon: 'scale-balanced',
-            title: 'Legal',
-            body: 'Protect your organization and stay compliant with structured workflows and granular permissions.',
+            title: 'Adipiscing',
+            body: 'Protect your organization and stay compliant with structured workflows.',
           },
           {
             icon: 'gear',
-            title: 'Business Automation',
-            body: 'Automate handoffs, notifications, and approvals so your team can focus on high‑value work.',
+            title: 'Elit sed',
+            body: 'Automate handoffs, notifications, and approvals so your team can focus.',
           },
           {
             icon: 'coins',
-            title: 'Finance',
+            title: 'Tempor',
             body: 'Audit‑ready workflows for close, forecasting, and quarterly budgeting.',
           },
           {
             icon: 'pen-ruler',
-            title: 'Enterprise Design',
+            title: 'Incididunt',
             body: 'Craft consistent experiences for both marketing and product with shared systems.',
           },
           {
             icon: 'diagram-project',
-            title: 'Operations',
+            title: 'Labore',
             body: 'Keep the business running smoothly with repeatable, measurable processes.',
           },
         ],

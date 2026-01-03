@@ -1,4 +1,9 @@
-export default {
+import type { PostTypeConfig } from '../types/post_type.ts'
+
+const testimonialPostType: PostTypeConfig = {
+  type: 'testimonial',
+  label: 'Testimonial',
+  pluralLabel: 'Testimonials',
   // For testimonials, we don't need public pages
   permalinksEnabled: false,
 
@@ -26,4 +31,6 @@ export default {
     enabled: true,
     label: 'Author Photo',
   },
-} as const
+}
+
+export default testimonialPostType

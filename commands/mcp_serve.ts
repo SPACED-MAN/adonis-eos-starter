@@ -1087,6 +1087,45 @@ function createServerInstance() {
     }
   )
 
+  const processObject = (obj: any, currentSchema: any[]) => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return
+
+    for (const key of Object.keys(obj)) {
+      const field = currentSchema.find((f: any) => f.slug === key)
+      if (!field) continue
+
+      const val = obj[key]
+
+      // RichText handling (convert Markdown to Lexical)
+      if (field.type === 'richtext') {
+        if (typeof val === 'string' && val.trim() !== '') {
+          const trimmed = val.trim()
+          const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+          if (!looksJson) {
+            obj[key] = markdownToLexical(val, { skipFirstH1: false })
+          }
+        }
+      }
+
+      // Media ID flattening
+      if (field.type === 'media' && field.config?.storeAs === 'id') {
+        if (val && typeof val === 'object' && val.id) {
+          obj[key] = String(val.id)
+        }
+      }
+
+      // Recurse into nested objects
+      if (field.type === 'object' && field.fields) {
+        processObject(obj[key], field.fields)
+      }
+
+      // Recurse into repeaters
+      if (field.type === 'repeater' && field.item?.fields && Array.isArray(obj[key])) {
+        obj[key].forEach((item: any) => processObject(item, field.item.fields))
+      }
+    }
+  }
+
   server.tool(
     'update_post_module_ai_review',
     'Update a post module\'s content. For global modules, this only adds overrides for the current post and does NOT modify the global component for other posts.',
@@ -1096,8 +1135,9 @@ function createServerInstance() {
       contentMarkdown: z.string().optional().describe('Convenience for prose modules: provide markdown and it will be converted to Lexical JSON and applied to the main content field.'),
       locked: z.boolean().optional(),
       orderIndex: z.number().int().optional(),
+      mode: z.enum(['source', 'review', 'ai-review']).optional().default('ai-review').describe('Target mode: source (live), review, or ai-review'),
     },
-    async ({ postModuleId, overrides, contentMarkdown, locked, orderIndex }) => {
+    async ({ postModuleId, overrides, contentMarkdown, locked, orderIndex, mode }) => {
       try {
         // Safety: Prevent modification of global properties that shouldn't be touched by AI
         if (overrides) {
@@ -1161,11 +1201,26 @@ function createServerInstance() {
           }
         }
 
+        // Automatic conversion for ANY overrides (handles nested repeaters)
+        if (finalOverrides && typeof finalOverrides === 'object') {
+          const row = await db
+            .from('post_modules as pm')
+            .join('module_instances as mi', 'pm.module_id', 'mi.id')
+            .where('pm.id', postModuleId)
+            .select('mi.type')
+            .first()
+          
+          if (row && moduleRegistry.has(String(row.type))) {
+            const schema = moduleRegistry.getSchema(String(row.type))
+            processObject(finalOverrides, schema.fieldSchema)
+          }
+        }
+
         const updated = await UpdatePostModule.handle({
           postModuleId,
           overrides: finalOverrides,
           orderIndex,
-          mode: 'ai-review',
+          mode: mode as any,
         })
         return jsonResult({ data: { id: updated.id, updatedAt: updated.updatedAt } })
       } catch (e: any) {
@@ -1956,6 +2011,97 @@ function createServerInstance() {
       }
 
       return jsonResult({ data: { agentId, fieldKey, response: agentResponse, staged } })
+    }
+  )
+
+  // ---- Named agent execution (run a named agent on a post or globally) ----
+  server.tool(
+    'run_agent',
+    'Run a named internal agent on a post or globally. This is the recommended way to trigger EOS agents from external systems like n8n.',
+    {
+      agentId: z.string().min(1).describe('Agent id to run (e.g. "general_assistant", "translator")'),
+      postId: z.string().optional().describe('Optional post id to provide context for'),
+      scope: z
+        .enum(['dropdown', 'global', 'field', 'posts.bulk'])
+        .optional()
+        .default('dropdown')
+        .describe('The scope in which to run the agent'),
+      context: z.record(z.any()).optional().describe('Optional extra context for the agent'),
+      openEndedContext: z
+        .string()
+        .optional()
+        .describe('Optional freeform instructions from a human (only if the agent supports it)'),
+    },
+    async ({ agentId, postId, scope, context, openEndedContext }) => {
+      try {
+        const agent = agentRegistry.get(agentId)
+        if (!agent) return errorResult('Agent not found', { agentId })
+
+        // 1. Verify scope availability
+        const fieldKey = context?.fieldKey
+        const fieldType = context?.fieldType
+        if (!agentRegistry.isAvailableInScope(agentId, scope as any, undefined, fieldKey, fieldType)) {
+          return errorResult(`Agent not available for ${scope} scope`, { agentId, scope })
+        }
+
+        // 2. Resolve system user for attribution
+        const actorUserId = await resolveActorUserId({ agentId })
+
+        // 3. Import necessary services
+        const { default: agentExecutor } = await import('#services/agent_executor')
+
+        // 4. Build execution context & payload
+        const executionContext: any = {
+          agent,
+          scope,
+          userId: actorUserId,
+          data: {
+            postId,
+            ...(context || {}),
+          },
+        }
+
+        let payload: any = {
+          context: {
+            ...(context || {}),
+            ...(openEndedContext ? { openEndedContext } : {}),
+          },
+        }
+
+        if (postId) {
+          const post = await db.from('posts').where('id', postId).whereNull('deleted_at').first()
+          if (!post) return errorResult('Post not found', { postId })
+
+          // Default viewMode is 'source' unless overridden in context
+          const viewMode = context?.viewMode || 'source'
+          const canonical = await PostSerializerService.serialize(postId, viewMode)
+
+          payload = {
+            ...payload,
+            post: canonical,
+          }
+          executionContext.data.post = canonical
+        }
+
+        // 5. Execute
+        const result = await agentExecutor.execute(agent as any, executionContext, payload)
+
+        if (!result.success) {
+          return errorResult('Agent execution failed', { message: result.error?.message })
+        }
+
+        // 6. Return standard response
+        return jsonResult({
+          success: true,
+          agentId,
+          postId,
+          response: result.data,
+          summary: (result as any).summary,
+          applied: (result as any).applied || [],
+        })
+      } catch (e: any) {
+        return errorResult('Agent execution error', { message: e?.message || String(e) })
+      }
     }
   )
 

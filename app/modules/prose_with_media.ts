@@ -15,7 +15,7 @@ export default class ProseWithMediaModule extends BaseModule {
       type: 'prose-with-media',
       name: 'Prose with Media',
       description:
-        'A layout pairing narrative content with a supporting visual block. Use this for feature explainers or editorial sections. EXPECTATION: Provide a substantial amount of body copy (multiple paragraphs) to properly support the visual element.',
+        'A layout pairing narrative content with a supporting visual block. Use this for feature explainers or editorial sections. EXPECTATION: Provide a substantial amount of body copy (multiple paragraphs) to properly support the visual element. NOTE: Enabling Interactivity with long content will make the media sticky.',
       icon: 'layout-text-media',
       allowedScopes: ['local', 'global'],
       lockable: true,
@@ -113,7 +113,7 @@ export default class ProseWithMediaModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: "Let's create more tools and ideas that bring us together.",
+        title: 'Lorem ipsum dolor sit amet',
         body: {
           root: {
             type: 'root',
@@ -123,7 +123,7 @@ export default class ProseWithMediaModule extends BaseModule {
                 children: [
                   {
                     type: 'text',
-                    text: 'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+                    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
                   },
                 ],
               },
@@ -135,7 +135,7 @@ export default class ProseWithMediaModule extends BaseModule {
         objectFit: 'contain',
         ctas: [
           {
-            label: 'Get started',
+            label: 'Lorem Ipsum',
             url: '#',
             style: 'primary',
           },

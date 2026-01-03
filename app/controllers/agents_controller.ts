@@ -11,6 +11,7 @@ import type { AgentExecutionContext, AgentScope } from '#types/agent_types'
 import moduleRegistry from '#services/module_registry'
 import agentExecutionService from '#services/agent_execution_service'
 import { coerceJsonObject } from '../helpers/jsonb.js'
+import env from '#start/env'
 
 export default class AgentsController {
   /**
@@ -334,37 +335,42 @@ export default class AgentsController {
     const suggestedPost: any = (suggestions && suggestions.post) || {}
     const suggestedModules: any[] = Array.isArray(suggestions?.modules) ? suggestions.modules : []
 
-    // For field-scoped agents, automatically place generated media in the target field
-    if (scope === 'field' && fieldKey && generatedMediaId) {
-      if (fieldKey === 'post.featuredImageId') {
-        suggestedPost.featuredImageId = generatedMediaId
-      } else if (fieldKey.startsWith('module.')) {
-        const fieldKeyParts = fieldKey.split('.')
-        if (fieldKeyParts.length >= 3) {
-          const moduleType = fieldKeyParts[1]
-          const fieldName = fieldKeyParts.slice(2).join('.')
-          const contextModuleInstanceId = (ctx as any).moduleInstanceId
+    // For field-scoped agents, automatically place generated media or direct value in the target field
+    if (scope === 'field' && fieldKey) {
+      const suggestedValue = generatedMediaId || suggestions.value || suggestions.content || suggestions.text
 
-          let moduleUpdate = suggestedModules.find((m: any) => {
-            if (m.type !== moduleType) return false
-            if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId)
-              return false
-            return true
-          })
+      if (suggestedValue !== undefined) {
+        if (fieldKey === 'post.featuredImageId' || fieldKey.startsWith('post.')) {
+          const k = fieldKey.startsWith('post.') ? fieldKey.slice(5) : fieldKey
+          suggestedPost[k] = suggestedValue
+        } else if (fieldKey.startsWith('module.')) {
+          const fieldKeyParts = fieldKey.split('.')
+          if (fieldKeyParts.length >= 3) {
+            const moduleType = fieldKeyParts[1]
+            const fieldName = fieldKeyParts.slice(2).join('.')
+            const contextModuleInstanceId = (ctx as any).moduleInstanceId
 
-          if (!moduleUpdate) {
-            moduleUpdate = { type: moduleType, props: {} }
-            if (contextModuleInstanceId) moduleUpdate.moduleInstanceId = contextModuleInstanceId
-            suggestedModules.push(moduleUpdate)
+            let moduleUpdate = suggestedModules.find((m: any) => {
+              if (m.type !== moduleType) return false
+              if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId)
+                return false
+              return true
+            })
+
+            if (!moduleUpdate) {
+              moduleUpdate = { type: moduleType, props: {} }
+              if (contextModuleInstanceId) moduleUpdate.moduleInstanceId = contextModuleInstanceId
+              suggestedModules.push(moduleUpdate)
+            }
+
+            const fieldParts = fieldName.split('.')
+            let currentProps: any = moduleUpdate.props
+            for (let i = 0; i < fieldParts.length - 1; i++) {
+              if (!currentProps[fieldParts[i]]) currentProps[fieldParts[i]] = {}
+              currentProps = currentProps[fieldParts[i]]
+            }
+            currentProps[fieldParts[fieldParts.length - 1]] = suggestedValue
           }
-
-          const fieldParts = fieldName.split('.')
-          let currentProps: any = moduleUpdate.props
-          for (let i = 0; i < fieldParts.length - 1; i++) {
-            if (!currentProps[fieldParts[i]]) currentProps[fieldParts[i]] = {}
-            currentProps = currentProps[fieldParts[i]]
-          }
-          currentProps[fieldParts[fieldParts.length - 1]] = generatedMediaId
         }
       }
     }
@@ -505,10 +511,27 @@ export default class AgentsController {
       })
     }
 
+    const hasToolChanges =
+      Array.isArray(suggestions.toolResults) &&
+      suggestions.toolResults.some(
+        (r: any) =>
+          r.success &&
+          [
+            'save_post_ai_review',
+            'add_module_to_post_ai_review',
+            'update_post_module_ai_review',
+            'remove_post_module_ai_review',
+            'create_post_ai_review',
+            'create_translation_ai_review',
+          ].includes(r.tool || r.tool_name)
+      )
+
     const responseData: any = {
       message:
-        applied.length > 0
-          ? 'Suggestions saved to AI review draft'
+        applied.length > 0 || hasToolChanges
+          ? scope === 'field'
+            ? 'Suggestions applied to the current version'
+            : 'Suggestions saved to AI review draft'
           : isRedirecting
             ? 'Translation complete. View the new post to see changes.'
             : 'Agent completed successfully',
@@ -711,6 +734,89 @@ export default class AgentsController {
         error: e?.message || 'Failed to run global agent',
         details: process.env.NODE_ENV === 'development' ? e?.stack : undefined,
       })
+    }
+  }
+
+  /**
+   * POST /api/public/agents/:agentId/run
+   * External trigger for agents (webhooks/API)
+   * Requires X-Agent-Key or Authorization header matching MCP_AUTH_TOKEN or AGENT_TRIGGER_SECRET
+   */
+  async triggerExternal({ params, request, response, auth }: HttpContext) {
+    const { agentId } = params
+    const secret = env.get('AGENT_TRIGGER_SECRET') || env.get('MCP_AUTH_TOKEN')
+
+    // 1. Authentication
+    const providedSecret =
+      request.header('X-Agent-Key') || request.header('Authorization')?.replace('Bearer ', '')
+
+    if (secret && providedSecret !== secret) {
+      return response.unauthorized({ error: 'Invalid trigger secret' })
+    }
+
+    if (!secret) {
+      console.warn('[AgentsController.triggerExternal] No trigger secret configured. Endpoint is unprotected.')
+    }
+
+    // 2. Validate agent
+    const agent = agentRegistry.get(agentId)
+    if (!agent) return response.notFound({ error: 'Agent not found' })
+
+    const payload = request.all()
+    const { postId, context = {}, openEndedContext, scope = 'dropdown' } = payload
+
+    // 3. Verify scope
+    if (!agentRegistry.isAvailableInScope(agentId, scope as any)) {
+      return response.forbidden({ error: `Agent not available for ${scope} scope` })
+    }
+
+    try {
+      let result: any
+      if (postId) {
+        result = await this._runAgentForPost(postId, agent, auth, {
+          scope: scope as any,
+          context,
+          openEndedContext,
+          viewMode: context.viewMode || 'source',
+        })
+      } else {
+        // Run as global agent
+        // For external triggers without a post, we mimic the runGlobal behavior
+        // but need to handle the execution manually since runGlobal is an endpoint itself
+        
+        const executionContext: AgentExecutionContext = {
+          agent,
+          scope: 'global',
+          userId: null, // External trigger
+          data: { ...context },
+        }
+
+        const runPayload = {
+          context: {
+            ...context,
+            openEndedContext,
+          },
+        }
+
+        const agentExecutor = (await import('#services/agent_executor')).default
+        const runResult = await agentExecutor.execute(agent, executionContext, runPayload)
+
+        if (!runResult.success) {
+          throw runResult.error || new Error('Agent execution failed')
+        }
+
+        result = {
+          success: true,
+          agentId,
+          response: runResult.data,
+          summary: (runResult as any).summary,
+        }
+      }
+
+      return response.ok(result)
+    } catch (e: any) {
+      console.error('External agent trigger error:', e)
+      return response.badRequest({ error: e.message || 'Failed to trigger agent' })
     }
   }
 }

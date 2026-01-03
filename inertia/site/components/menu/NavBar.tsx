@@ -94,14 +94,14 @@ export function NavBar({
               </React.Suspense>
             </div>
           )}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             {primaryNodes.map((n) => (
               <NavItem key={n.id} node={n} menuMeta={menuMeta} />
             ))}
           </nav>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center">
+            <div className="hidden lg:flex items-center">
               <ThemeToggle />
             </div>
             <LocaleSwitcher />

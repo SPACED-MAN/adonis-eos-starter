@@ -86,8 +86,12 @@ class AgentExecutor {
             Array.isArray(parsed.tool_calls) &&
             parsed.tool_calls.length > 0
           ) {
+            // Determine target mode for tool execution
+            const targetMode =
+              context.scope === 'field' ? (context.data?.viewMode || 'source') : 'ai-review'
+
             // Execute tools for this turn
-            const toolResults = await this.executeTools(agent, parsed.tool_calls)
+            const toolResults = await this.executeTools(agent, parsed.tool_calls, targetMode)
             allToolResults.push(...toolResults)
 
             transcript.push({
@@ -287,7 +291,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
   /**
    * Execute MCP tools and return results
    */
-  private async executeTools(agent: AgentDefinition, toolCalls: any[]): Promise<any[]> {
+  private async executeTools(agent: AgentDefinition, toolCalls: any[], mode?: string): Promise<any[]> {
     const results: any[] = []
     const mediaTools = ['generate_image', 'generate_video']
     
@@ -371,7 +375,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         }
 
         // Execute the tool
-        const result = await mcpClientService.callTool(tool, params, agent.id)
+        const result = await mcpClientService.callTool(tool, params, agent.id, mode)
         results.push({
           tool,
           success: true,
@@ -420,6 +424,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
       let systemPrompt = this.interpolateTemplate(agent.llmConfig.systemPrompt + styleGuide + writingStyle, {
         agent: agent.name,
         scope: context.scope,
+        targetMode: context.scope === 'field' ? (context.data?.viewMode || 'source') : 'ai-review',
         ...context.data,
         ...payload,
       })
@@ -482,7 +487,7 @@ IMPORTANT: You must respond with a JSON object. If you need to use tools, includ
 Format for tool calls:
 {
   "tool_calls": [
-    { "tool": "tool_name", "params": { "key": "value" } }
+    { "tool": "tool_name", "params": { "key": "value", "mode": "{{targetMode}}" } }
   ]
 }
 

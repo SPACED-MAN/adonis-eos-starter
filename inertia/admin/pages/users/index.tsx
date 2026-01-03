@@ -274,14 +274,14 @@ export default function UsersIndex() {
 
         {activeTab === 'list' && (
           <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <Input
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="Filter by email, name, role…"
-                className="max-w-sm"
+                placeholder="Filter users…"
+                className="w-full sm:max-w-xs"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between sm:justify-end gap-4">
                 {loading && <span className="text-xs text-neutral-low">Loading…</span>}
                 <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
                   <AlertDialogTrigger asChild>
@@ -365,7 +365,7 @@ export default function UsersIndex() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
-                  <TableHead>Username</TableHead>
+                  <TableHead className="hidden md:table-cell">Username</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -379,8 +379,13 @@ export default function UsersIndex() {
 
                   return (
                     <TableRow key={u.id}>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[150px] sm:max-w-none">
+                        <div className="truncate font-medium">{u.email}</div>
+                        <div className="md:hidden text-xs text-neutral-low mt-0.5 truncate italic">
+                          {u.username || 'No username'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Input
                           defaultValue={u.username || ''}
                           disabled={!canModifyUser}
@@ -398,7 +403,7 @@ export default function UsersIndex() {
                           disabled={!canModifyUser}
                           onValueChange={(val) => saveRow(u.id, { role: val as Role })}
                         >
-                          <SelectTrigger className="w-[160px]">
+                          <SelectTrigger className="w-[110px] sm:w-[160px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -413,69 +418,73 @@ export default function UsersIndex() {
                         </Select>
                       </TableCell>
                       <TableCell className="text-right">
+                        <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-2">
                         {canModifyUser && (
                           <>
-                            <a
-                              href={`/admin/users/${u.id}/edit`}
-                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
-                            >
-                              Edit
-                            </a>
-                            <button
-                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(
-                                    `/api/users/${encodeURIComponent(u.id)}/profile`,
-                                    {
-                                      credentials: 'same-origin',
-                                    }
-                                  )
-                                  const j = await res.json().catch(() => ({}))
-                                  let pid: string | null = j?.id || null
-                                  if (!pid) {
-                                    const csrf = getXsrf()
-                                    const createRes = await fetch(
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`/admin/users/${u.id}/edit`}
+                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                              >
+                                Edit
+                              </a>
+                              <button
+                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(
                                       `/api/users/${encodeURIComponent(u.id)}/profile`,
                                       {
-                                        method: 'POST',
-                                        headers: {
-                                          'Accept': 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                        },
                                         credentials: 'same-origin',
                                       }
                                     )
-                                    const cj = await createRes.json().catch(() => ({}))
-                                    if (!createRes.ok) {
-                                      toast.error(cj?.error || 'Failed to create profile')
-                                      return
+                                    const j = await res.json().catch(() => ({}))
+                                    let pid: string | null = j?.id || null
+                                    if (!pid) {
+                                      const csrf = getXsrf()
+                                      const createRes = await fetch(
+                                        `/api/users/${encodeURIComponent(u.id)}/profile`,
+                                        {
+                                          method: 'POST',
+                                          headers: {
+                                            'Accept': 'application/json',
+                                            'Content-Type': 'application/json',
+                                            ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                          },
+                                          credentials: 'same-origin',
+                                        }
+                                      )
+                                      const cj = await createRes.json().catch(() => ({}))
+                                      if (!createRes.ok) {
+                                        toast.error(cj?.error || 'Failed to create profile')
+                                        return
+                                      }
+                                      pid = cj?.id || null
                                     }
-                                    pid = cj?.id || null
+                                    if (pid) {
+                                      bypassUnsavedChanges(true)
+                                      router.visit(`/admin/posts/${pid}/edit`)
+                                    }
+                                  } catch {
+                                    toast.error('Failed to open profile')
                                   }
-                                  if (pid) {
-                                    bypassUnsavedChanges(true)
-                                    router.visit(`/admin/posts/${pid}/edit`)
-                                  }
-                                } catch {
-                                  toast.error('Failed to open profile')
-                                }
-                              }}
-                            >
-                              Edit Details
-                            </button>
+                                }}
+                              >
+                                Profile
+                              </button>
+                            </div>
+                            
                             {pwdFor === u.id ? (
-                              <div className="inline-flex items-center gap-2">
+                              <div className="flex items-center gap-2 mt-1 sm:mt-0">
                                 <Input
                                   type="password"
                                   value={pwd}
                                   onChange={(e) => setPwd(e.target.value)}
-                                  placeholder="New password"
-                                  className="w-[200px]"
+                                  placeholder="New"
+                                  className="w-[100px] h-8 text-xs"
                                 />
                                 <button
-                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
+                                  className="px-2 py-1 text-[10px] border border-line-medium rounded bg-standout-high text-on-high"
                                   disabled={!!saving[u.id]}
                                   onClick={() => {
                                     resetPassword(u.id, pwd)
@@ -486,21 +495,21 @@ export default function UsersIndex() {
                                   Save
                                 </button>
                                 <button
-                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                  className="px-2 py-1 text-[10px] border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                                   onClick={() => {
                                     setPwdFor(null)
                                     setPwd('')
                                   }}
                                 >
-                                  Cancel
+                                  ✕
                                 </button>
                               </div>
                             ) : (
                               <button
-                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                                 onClick={() => setPwdFor(u.id)}
                               >
-                                Reset Password
+                                PW
                               </button>
                             )}
                           </>
@@ -508,8 +517,8 @@ export default function UsersIndex() {
                         {canDeleteUser && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
-                                Delete
+                              <button className="px-2 py-1 text-[10px] sm:text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
+                                Del
                               </button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -552,6 +561,7 @@ export default function UsersIndex() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )

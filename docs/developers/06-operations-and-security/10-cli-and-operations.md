@@ -22,9 +22,20 @@ Use these commands to scaffold new CMS artifacts following the code-first approa
 
 ### Maintenance Utilities
 
-- **`node ace audit:internal-links`**: Scans content for hardcoded URLs and suggests post references.
-- **`node ace populate:canonical-urls`**: Backfills canonical URLs based on current URL patterns.
 - **`node ace mcp:dump-context`**: Exports code-derived context for auditing/diffing.
+- **`node ace mcp:serve`**: Starts the Model Context Protocol (MCP) server for AI integration.
+
+### Maintenance Scripts
+
+These utilities are intended for use by developers or Cursor agents and are located in the `scripts/` directory. Run them using `tsx`.
+
+- **`tsx scripts/audit_internal_links.ts`**: Scans content for hardcoded URLs and suggests post references.
+- **`tsx scripts/check_user.ts <email> [password]`**: Checks user existence and optionally verifies password.
+- **`tsx scripts/debug_db.ts`**: Low-level database inspection script.
+
+### Administrative Operations
+
+- **Populate Canonical URLs**: Accessible via the Admin UI under **Settings > SEO** (or via `POST /api/seo/canonical-urls/populate`). This backfills canonical URLs based on current URL patterns.
 
 ---
 

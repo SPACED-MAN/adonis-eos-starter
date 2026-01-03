@@ -60,9 +60,9 @@ export default class ProfileListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Our Team',
+        title: 'Lorem ipsum',
         subtitle:
-          'Meet the people behind the work. Profiles are pulled from the Profile post type so they sync automatically.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         profiles: [],
         theme: 'low',
       },

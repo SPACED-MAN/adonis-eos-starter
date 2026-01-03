@@ -7,3 +7,4 @@ Leverage workflows, AI agents, and the Model Context Protocol for advanced autom
 - **[Workflows and Webhooks](./04-automation-and-ai/06a-workflows-and-webhooks.md)**: Triggering external actions and integrating with third-party services.
 - **[AI Agents](./04-automation-and-ai/06b-ai-agents.md)**: Using specialized AI agents for translation, image generation, and content review.
 - **[MCP (Model Context Protocol)](./04-automation-and-ai/06c-mcp.md)**: Connecting your CMS to AI development tools like Cursor and n8n.
+- **[External Agent Triggers](./04-automation-and-ai/06d-external-triggers.md)**: Triggering agents from external systems via webhooks and REST API.

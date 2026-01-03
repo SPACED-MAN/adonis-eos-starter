@@ -131,11 +131,11 @@ export default class CalloutModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Ready to get started?',
+        title: 'Lorem ipsum dolor sit amet',
         prose: null,
         ctas: [
-          { label: 'Get Started', url: '#', style: 'primary' },
-          { label: 'View Documentation', url: '#', style: 'outline' },
+          { label: 'Lorem Ipsum', url: '#', style: 'primary' },
+          { label: 'Dolor Sit', url: '#', style: 'outline' },
         ],
         variant: 'centered',
         objectFit: 'cover',

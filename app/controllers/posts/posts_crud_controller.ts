@@ -59,6 +59,9 @@ export default class PostsCrudController extends BasePostsController {
         excerpt: payload.excerpt,
         metaTitle: payload.metaTitle,
         metaDescription: payload.metaDescription,
+        noindex: payload.noindex,
+        nofollow: payload.nofollow,
+        robotsJson: payload.robotsJson,
         moduleGroupId: (payload as any).moduleGroupId,
         userId: auth.user!.id,
       })

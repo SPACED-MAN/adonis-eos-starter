@@ -1,4 +1,9 @@
-export default {
+import type { PostTypeConfig } from '../types/post_type.ts'
+
+const pagePostType: PostTypeConfig = {
+  type: 'page',
+  label: 'Page',
+  pluralLabel: 'Pages',
   // Hide core fields in the editor for this post type
   // Allowed: 'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'
   hideCoreFields: [],
@@ -31,4 +36,6 @@ export default {
       { label: 'Variation B', value: 'B', weight: 50 },
     ],
   },
-} as const
+}
+
+export default pagePostType

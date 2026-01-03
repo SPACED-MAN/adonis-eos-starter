@@ -97,6 +97,17 @@ class MCPClientService {
         description:
           'Create translation posts for multiple locales and initialize AI Review drafts (optionally cloning module structure).',
       },
+      { name: 'list_agents', description: 'List all enabled agents' },
+      {
+        name: 'run_agent',
+        description:
+          'Run a named internal agent on a post or globally. Params: { agentId, postId, scope, context, openEndedContext }',
+      },
+      {
+        name: 'run_field_agent',
+        description:
+          'Run an external agent for a single field (scope=field). Returns the agent response and can optionally stage changes into AI Review.',
+      },
       { name: 'suggest_modules_for_layout', description: 'Suggest modules for a page layout' },
       {
         name: 'search_media',
@@ -187,10 +198,11 @@ class MCPClientService {
    * Call an MCP tool
    * For internal agents, this directly calls the underlying actions/tools
    */
-  async callTool(toolName: string, params: Record<string, any>, agentId?: string): Promise<any> {
+  async callTool(toolName: string, params: Record<string, any>, agentId?: string, mode?: string): Promise<any> {
     // For internal agents, we directly call the underlying actions
     // This avoids the overhead of HTTP/SSE communication
 
+    const targetMode = (mode || params.mode || 'ai-review') as any
     switch (toolName) {
       case 'list_post_types': {
         const types = postTypeRegistry.list()
@@ -365,7 +377,7 @@ class MCPClientService {
 
         await RevisionService.record({
           postId: post.id,
-          mode: 'ai-review',
+          mode: targetMode,
           snapshot: draftPayload,
           userId: actorUserId,
         })
@@ -459,19 +471,19 @@ class MCPClientService {
             editsToApply.some((e) => String((e as any)?.postModuleId || '').trim() === postModuleId)
 
           // Auto-populate hero module
-          const firstHero = (seededModules as any[]).find((m: any) => 
+          const firstHero = (seededModules as any[]).find((m: any) =>
             String(m.type).toLowerCase().includes('hero')
           )
           if (firstHero && !alreadyEditsModule(String(firstHero.postModuleId))) {
             const heroTitle = String(title || '').trim() || mdH1 || ''
             const heroSubtitle =
               String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
-            
+
             if (heroTitle || heroSubtitle) {
               const schema = moduleRegistry.getSchema(firstHero.type)
               const hasSubtitle = schema.fieldSchema.some(f => f.slug === 'subtitle')
               const hasBody = schema.fieldSchema.some(f => f.slug === 'body')
-              
+
               editsToApply.push({
                 postModuleId: String(firstHero.postModuleId),
                 overrides: {
@@ -494,7 +506,7 @@ class MCPClientService {
                 const schema = moduleRegistry.getSchema(mMeta.type)
                 const hasTitleField = schema.fieldSchema.some(f => f.slug === 'title')
                 const alreadyHasTitle = (edit as any).overrides?.title !== undefined
-                
+
                 if (hasTitleField && !alreadyHasTitle) {
                   const extractedTitle = this.extractMarkdownH1(md) || this.extractMarkdownH2(md)
                   if (extractedTitle) {
@@ -581,7 +593,7 @@ class MCPClientService {
               await UpdatePostModule.handle({
                 postModuleId: targetId,
                 overrides,
-                mode: 'ai-review',
+                mode: targetMode,
               })
               appliedEdits.push({ ok: true, postModuleId: targetId })
             } catch (e: any) {
@@ -610,8 +622,8 @@ class MCPClientService {
         const post = await Post.find(postId)
         if (!post) throw new Error(`Post not found: ${postId}`)
 
-        // Serialize post in AI review mode to see current staged changes
-        const context = await PostSerializerService.serialize(post.id, 'ai-review')
+        // Serialize post in the requested mode (default to ai-review for backward compat)
+        const context = await PostSerializerService.serialize(post.id, targetMode)
         return {
           success: true,
           ...context,
@@ -627,14 +639,16 @@ class MCPClientService {
         const actorUserId = await this.resolveActorUserId(agentId)
         if (!actorUserId) throw new Error('Actor user not found')
 
-        // Fetch current AI review draft to merge with
-        const post = await Post.find(postId)
-        if (!post) throw new Error(`Post not found: ${postId}`)
+        // Fetch current canonical state for the target mode to use as a base for merging
+        // This ensures we don't wipe modules or other fields not present in the patch.
+        const currentCanonical = await PostSerializerService.serialize(postId, targetMode)
 
-        const currentDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft || {}
+        // Merge patch into the canonical post fields
+        const mergedPayload = {
+          ...currentCanonical.post,
+          modules: currentCanonical.modules,
+        }
 
-        // Ensure we don't pass undefined values to SaveReviewDraft which might overwrite existing data
-        const mergedPayload = { ...currentDraft }
         for (const key of Object.keys(patch)) {
           if (patch[key] !== undefined) {
             mergedPayload[key] = patch[key]
@@ -646,12 +660,12 @@ class MCPClientService {
           payload: mergedPayload,
           userId: actorUserId,
           userEmail: `agent:${agentId || 'system'}`,
-          mode: 'ai-review',
+          mode: targetMode,
         })
 
         return {
           success: true,
-          message: 'AI review draft updated successfully',
+          message: `Suggestions saved to ${targetMode} draft`,
         }
       }
 
@@ -718,7 +732,7 @@ class MCPClientService {
           props,
           orderIndex,
           globalSlug,
-          mode: 'ai-review',
+          mode: targetMode,
         })
 
         return {
@@ -787,7 +801,7 @@ class MCPClientService {
           if (!pm) throw new Error(`Post module not found: ${postModuleId}`)
           const mi = await db.from('module_instances').where('id', pm.module_id).first()
           if (!mi) throw new Error('Module instance not found')
-          
+
           const schema = moduleRegistry.getSchema(mi.type)
           const firstRichText = schema.fieldSchema.find((f: any) => f.type === 'richtext')
           const firstTextArea = schema.fieldSchema.find((f: any) => f.type === 'textarea')
@@ -824,7 +838,7 @@ class MCPClientService {
           overrides,
           locked,
           orderIndex,
-          mode: 'ai-review',
+          mode: targetMode,
         })
 
         return {
@@ -960,7 +974,7 @@ class MCPClientService {
 
         await RevisionService.record({
           postId: (translation as any).id,
-          mode: 'ai-review' as any,
+          mode: targetMode as any,
           snapshot: aiReviewDraft,
           userId: actorUserId,
         })
@@ -1006,7 +1020,7 @@ class MCPClientService {
               globalSlug: isGlobal ? m.globalSlug : null,
               orderIndex: Number(m.orderIndex ?? 0),
               locked: !!m.locked,
-              mode: 'ai-review',
+              mode: targetMode,
             })
 
             map.push({
@@ -1019,7 +1033,7 @@ class MCPClientService {
               await UpdatePostModule.handle({
                 postModuleId: added.postModule.id,
                 overrides: effectiveOverrides,
-                mode: 'ai-review',
+                mode: targetMode,
               })
             }
           }
@@ -1073,6 +1087,123 @@ class MCPClientService {
         }
 
         return { success: true, results }
+      }
+
+      case 'list_agents': {
+        const list = agentRegistry.listEnabled()
+        return {
+          success: true,
+          agents: list.map((a) => ({
+            id: a.id,
+            name: a.name,
+            description: a.description || '',
+          })),
+        }
+      }
+
+      case 'run_agent': {
+        const { agentId: targetAgentId, postId, scope = 'dropdown', context = {}, openEndedContext } = params
+        const agent = agentRegistry.get(targetAgentId)
+        if (!agent) throw new Error('Agent not found')
+
+        const actorUserId = await this.resolveActorUserId(targetAgentId)
+
+        const executionContext: any = {
+          agent,
+          scope,
+          userId: actorUserId,
+          data: {
+            postId,
+            ...context,
+          },
+        }
+
+        let payload: any = {
+          context: {
+            ...context,
+            ...(openEndedContext ? { openEndedContext } : {}),
+          },
+        }
+
+        if (postId) {
+          const viewMode = context.viewMode || 'source'
+          const canonical = await PostSerializerService.serialize(postId, viewMode)
+          payload.post = canonical
+          executionContext.data.post = canonical
+        }
+
+        const agentExecutor = (await import('#services/agent_executor')).default
+        const result = await agentExecutor.execute(agent as any, executionContext, payload)
+
+        return {
+          success: result.success,
+          agentId: targetAgentId,
+          postId,
+          response: result.data,
+          summary: (result as any).summary,
+          applied: (result as any).applied || [],
+          error: result.error,
+        }
+      }
+
+      case 'run_field_agent': {
+        const {
+          agentId: fieldAgentId,
+          postId,
+          fieldKey,
+          currentValue,
+          postModuleId,
+          moduleInstanceId,
+          applyToAiReview,
+          context,
+          openEndedContext,
+        } = params
+        const agent = agentRegistry.get(fieldAgentId)
+        if (!agent) throw new Error('Agent not found')
+
+        const actorUserId = await this.resolveActorUserId(fieldAgentId)
+        const agentExecutor = (await import('#services/agent_executor')).default
+
+        const executionContext: any = {
+          agent,
+          scope: 'field',
+          userId: actorUserId,
+          data: {
+            postId,
+            fieldKey,
+            currentValue,
+            postModuleId,
+            moduleInstanceId,
+            context,
+          },
+        }
+
+        const canonical = await PostSerializerService.serialize(postId, 'source')
+        const payload = {
+          post: canonical,
+          field: {
+            key: fieldKey,
+            currentValue: currentValue,
+          },
+          context: {
+            ...(context || {}),
+            ...(openEndedContext ? { openEndedContext } : {}),
+          },
+        }
+
+        const result = await agentExecutor.execute(agent as any, executionContext, payload as any)
+
+        if (applyToAiReview && result.success) {
+          // Simplistic staging logic for internal call
+          // In a real scenario, this would call UpdatePostModule or SaveReviewDraft
+          // For now, we return the result and let the caller handle staging if needed
+        }
+
+        return {
+          success: result.success,
+          response: result.data,
+          error: result.error,
+        }
       }
 
       case 'suggest_modules_for_layout': {

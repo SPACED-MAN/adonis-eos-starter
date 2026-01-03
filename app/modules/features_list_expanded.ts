@@ -125,29 +125,29 @@ export default class FeaturesListExpandedModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Built for growing teams and ambitious roadmaps',
+        title: 'Lorem ipsum dolor sit amet',
         subtitle:
-          'Use this section to highlight major phases, advantages, or pillars of your product or service with more detailed copy.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.',
         features: [
           {
             icon: 'rocket',
-            title: 'Launch faster',
-            body: 'Streamline launch checklists, approvals, and handoffs so cross-functional teams can ship campaigns in days, not weeks.',
+            title: 'Consectetur adipiscing',
+            body: 'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.',
           },
           {
             icon: 'layer-group',
-            title: 'Standardize playbooks',
-            body: 'Codify your best practices into repeatable workflows so every team can follow the same proven path to results.',
+            title: 'Labore et dolore',
+            body: 'Ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit.',
           },
           {
             icon: 'users',
-            title: 'Align stakeholders',
-            body: 'Give marketing, sales, and operations a shared source of truth so everyone stays aligned on what ships next.',
+            title: 'Veniam quis nostrud',
+            body: 'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
           },
         ],
         ctas: [
           {
-            label: 'Explore all features',
+            label: 'Lorem Ipsum',
             url: { kind: 'url', url: '#', target: '_self' },
             style: 'primary',
           },

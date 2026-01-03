@@ -3174,8 +3174,8 @@ export default function Editor({
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Content Card */}
-            <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
-              <div className="flex items-start justify-between gap-3 mb-8">
+            <div className="bg-backdrop-low rounded-2xl p-5 sm:p-8 border border-line-low shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-8">
                 <h2 className="text-xl font-bold text-neutral-high tracking-tight">Content</h2>
                 {permalinksEnabled && (
                   <Tooltip>
@@ -3677,7 +3677,7 @@ export default function Editor({
 
             {/* SEO Card */}
             {permalinksEnabled && (
-              <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
+              <div className="bg-backdrop-low rounded-2xl p-5 sm:p-8 border border-line-low shadow-sm">
                 <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">
                   SEO & Meta
                 </h2>

@@ -7,6 +7,7 @@ import ApplyPostTaxonomyAssignments from '#actions/posts/apply_post_taxonomy_ass
 import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import moduleRegistry from '#services/module_registry'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
+import Post from '#models/post'
 
 export type SnapshotApplyMode = 'source' | 'review' | 'ai-review'
 
@@ -37,6 +38,171 @@ export default class PostSnapshotService {
     } else {
       await this.applyToDraft(postId, snapshot, mode)
     }
+  }
+
+  /**
+   * Fully restore a post and all its versions from a composite revision snapshot.
+   * This handles Source, Review, and AI Review versions at once, including
+   * recreating any modules that were deleted since the revision was captured.
+   */
+  static async restoreActiveVersionsSnapshot(postId: string, snapshot: any): Promise<void> {
+    if (snapshot?.kind !== 'active-versions') {
+      throw new Error('Unsupported snapshot kind for full restoration')
+    }
+
+    const postSnap = snapshot.post
+    if (!postSnap) throw new Error('Missing post data in snapshot')
+
+    await db.transaction(async (trx) => {
+      const now = new Date()
+
+      // 1. Restore Source fields
+      await UpdatePost.handle(
+        {
+          postId,
+          slug: postSnap.slug,
+          title: postSnap.title,
+          status: postSnap.status,
+          excerpt: postSnap.excerpt ?? null,
+          parentId: postSnap.parentId ?? null,
+          orderIndex: postSnap.orderIndex ?? 0,
+          metaTitle: postSnap.metaTitle ?? null,
+          metaDescription: postSnap.metaDescription ?? null,
+          canonicalUrl: postSnap.canonicalUrl ?? null,
+          robotsJson: postSnap.robotsJson ?? null,
+          jsonldOverrides: postSnap.jsonldOverrides ?? null,
+          featuredImageId: postSnap.featuredImageId ?? null,
+        } as any,
+        trx
+      )
+
+      // 2. Restore draft payloads (columns)
+      await trx
+        .from('posts')
+        .where('id', postId)
+        .update({
+          review_draft: snapshot.drafts?.reviewDraft ?? null,
+          ai_review_draft: snapshot.drafts?.aiReviewDraft ?? null,
+          updated_at: now,
+        } as any)
+
+      // 3. Sync Source custom fields
+      if (Array.isArray(postSnap.customFields)) {
+        await trx.from('post_custom_field_values').where('post_id', postId).delete()
+        for (const cf of postSnap.customFields) {
+          const { randomUUID } = await import('node:crypto')
+          await trx.table('post_custom_field_values').insert({
+            id: randomUUID(),
+            post_id: postId,
+            field_slug: cf.fieldSlug,
+            value: cf.value ?? null,
+            created_at: now,
+            updated_at: now,
+          })
+        }
+      }
+
+      // 4. Sync Source taxonomy assignments
+      if (Array.isArray(postSnap.taxonomyTermIds)) {
+        await trx.from('post_taxonomy_terms').where('post_id', postId).delete()
+        for (const termId of postSnap.taxonomyTermIds) {
+          const { randomUUID } = await import('node:crypto')
+          await trx.table('post_taxonomy_terms').insert({
+            id: randomUUID(),
+            post_id: postId,
+            taxonomy_term_id: String(termId),
+            created_at: now,
+            updated_at: now,
+          })
+        }
+      }
+
+      // 5. Sync Modules (Syncing list)
+      if (Array.isArray(snapshot.modules)) {
+        const incomingModules = snapshot.modules as any[]
+        const incomingPmIds = new Set(incomingModules.map((m) => String(m.postModuleId)))
+
+        // a. Delete modules currently attached to the post that are NOT in the revision
+        const currentPms = await trx
+          .from('post_modules')
+          .where('post_id', postId)
+          .select('id', 'module_id')
+
+        for (const pm of currentPms) {
+          if (!incomingPmIds.has(String(pm.id))) {
+            await trx.from('post_modules').where('id', pm.id).delete()
+            // If it's a local/post module, delete the instance too
+            const mi = await trx
+              .from('module_instances')
+              .where('id', pm.module_id)
+              .select('scope')
+              .first()
+            if (mi && (mi.scope === 'post' || mi.scope === 'local')) {
+              await trx.from('module_instances').where('id', pm.module_id).delete()
+            }
+          }
+        }
+
+        // b. Restore/Recreate modules from the revision
+        for (const m of incomingModules) {
+          const pmId = String(m.postModuleId)
+          const miId = String(m.moduleInstanceId)
+
+          // i. Restore/Recreate module_instance
+          const existingMi = await trx.from('module_instances').where('id', miId).first()
+          const resolvedScope = m.scope === 'local' ? 'post' : m.scope
+          const miData = {
+            type: m.type,
+            scope: resolvedScope,
+            post_id: resolvedScope === 'post' ? postId : null,
+            global_slug: m.globalSlug,
+            global_label: m.globalLabel,
+            props: m.props ?? {},
+            review_props: m.reviewProps ?? null,
+            ai_review_props: m.aiReviewProps ?? null,
+            updated_at: now,
+          }
+
+          if (existingMi) {
+            await trx.from('module_instances').where('id', miId).update(miData)
+          } else {
+            await trx.table('module_instances').insert({
+              ...miData,
+              id: miId,
+              created_at: now,
+            })
+          }
+
+          // ii. Restore/Recreate post_module join
+          const existingPm = await trx.from('post_modules').where('id', pmId).first()
+          const pmData = {
+            post_id: postId,
+            module_id: miId,
+            order_index: m.orderIndex ?? 0,
+            overrides: m.overrides ?? null,
+            review_overrides: m.reviewOverrides ?? null,
+            ai_review_overrides: m.aiReviewOverrides ?? null,
+            locked: !!m.locked,
+            admin_label: m.adminLabel ?? null,
+            review_added: !!m.flags?.reviewAdded,
+            review_deleted: !!m.flags?.reviewDeleted,
+            ai_review_added: !!m.flags?.aiReviewAdded,
+            ai_review_deleted: !!m.flags?.aiReviewDeleted,
+            updated_at: now,
+          }
+
+          if (existingPm) {
+            await trx.from('post_modules').where('id', pmId).update(pmData)
+          } else {
+            await trx.table('post_modules').insert({
+              ...pmData,
+              id: pmId,
+              created_at: now,
+            })
+          }
+        }
+      }
+    })
   }
 
   /**
@@ -173,26 +339,41 @@ export default class PostSnapshotService {
 
   /**
    * Automatically convert any string props in richtext fields to Lexical JSON.
+   * Recursively handles nested objects and repeaters.
    */
   private static autoConvertRichText(snapshot: CanonicalPost): void {
     for (const m of snapshot.modules) {
       if (m.props && moduleRegistry.has(m.type)) {
         const schema = moduleRegistry.getSchema(m.type)
-        const richTextFields = schema.fieldSchema
-          .filter((f: any) => f.type === 'richtext')
-          .map((f: any) => f.slug)
+        this.processPropsForRichText(m.props, schema.fieldSchema)
+      }
+    }
+  }
 
-        for (const key of Object.keys(m.props)) {
-          if (richTextFields.includes(key)) {
-            const val = m.props[key]
-            if (typeof val === 'string' && val.trim() !== '') {
-              const trimmed = val.trim()
-              const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
-              if (!looksJson) {
-                m.props[key] = markdownToLexical(val, { skipFirstH1: false })
-              }
-            }
+  /**
+   * Recursive helper to find and convert richtext fields in props.
+   */
+  private static processPropsForRichText(props: any, fieldSchema: any[]): void {
+    if (!props || typeof props !== 'object') return
+
+    for (const key of Object.keys(props)) {
+      const field = fieldSchema.find((f: any) => f.slug === key)
+      if (!field) continue
+
+      if (field.type === 'richtext') {
+        const val = props[key]
+        if (typeof val === 'string' && val.trim() !== '') {
+          const trimmed = val.trim()
+          const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+          if (!looksJson) {
+            props[key] = markdownToLexical(val, { skipFirstH1: false })
           }
+        }
+      } else if (field.type === 'object' && field.fields) {
+        this.processPropsForRichText(props[key], field.fields)
+      } else if (field.type === 'repeater' && field.item?.fields && Array.isArray(props[key])) {
+        for (const item of props[key]) {
+          this.processPropsForRichText(item, field.item.fields)
         }
       }
     }

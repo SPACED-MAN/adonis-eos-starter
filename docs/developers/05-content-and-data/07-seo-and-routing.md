@@ -94,8 +94,10 @@ Manually created for:
 SEO settings can be configured at:
 
 - **Global Level**: Site-wide defaults in Site Settings
-- **Post Type Level**: Post type-specific URL patterns
-- **Post Level**: Per-post SEO overrides
+- **Post Type Level**: 
+    - Custom URL patterns
+    - `seoDefaults`: Default `noindex`, `nofollow`, and `robotsJson` configuration for new posts of this type.
+- **Post Level**: Per-post SEO overrides in the admin editor.
 
 ## Admin Tools
 
@@ -121,9 +123,11 @@ Access SEO tools from the Admin panel:
 - Page: `Admin → Settings → SEO`
   - shows sitemap URL and last generated time
   - “Rebuild sitemap” clears cache and regenerates
+  - “Populate canonical URLs” backfills missing canonical URLs across all posts.
 - API (admin only):
   - `GET /api/seo/sitemap/status`
   - `POST /api/seo/sitemap/rebuild`
+  - `POST /api/seo/canonical-urls/populate`
 
 ### Service notes
 

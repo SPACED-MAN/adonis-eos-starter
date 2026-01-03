@@ -22,8 +22,14 @@ export default class MakePostType extends BaseCommand {
   })
   declare pattern: string
 
-  protected buildConfigContents(_typeSlug: string): string {
-    return `export default {
+  protected buildConfigContents(name: string, _typeSlug: string): string {
+    return `import type { PostTypeConfig } from '../types/post_type.ts'
+
+const ${string.camelCase(name)}PostType: PostTypeConfig = {
+  type: '${_typeSlug}',
+  label: '${string.capitalCase(name)}',
+  pluralLabel: '${string.capitalCase(name)}s',
+
   // Hide core fields in the editor for this post type
   // Allowed: 'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'
   hideCoreFields: [],
@@ -33,22 +39,26 @@ export default class MakePostType extends BaseCommand {
 
   // Custom fields attached to this post type (definitions only; values are stored per post)
   // Supported types: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
-  // Example:
-  // fields: [
-  //   { slug: 'subtitle', label: 'Subtitle', type: 'text' },
-  //   { slug: 'hero_image', label: 'Hero image', type: 'media', config: { category: 'Hero images', preferredVariant: 'wide' } },
-  // ],
   fields: [],
 
-  // Default template metadata (synced on boot)
-  template: { name: '${_typeSlug}-default', description: 'Default template for ${_typeSlug}' },
+  // Default module group metadata (synced on boot)
+  moduleGroup: { name: '${_typeSlug}-default', description: 'Default template for ${_typeSlug}' },
 
   // URL patterns (synced on boot)
   // Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}
   urlPatterns: [
     { locale: 'en', pattern: '${this.pattern.replace(/\{post_type\}/g, _typeSlug)}', isDefault: true },
   ],
-} as const
+
+  // SEO default configurations when a post is created
+  seoDefaults: {
+    noindex: false,
+    nofollow: false,
+    robotsJson: { index: true, follow: true },
+  },
+}
+
+export default ${string.camelCase(name)}PostType
 `
   }
 
@@ -63,7 +73,7 @@ export default class MakePostType extends BaseCommand {
     try {
       // ensure dir
       await mkdir(configDir, { recursive: true })
-      await writeFile(configPath, this.buildConfigContents(typeSlug), { flag: 'wx' })
+      await writeFile(configPath, this.buildConfigContents(this.name, typeSlug), { flag: 'wx' })
     } catch {
       // If file exists, skip
     }

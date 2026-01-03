@@ -83,7 +83,26 @@ Examples include:
 
 ## Post custom fields (per post type)
 
-A post type can declare a `fields` array in its UI config (via `app/post_types/*` → `postTypeConfigService.getUiConfig()`).
+A post type can declare a `fields` array in its `PostTypeConfig` (via `app/post_types/*.ts`).
+
+```typescript
+import type { PostTypeConfig } from '../types/post_type.ts'
+
+const myPostType: PostTypeConfig = {
+  type: 'my-type',
+  label: 'My Type',
+  // ... other configs
+  fields: [
+    {
+      slug: 'subtitle',
+      label: 'Subtitle',
+      type: 'text',
+    },
+  ],
+}
+
+export default myPostType
+```
 
 Values are stored per post in `post_custom_field_values` keyed by `post_id` + `field_slug`.
 

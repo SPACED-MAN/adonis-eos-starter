@@ -123,20 +123,20 @@ export default class HeroWithMediaModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Payments tool for software companies',
+        title: 'Lorem ipsum dolor sit amet',
         subtitle:
-          'From checkout to global sales tax compliance, companies around the world use this platform to simplify their payment stack.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.',
         image: null,
         imagePosition: 'right',
         objectFit: 'contain',
         ctas: [
           {
-            label: 'Get started',
+            label: 'Lorem Ipsum',
             url: '#',
             style: 'primary',
           },
           {
-            label: 'Speak to Sales',
+            label: 'Dolor Sit',
             url: '#',
             style: 'outline',
           },

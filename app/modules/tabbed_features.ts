@@ -100,12 +100,12 @@ export default class TabbedFeaturesModule extends BaseModule {
       defaultValues: {
         tabs: [
           {
-            label: 'Feature One',
-            prose: '<p>Content for the first tab goes here.</p>',
+            label: 'Lorem Ipsum',
+            prose: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
           },
           {
-            label: 'Feature Two',
-            prose: '<p>Content for the second tab goes here.</p>',
+            label: 'Dolor Sit',
+            prose: '<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>',
           },
         ],
         layout: 'top',

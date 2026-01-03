@@ -92,6 +92,12 @@ const GeneralAssistantAgent: AgentDefinition = {
       order: 10,
       enabled: false, // Set to true to auto-trigger on AI review save
     },
+    {
+      scope: 'field',
+      order: 5,
+      enabled: true,
+      fieldTypes: ['text', 'textarea', 'richtext'],
+    },
   ],
 
   // Optional: Open-ended context for user instructions

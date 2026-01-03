@@ -61,9 +61,9 @@ export default class BlogListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Our Blog',
+        title: 'Lorem ipsum',
         subtitle:
-          'Insights, stories, and updates from the team. Blog posts are pulled from the Blog post type so they stay in sync.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         posts: [],
         theme: 'low',
       },

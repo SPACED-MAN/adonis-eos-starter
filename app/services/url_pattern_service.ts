@@ -554,6 +554,29 @@ class UrlPatternService {
     }
   }
 
+  /**
+   * Populate canonical URLs for all posts that don't have one set.
+   * This is useful after migrating or when canonical URLs weren't automatically set.
+   */
+  async populateCanonicalUrls(): Promise<{ updated: number; failed: number }> {
+    const posts = await Post.query().whereNull('canonical_url')
+    let updated = 0
+    let failed = 0
+
+    for (const post of posts) {
+      try {
+        const canonicalPath = await this.buildPostPathForPost(post.id)
+        post.canonicalUrl = canonicalPath
+        await post.save()
+        updated++
+      } catch (error) {
+        failed++
+      }
+    }
+
+    return { updated, failed }
+  }
+
   async createPattern(
     postType: string,
     locale: string,

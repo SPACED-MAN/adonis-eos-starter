@@ -20,8 +20,9 @@ type CreatePostParams = {
   socialTitle?: string | null
   socialDescription?: string | null
   socialImageId?: string | null
-  noindex?: boolean
-  nofollow?: boolean
+  noindex?: boolean | null
+  nofollow?: boolean | null
+  robotsJson?: any | null
   moduleGroupId?: string | null
   /**
    * Controls how seeded modules are staged.
@@ -56,8 +57,9 @@ export default class CreatePost {
     socialTitle = null,
     socialDescription = null,
     socialImageId = null,
-    noindex = false,
-    nofollow = false,
+    noindex = null,
+    nofollow = null,
+    robotsJson = null,
     moduleGroupId = null,
     seedMode = 'approved',
     userId,
@@ -115,6 +117,11 @@ export default class CreatePost {
     const moduleGroupsEnabled =
       uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
 
+    // Resolve SEO defaults from post type config
+    const effectiveNoindex = noindex ?? uiConfig.seoDefaults?.noindex ?? false
+    const effectiveNofollow = nofollow ?? uiConfig.seoDefaults?.nofollow ?? false
+    const effectiveRobotsJson = robotsJson ?? uiConfig.seoDefaults?.robotsJson ?? null
+
     // Resolve default module group when none provided
     let effectiveModuleGroupId: string | null = moduleGroupId
     if (moduleGroupsEnabled && !effectiveModuleGroupId) {
@@ -168,8 +175,9 @@ export default class CreatePost {
           socialTitle,
           socialDescription,
           socialImageId,
-          noindex,
-          nofollow,
+          noindex: effectiveNoindex,
+          nofollow: effectiveNofollow,
+          robotsJson: effectiveRobotsJson,
           moduleGroupId: moduleGroupsEnabled ? effectiveModuleGroupId : null,
           userId,
           authorId: userId,

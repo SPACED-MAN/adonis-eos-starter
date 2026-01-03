@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button } from './types'
@@ -8,6 +9,7 @@ import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
 import { SiteLink } from '../site/components/SiteLink'
 import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
+import { cn } from '../components/ui/utils'
 
 interface LexicalJSON {
   root: {
@@ -65,6 +67,21 @@ export default function ProseWithMedia({
   const hasCtas = Boolean(ctas && ctas.length > 0)
   const bodyHtml = renderLexicalToHtml(bodyValue)
 
+  const isLongContent = useMemo(() => {
+    if (!bodyValue?.root?.children) return false
+    // Count non-empty paragraphs or blocks
+    const blockCount = (bodyValue.root.children as any[]).filter((child: any) => {
+      if (child.type === 'paragraph') {
+        const text = child.children?.map((c: any) => c.text || '').join('') || ''
+        return text.trim().length > 0
+      }
+      return true
+    }).length
+    return blockCount >= 3
+  }, [bodyValue])
+
+  const shouldBeSticky = _useReact && isLongContent
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -95,33 +112,31 @@ export default function ProseWithMedia({
   }
 
   const imageBlock = showImage ? (
-    <div className="w-full">
-      <div
-        className="w-full overflow-hidden aspect-4/3 rounded-lg relative"
-        data-inline-type="select"
-        data-inline-path="objectFit"
-        data-inline-label="Media Fit"
-        data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
-      >
-        <div {...imageProps} className="w-full h-full">
-          {imageValue && (
-            <MediaRenderer
-              image={imageValue}
-              alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
-              loading="lazy"
-              decoding="async"
-              objectFit={objectFit}
-              playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
-              className="w-full h-full"
-            />
-          )}
-        </div>
+    <div
+      className="w-full overflow-hidden aspect-4/3 rounded-lg relative"
+      data-inline-type="select"
+      data-inline-path="objectFit"
+      data-inline-label="Media Fit"
+      data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
+    >
+      <div {...imageProps} className="w-full h-full">
+        {imageValue && (
+          <MediaRenderer
+            image={imageValue}
+            alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
+            loading="lazy"
+            decoding="async"
+            objectFit={objectFit}
+            playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+            className="w-full h-full"
+          />
+        )}
       </div>
     </div>
   ) : null
 
   const textContent = (
-    <div className="mt-8 md:mt-0">
+    <>
       {showTitle &&
         (_useReact ? (
           <motion.h2
@@ -185,23 +200,34 @@ export default function ProseWithMedia({
           ))}
         </div>
       )}
-    </div>
+    </>
+  )
+
+  const imageWrapperClasses = cn(
+    'w-full',
+    shouldBeSticky && 'md:sticky md:top-24 md:self-start z-10'
   )
 
   const content = (
-    <div className="md:grid md:grid-cols-2 md:gap-8 xl:gap-16 items-center">
+    <div className="md:grid md:grid-cols-2 md:gap-8 xl:gap-16 items-stretch">
       {imagePosition === 'left' && (
-        <>
-          {_useReact ? <motion.div variants={imageVariants}>{imageBlock}</motion.div> : imageBlock}
-        </>
+        <div className="relative">
+          <div className={imageWrapperClasses}>
+            {_useReact ? <motion.div variants={imageVariants}>{imageBlock}</motion.div> : imageBlock}
+          </div>
+        </div>
       )}
 
-      {textContent}
+      <div className={cn('mt-8 md:mt-0', !shouldBeSticky && 'flex flex-col justify-center')}>
+        {textContent}
+      </div>
 
       {imagePosition !== 'left' && (
-        <>
-          {_useReact ? <motion.div variants={imageVariants}>{imageBlock}</motion.div> : imageBlock}
-        </>
+        <div className="relative">
+          <div className={imageWrapperClasses}>
+            {_useReact ? <motion.div variants={imageVariants}>{imageBlock}</motion.div> : imageBlock}
+          </div>
+        </div>
       )}
     </div>
   )
@@ -213,7 +239,7 @@ export default function ProseWithMedia({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${styles.containerClasses} py-12 sm:py-16 overflow-hidden relative`}
+        className={`${styles.containerClasses} py-12 sm:py-16 relative`}
         data-module="prose-with-media"
         data-inline-type="background"
         data-inline-path="theme"
@@ -232,7 +258,7 @@ export default function ProseWithMedia({
 
   return (
     <section
-      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
+      className={`${styles.containerClasses} py-12 sm:py-16 relative`}
       data-module="prose-with-media"
       data-inline-type="select"
       data-inline-path="theme"

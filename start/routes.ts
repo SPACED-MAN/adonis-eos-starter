@@ -41,6 +41,10 @@ router
 const AnalyticsController = () => import('#controllers/analytics_controller')
 router.post('/api/public/analytics/track', [AnalyticsController, 'track'])
 
+// External agent triggers (authenticated via secret)
+const AgentsController = () => import('#controllers/agents_controller')
+router.post('/api/public/agents/:agentId/run', [AgentsController, 'triggerExternal'])
+
 // Public media info (no auth)
 const MediaController = () => import('#controllers/media_controller')
 router.get('/public/media/:id', [MediaController, 'showPublic'])
@@ -193,7 +197,6 @@ router
  * API Routes - Module Groups (Admin)
  */
 const ModuleGroupsController = () => import('#controllers/module_groups_controller')
-const AgentsController = () => import('#controllers/agents_controller')
 const WorkflowsController = () => import('#controllers/workflows_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
 const ProfilesController = () => import('#controllers/profiles_controller')
@@ -417,6 +420,7 @@ router
   .group(() => {
     router.get('/seo/sitemap/status', [SeoController, 'sitemapStatus'])
     router.post('/seo/sitemap/rebuild', [SeoController, 'sitemapRebuild'])
+    router.post('/seo/canonical-urls/populate', [SeoController, 'populateCanonicalUrls'])
   })
   .prefix('/api')
   .use(middleware.auth())

@@ -1,21 +1,6 @@
-import type {} from 'node:fs'
+import type { PostTypeConfig } from '../types/post_type.ts'
 
-export type RegisteredPostTypeConfig = {
-  hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
-  hierarchyEnabled?: boolean
-  fields?: Array<{
-    slug: string
-    label: string
-    type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
-    translatable?: boolean
-    config?: Record<string, any>
-  }>
-  moduleGroup?: { name: string; description?: string }
-  urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
-  permalinksEnabled?: boolean
-  modulesEnabled?: boolean
-  moduleGroupsEnabled?: boolean
-}
+export type RegisteredPostTypeConfig = PostTypeConfig
 
 class PostTypeRegistry {
   private types = new Map<string, RegisteredPostTypeConfig>()

@@ -13,7 +13,7 @@ export default function Login() {
   const adminPath = useAdminPath()
 
   const form = useForm({
-    email: '',
+    uid: '',
     password: '',
   })
 
@@ -39,16 +39,16 @@ export default function Login() {
         )}
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-medium">Email</label>
+          <label className="block text-sm font-medium text-neutral-medium">Email or Username</label>
           <input
-            type="email"
+            type="text"
             className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-1 ring-(--ring) focus:border-transparent"
-            value={form.data.email}
-            onChange={(e) => form.setData('email', e.target.value)}
+            value={form.data.uid}
+            onChange={(e) => form.setData('uid', e.target.value)}
           />
-          {errors?.email && (
+          {errors?.uid && (
             <p className="text-sm text-[color:#dc2626]">
-              {Array.isArray(errors.email) ? errors.email[0] : errors.email}
+              {Array.isArray(errors.uid) ? errors.uid[0] : errors.uid}
             </p>
           )}
         </div>

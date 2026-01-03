@@ -154,13 +154,13 @@ export default class PricingModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Designed for business teams like yours',
+        title: 'Lorem ipsum dolor sit amet',
         subtitle:
-          'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',
+          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         plans: [
           {
-            name: 'Starter',
-            description: 'Best option for personal use & for your next project.',
+            name: 'Lorem',
+            description: 'Consectetur adipiscing elit, sed do eiusmod tempor.',
             price: '29',
             period: '/month',
             features: [
@@ -173,14 +173,14 @@ export default class PricingModule extends BaseModule {
             primary: false,
             ctas: [
               {
-                label: 'Get started',
+                label: 'Lorem Ipsum',
                 url: '#',
                 style: 'primary',
               },
             ],
           },
           {
-            name: 'Company',
+            name: 'Ipsum',
             description: 'Relevant for multiple users, extended & premium support.',
             price: '99',
             period: '/month',
@@ -194,14 +194,14 @@ export default class PricingModule extends BaseModule {
             primary: true,
             ctas: [
               {
-                label: 'Get started',
+                label: 'Lorem Ipsum',
                 url: '#',
                 style: 'primary',
               },
             ],
           },
           {
-            name: 'Enterprise',
+            name: 'Dolor',
             description: 'Best for large scale uses and extended redistribution rights.',
             price: '499',
             period: '/month',
@@ -215,7 +215,7 @@ export default class PricingModule extends BaseModule {
             primary: false,
             ctas: [
               {
-                label: 'Get started',
+                label: 'Lorem Ipsum',
                 url: '#',
                 style: 'primary',
               },

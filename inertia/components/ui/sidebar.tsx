@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { Link } from '@inertiajs/react'
 import { cn } from '~/components/ui/utils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBarsProgress } from '@fortawesome/free-solid-svg-icons'
@@ -7,16 +8,37 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 type SidebarContextValue = {
   open: boolean
   setOpen: (v: boolean) => void
+  isMobile: boolean
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+
   useEffect(() => {
-    // Push content when sidebar is open (simple body padding strategy)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    // If we transition to mobile, close the sidebar by default
+    if (isMobile) {
+      setOpen(false)
+    } else {
+      setOpen(true)
+    }
+  }, [isMobile])
+
+  useEffect(() => {
+    // Push content when sidebar is open (only on desktop)
     try {
-      if (open) {
+      if (open && !isMobile) {
         document.body.style.paddingLeft = '16rem'
       } else {
         document.body.style.paddingLeft = ''
@@ -27,8 +49,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         document.body.style.paddingLeft = ''
       } catch { }
     }
-  }, [open])
-  return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>
+  }, [open, isMobile])
+
+  return (
+    <SidebarContext.Provider value={{ open, setOpen, isMobile }}>
+      {children}
+      {isMobile && open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setOpen(false)}
+        />
+      )}
+    </SidebarContext.Provider>
+  )
 }
 
 function useSidebar() {
@@ -149,19 +182,46 @@ export function SidebarMenuItem({
   active?: boolean
   onClick?: () => void
 }) {
-  const Tag: any = href ? 'a' : 'button'
+  const { isMobile, setOpen } = useSidebar()
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isMobile) {
+      setOpen(false)
+    }
+    if (onClick) {
+      onClick()
+    }
+  }
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={handleClick}
+        className={cn(
+          'block w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
+          active
+            ? 'bg-standout-high text-on-high shadow-sm'
+            : 'text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high'
+        )}
+      >
+        {children}
+      </Link>
+    )
+  }
+
   return (
-    <Tag
-      href={href}
-      onClick={onClick}
+    <button
+      type="button"
+      onClick={handleClick}
       className={cn(
-        'block w-full text-left px-3 py-1 rounded text-sm',
+        'block w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
         active
-          ? 'bg-backdrop-medium text-neutral-high'
-          : 'text-neutral-medium hover:bg-backdrop-medium'
+          ? 'bg-standout-high text-on-high shadow-sm'
+          : 'text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high'
       )}
     >
       {children}
-    </Tag>
+    </button>
   )
 }

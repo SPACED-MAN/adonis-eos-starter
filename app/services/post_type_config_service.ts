@@ -1,47 +1,22 @@
-import type { CustomFieldDefinition } from '../types/custom_field.ts'
-
-type PostTypeUiConfig = {
-  hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
-  hierarchyEnabled?: boolean
-  fields?: CustomFieldDefinition[]
-  moduleGroup?: { name: string; description?: string } | null
-  urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
-  permalinksEnabled?: boolean
-  /**
-   * Whether modules should be available for this post type.
-   * Defaults to true when permalinks are enabled AND urlPatterns exist.
-   * Can be explicitly set to true or false in app/post_types/*.ts
-   */
-  modulesEnabled?: boolean
-  /**
-   * Whether module groups should be available for this post type.
-   * Defaults to true when permalinks are enabled AND urlPatterns exist.
-   */
-  moduleGroupsEnabled?: boolean
-  taxonomies?: string[]
-  featuredImage?: {
-    enabled: boolean
-    label?: string
-  }
-  abTesting?: {
-    enabled: boolean
-    strategy?: 'random' | 'cookie' | 'session'
-    variations?: Array<{ label: string; value: string; weight?: number }>
-  }
-}
+import type { PostTypeConfig } from '../types/post_type.ts'
 
 import postTypeRegistry from '#services/post_type_registry'
 
-const registry: Record<string, PostTypeUiConfig> = {}
-const cache = new Map<string, Required<PostTypeUiConfig>>()
+const registry: Record<string, PostTypeConfig> = {}
+const cache = new Map<string, Required<PostTypeConfig>>()
 
 class PostTypeConfigService {
-  getUiConfig(postType: string): Required<PostTypeUiConfig> {
-    const base: Required<PostTypeUiConfig> = {
+  getUiConfig(postType: string): Required<PostTypeConfig> {
+    const base: Required<PostTypeConfig> = {
+      type: postType,
+      label: '',
+      pluralLabel: '',
+      description: '',
+      icon: '',
       hideCoreFields: [],
       hierarchyEnabled: true,
       fields: [],
-      moduleGroup: { name: `${postType}-default` },
+      moduleGroup: { name: `${postType}-default`, description: '' },
       urlPatterns: [],
       permalinksEnabled: true,
       modulesEnabled: true,
@@ -49,11 +24,12 @@ class PostTypeConfigService {
       taxonomies: [],
       featuredImage: { enabled: false, label: 'Featured Image' },
       abTesting: { enabled: false, strategy: 'cookie', variations: [] },
+      seoDefaults: { noindex: false, nofollow: false, robotsJson: null },
     }
     const isDev = process.env.NODE_ENV === 'development'
     if (!isDev && cache.has(postType)) return cache.get(postType)!
     // Prefer registry (explicit registration in start/post_types.ts)
-    let cfg: PostTypeUiConfig = (postTypeRegistry.get(postType) as any) || registry[postType] || {}
+    let cfg: PostTypeConfig = (postTypeRegistry.get(postType) as any) || registry[postType] || {}
     // Source of truth is registry or app/post_types files
     // Try to load from app/post_types/<postType>.(ts|js)
     try {
@@ -68,7 +44,7 @@ class PostTypeConfigService {
       for (const p of candidates) {
         if (fs.existsSync(p)) {
           const mod = require(pathToFileURL(p).href)
-          const loaded = (mod?.default || mod) as PostTypeUiConfig
+          const loaded = (mod?.default || mod) as PostTypeConfig
           if (loaded && typeof loaded === 'object') {
             cfg = { ...cfg, ...loaded }
             break
@@ -86,14 +62,22 @@ class PostTypeConfigService {
     const moduleGroupsEnabled =
       cfg.moduleGroupsEnabled !== undefined ? !!cfg.moduleGroupsEnabled : hasPermalinks
 
-    const full: Required<PostTypeUiConfig> = {
+    const full: Required<PostTypeConfig> = {
+      type: cfg.type || base.type,
+      label: cfg.label || base.label,
+      pluralLabel: cfg.pluralLabel || base.pluralLabel,
+      description: cfg.description || base.description,
+      icon: cfg.icon || base.icon,
       hideCoreFields: Array.isArray(cfg.hideCoreFields) ? (cfg.hideCoreFields as any) : [],
       hierarchyEnabled:
         cfg.hierarchyEnabled !== undefined ? !!cfg.hierarchyEnabled : base.hierarchyEnabled,
       fields: Array.isArray(cfg.fields) ? cfg.fields : [],
       moduleGroup:
         moduleGroupsEnabled && cfg.moduleGroup && cfg.moduleGroup.name
-          ? cfg.moduleGroup
+          ? {
+              name: cfg.moduleGroup.name,
+              description: cfg.moduleGroup.description || '',
+            }
           : moduleGroupsEnabled
             ? base.moduleGroup
             : null,
@@ -113,6 +97,13 @@ class PostTypeConfigService {
             variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
           }
         : base.abTesting,
+      seoDefaults: cfg.seoDefaults
+        ? {
+            noindex: cfg.seoDefaults.noindex ?? base.seoDefaults.noindex,
+            nofollow: cfg.seoDefaults.nofollow ?? base.seoDefaults.nofollow,
+            robotsJson: cfg.seoDefaults.robotsJson ?? base.seoDefaults.robotsJson,
+          }
+        : base.seoDefaults,
     }
     if (!isDev) cache.set(postType, full)
     return full

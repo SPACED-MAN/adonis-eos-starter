@@ -760,138 +760,144 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search title or slug..."
-                  className="px-3 py-1.75 text-sm border border-line-low bg-backdrop-input text-neutral-high"
+                  className="w-full sm:w-auto px-3 py-2 text-sm border border-line-low bg-backdrop-input text-neutral-high rounded-md"
                 />
-                <Select
-                  defaultValue={status || undefined}
-                  onValueChange={(val) => {
-                    setStatus(val === 'all' ? '' : val)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="__in_review__">In Review</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                    <SelectItem value="protected">Protected</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={locale || 'all'}
-                  onValueChange={(val) => {
-                    const next = val === 'all' ? '' : val
-                    setLocale(next)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="All locales" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All locales</SelectItem>
-                    {supportedLocales.map((loc) => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  defaultValue={postType || undefined}
-                  onValueChange={(val) => {
-                    setPostType(val === 'all' ? '' : val)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="All post types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All post types</SelectItem>
-                    {postTypes.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {labelize(t)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Taxonomy filter */}
-                <Select
-                  value={taxonomy || 'all'}
-                  onValueChange={(val) => {
-                    const next = val === 'all' ? '' : val
-                    setTaxonomy(next)
-                    setTermId('')
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="All taxonomies" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All taxonomies</SelectItem>
-                    {taxonomies.map((t) => (
-                      <SelectItem key={t.slug} value={t.slug}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {taxonomy && (
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <Select
-                    value={termId || 'all'}
+                    defaultValue={status || undefined}
                     onValueChange={(val) => {
-                      setTermId(val === 'all' ? '' : val)
+                      setStatus(val === 'all' ? '' : val)
                       setPage(1)
                     }}
                   >
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="All categories" />
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
-                      {flatTerms.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="__in_review__">In Review</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="protected">Protected</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={locale || 'all'}
+                    onValueChange={(val) => {
+                      const next = val === 'all' ? '' : val
+                      setLocale(next)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-[100px] sm:w-[120px]">
+                      <SelectValue placeholder="Locale" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {supportedLocales.map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    defaultValue={postType || undefined}
+                    onValueChange={(val) => {
+                      setPostType(val === 'all' ? '' : val)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      {postTypes.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {labelize(t)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Taxonomy filter */}
+                  <Select
+                    value={taxonomy || 'all'}
+                    onValueChange={(val) => {
+                      const next = val === 'all' ? '' : val
+                      setTaxonomy(next)
+                      setTermId('')
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                      <SelectValue placeholder="All taxonomies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All taxonomies</SelectItem>
+                      {taxonomies.map((t) => (
+                        <SelectItem key={t.slug} value={t.slug}>
                           {t.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-                <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox
-                    checked={hasFeedback}
-                    onCheckedChange={(c) => {
-                      setHasFeedback(!!c)
-                      setPage(1)
-                    }}
-                  />
-                  Feedback
-                </label>
-                <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox
-                    checked={hierarchical}
-                    onCheckedChange={(c) => onToggleHierarchy(!!c)}
-                  />
-                  View hierarchy
-                </label>
-                <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox checked={dndMode} onCheckedChange={(c) => onToggleDnd(!!c)} />
-                  Reorder
-                </label>
+                  {taxonomy && (
+                    <Select
+                      value={termId || 'all'}
+                      onValueChange={(val) => {
+                        setTermId(val === 'all' ? '' : val)
+                        setPage(1)
+                      }}
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        {flatTerms.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 mt-2 sm:mt-0">
+                  <label className="flex items-center gap-2 text-sm text-neutral-high cursor-pointer">
+                    <Checkbox
+                      checked={hasFeedback}
+                      onCheckedChange={(c) => {
+                        setHasFeedback(!!c)
+                        setPage(1)
+                      }}
+                    />
+                    <span className="whitespace-nowrap">Feedback</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-neutral-high cursor-pointer">
+                    <Checkbox
+                      checked={hierarchical}
+                      onCheckedChange={(c) => onToggleHierarchy(!!c)}
+                    />
+                    <span className="whitespace-nowrap">Hierarchy</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-neutral-high cursor-pointer">
+                    <Checkbox checked={dndMode} onCheckedChange={(c) => onToggleDnd(!!c)} />
+                    <span className="whitespace-nowrap">Reorder</span>
+                  </label>
+                </div>
               </div>
             </div>
             {/* Bulk actions */}
@@ -1115,9 +1121,9 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                     Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
-                <TableHead>Post Type</TableHead>
+                <TableHead className="hidden md:table-cell">Post Type</TableHead>
                 {dndMode && (
-                  <TableHead>
+                  <TableHead className="hidden sm:table-cell">
                     <button
                       className="hover:underline"
                       onClick={() => {
@@ -1129,8 +1135,8 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                     </button>
                   </TableHead>
                 )}
-                <TableHead>Locales</TableHead>
-                <TableHead>
+                <TableHead className="hidden lg:table-cell">Locales</TableHead>
+                <TableHead className="hidden sm:table-cell">
                   <button
                     className="hover:underline"
                     onClick={() => {
@@ -1141,7 +1147,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                     Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   <button
                     className="hover:underline"
                     onClick={() => {
@@ -1198,7 +1204,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 style={{ paddingLeft: hierarchical ? level * 12 : 0 }}
                               >
                                 {hierarchical && level > 0 && (
-                                  <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                  <span className="mr-2 text-neutral-medium shrink-0" aria-hidden="true">
                                     <FontAwesomeIcon
                                       icon={faTurnUp}
                                       rotation={90}
@@ -1211,7 +1217,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 {hierarchical && dragActiveId === post.id && willNest && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                      <span className="mr-2 text-neutral-medium shrink-0" aria-hidden="true">
                                         <FontAwesomeIcon
                                           icon={faTurnUp}
                                           rotation={90}
@@ -1225,38 +1231,51 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm font-medium text-neutral-high cursor-help">
-                                      {post.title}
-                                      {post.hasFeedback && (
-                                        <FontAwesomeIcon
-                                          icon={faMessage}
-                                          className="ml-2 text-violet-500 text-[10px]"
-                                          title="Feedback"
-                                        />
-                                      )}
+                                <div className="min-w-0 flex-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-neutral-high cursor-help truncate">
+                                          {post.title}
+                                        </span>
+                                        {post.hasFeedback && (
+                                          <FontAwesomeIcon
+                                            icon={faMessage}
+                                            className="text-violet-500 text-[10px] shrink-0"
+                                            title="Feedback"
+                                          />
+                                        )}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{post.slug}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  {/* Mobile-only status/type summary */}
+                                  <div className="sm:hidden mt-1 flex flex-wrap gap-2">
+                                    <span className="text-[10px] uppercase font-bold text-neutral-low">
+                                      {labelize(post.type)}
                                     </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{post.slug}</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                    <span className="text-[10px] uppercase font-bold text-standout-high">
+                                      {post.status}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden md:table-cell">
                               <span className="text-sm text-neutral-medium">
                                 {labelize(post.type)}
                               </span>
                             </TableCell>
                             {dndMode && (
-                              <TableCell>
+                              <TableCell className="hidden sm:table-cell">
                                 <span className="font-mono text-sm text-neutral-medium">
                                   {(post as any).orderIndex ?? 0}
                                 </span>
                               </TableCell>
                             )}
-                            <TableCell>
+                            <TableCell className="hidden lg:table-cell">
                               <div className="flex flex-wrap gap-1">
                                 {(supportedLocales.length > 1
                                   ? supportedLocales
@@ -1282,7 +1301,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 })}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden sm:table-cell">
                               <span className="text-sm capitalize">{post.status}</span>
                               {post.hasReviewDraft && (
                                 <Badge variant="secondary" className="ml-2 align-middle">
@@ -1290,7 +1309,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden xl:table-cell">
                               <span className="text-xs text-neutral-low">
                                 {new Date(post.updatedAt).toLocaleString(undefined, {
                                   year: 'numeric',
@@ -1347,7 +1366,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                             style={{ paddingLeft: hierarchical ? level * 12 : 0 }}
                           >
                             {hierarchical && level > 0 && (
-                              <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                              <span className="mr-2 text-neutral-medium shrink-0" aria-hidden="true">
                                 <FontAwesomeIcon
                                   icon={faTurnUp}
                                   rotation={90}
@@ -1356,32 +1375,45 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 />
                               </span>
                             )}
-                            <span
-                              className="text-sm font-medium text-neutral-high"
-                              title={post.slug}
-                            >
-                              {post.title}
-                              {post.hasFeedback && (
-                                <FontAwesomeIcon
-                                  icon={faMessage}
-                                  className="ml-2 text-violet-500 text-[10px]"
-                                  title="Feedback"
-                                />
-                              )}
-                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="text-sm font-medium text-neutral-high truncate"
+                                  title={post.slug}
+                                >
+                                  {post.title}
+                                </span>
+                                {post.hasFeedback && (
+                                  <FontAwesomeIcon
+                                    icon={faMessage}
+                                    className="text-violet-500 text-[10px] shrink-0"
+                                    title="Feedback"
+                                  />
+                                )}
+                              </div>
+                              {/* Mobile-only status/type summary */}
+                              <div className="sm:hidden mt-1 flex flex-wrap gap-2">
+                                <span className="text-[10px] uppercase font-bold text-neutral-low">
+                                  {labelize(post.type)}
+                                </span>
+                                <span className="text-[10px] uppercase font-bold text-standout-high">
+                                  {post.status}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
                         </TableCell>
                         {dndMode && (
-                          <TableCell>
+                          <TableCell className="hidden sm:table-cell">
                             <span className="font-mono text-sm text-neutral-medium">
                               {(post as any).orderIndex ?? 0}
                             </span>
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map(
                               (loc) => {
@@ -1403,7 +1435,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <span className="text-sm capitalize">{post.status}</span>
                           {post.hasReviewDraft && (
                             <Badge variant="secondary" className="ml-2 align-middle">
@@ -1411,7 +1443,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden xl:table-cell">
                           <span className="text-xs text-neutral-low">
                             {new Date(post.updatedAt).toLocaleString(undefined, {
                               year: 'numeric',
