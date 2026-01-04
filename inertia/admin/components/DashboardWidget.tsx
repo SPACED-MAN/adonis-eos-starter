@@ -9,6 +9,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { Link } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 
 interface DashboardWidgetProps {
   type: 'seo' | 'analytics' | 'security' | 'media' | 'forms'
@@ -17,6 +18,7 @@ interface DashboardWidgetProps {
 }
 
 export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
+  const adminPath = useAdminPath()
   const getIcon = () => {
     switch (type) {
       case 'seo':
@@ -96,13 +98,12 @@ export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
             </div>
             <div className="w-full bg-backdrop-medium rounded-full h-2 overflow-hidden border border-line-low">
               <div
-                className={`h-full ${
-                  data.status === 'pass'
-                    ? 'bg-emerald-500'
-                    : data.status === 'warn'
+                className={`h-full ${data.status === 'pass'
+                  ? 'bg-emerald-500'
+                  : data.status === 'warn'
                     ? 'bg-amber-500'
                     : 'bg-rose-500'
-                }`}
+                  }`}
                 style={{ width: `${(data.passed / data.total) * 100}%` }}
               />
             </div>
@@ -119,7 +120,7 @@ export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
               <div className="text-xs text-neutral-medium">Files in Library</div>
             </div>
             <Link
-              href="/admin/media"
+              href={adminPath('media')}
               className="p-2 hover:bg-backdrop-high rounded-full transition-colors"
             >
               <ArrowRight className="w-5 h-5 text-neutral-medium" />
@@ -154,11 +155,11 @@ export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
 
   const getLink = () => {
     switch (type) {
-      case 'seo': return '/admin/settings/seo'
-      case 'analytics': return '/admin/security' // Or a dedicated analytics page if it exists
-      case 'security': return '/admin/security'
-      case 'media': return '/admin/media'
-      case 'forms': return '/admin/forms'
+      case 'seo': return adminPath('settings/seo')
+      case 'analytics': return adminPath('security') // Or a dedicated analytics page if it exists
+      case 'security': return adminPath('security')
+      case 'media': return adminPath('media')
+      case 'forms': return adminPath('forms')
       default: return '#'
     }
   }
@@ -172,8 +173,8 @@ export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
           </div>
           <h3 className="text-sm font-semibold text-neutral-high">{title}</h3>
         </div>
-        <Link 
-          href={getLink()} 
+        <Link
+          href={getLink()}
           className="text-neutral-low hover:text-neutral-medium transition-colors"
         >
           <ArrowRight className="w-4 h-4" />
@@ -185,5 +186,7 @@ export function DashboardWidget({ type, title, data }: DashboardWidgetProps) {
     </div>
   )
 }
+
+
 
 

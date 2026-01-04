@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import roleRegistry from '#services/role_registry'
 import formRegistry from '#services/form_registry'
+import { adminPath } from '#services/admin_path_service'
 import { generateCsv } from '../helpers/csv.js'
 import { DateTime } from 'luxon'
 
@@ -13,7 +14,7 @@ export default class FormsAdminController {
   async index({ inertia, auth, request, response }: HttpContext) {
     const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'forms.view')) {
-      return response.redirect('/admin/forbidden')
+      return response.redirect(adminPath('forbidden'))
     }
 
     const q = request.input('q', '').trim()

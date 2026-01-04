@@ -68,11 +68,11 @@ const shieldConfig = defineConfig({
         "'self'",
         // Allow connections to same origin for API calls
       ],
-      frameSrc: ["'none'"], // No iframes allowed (X-Frame-Options already set to DENY)
+      frameSrc: ["'self'"], // Allow self-hosted iframes (needed for admin analytics heatmaps)
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'none'"], // Redundant with X-Frame-Options but good practice
+      frameAncestors: ["'self'"], // Allow self-hosted iframes (needed for admin analytics heatmaps)
       ...(env.get('NODE_ENV') === 'production' ? { upgradeInsecureRequests: [] } : {}), // Upgrade HTTP to HTTPS in production
     },
     reportOnly: false,
@@ -95,7 +95,7 @@ const shieldConfig = defineConfig({
    */
   xFrame: {
     enabled: true,
-    action: 'DENY',
+    action: 'SAMEORIGIN',
   },
 
   /**

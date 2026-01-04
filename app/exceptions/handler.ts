@@ -1,6 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
+import { adminPath } from '#services/admin_path_service'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -22,12 +23,12 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    */
   protected statusPages: Record<StatusPageRange, StatusPageRenderer> = {
     '404': (error, { inertia, request }) => {
-      const isAdmin = request.url().startsWith('/admin')
+      const isAdmin = request.url().startsWith(adminPath())
       const page = isAdmin ? 'admin/errors/not_found' : 'site/errors/not_found'
       return inertia.render(page, { error })
     },
     '500..599': (error, { inertia, request }) => {
-      const isAdmin = request.url().startsWith('/admin')
+      const isAdmin = request.url().startsWith(adminPath())
       const page = isAdmin ? 'admin/errors/server_error' : 'site/errors/server_error'
       return inertia.render(page, { error })
     },

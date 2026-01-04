@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { faTurnUp, faMessage } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { useHasPermission } from '~/utils/permissions'
@@ -54,6 +55,7 @@ import { BulkAgentModal } from '../../components/agents/BulkAgentModal'
 interface PostsIndexProps {}
 
 export default function PostsIndexPage({}: PostsIndexProps) {
+  const adminPath = useAdminPath()
   const { confirm, alert } = useConfirm()
   // Entire implementation moved here from the former dashboard.tsx
   const inertiaPage = usePage()
@@ -354,7 +356,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       const json = await res.json().catch(() => ({}))
       const id = json?.data?.id
       if (id) {
-        router.visit(`/admin/posts/${id}/edit`)
+        router.visit(adminPath(`posts/${id}/edit`))
         return
       }
     }
@@ -1322,7 +1324,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                             </TableCell>
                             <TableCell className="text-right">
                               <Link
-                                href={`/admin/posts/${post.id}/edit`}
+                                href={adminPath(`posts/${post.id}/edit`)}
                                 className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                               >
                                 Edit
@@ -1456,7 +1458,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <Link
-                            href={`/admin/posts/${post.id}/edit`}
+                            href={adminPath(`posts/${post.id}/edit`)}
                             className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                           >
                             Edit

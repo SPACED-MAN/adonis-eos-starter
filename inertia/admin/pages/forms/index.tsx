@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Head, router } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import {
@@ -59,6 +60,7 @@ interface FormsIndexProps {
 }
 
 export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps) {
+  const adminPath = useAdminPath()
   const { confirm } = useConfirm()
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmissionSummary | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | boolean>(false)
@@ -76,7 +78,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
 
   const handleSearch = () => {
     router.get(
-      '/admin/forms',
+      adminPath('forms'),
       { q, form_slug: formSlug === 'all' ? '' : formSlug, page: 1 },
       { preserveState: true }
     )
@@ -210,7 +212,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                   onValueChange={(val) => {
                     setFormSlug(val)
                     router.get(
-                      '/admin/forms',
+                      adminPath('forms'),
                       { q, form_slug: val === 'all' ? '' : val, page: 1 },
                       { preserveState: true }
                     )
@@ -352,7 +354,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                       className="px-3 py-1.5 border border-line-low rounded-md disabled:opacity-50 hover:bg-backdrop-medium"
                       onClick={() =>
                         router.get(
-                          '/admin/forms',
+                          adminPath('forms'),
                           { ...meta, page: meta.page - 1 },
                           { preserveState: true }
                         )
@@ -368,7 +370,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                       className="px-3 py-1.5 border border-line-low rounded-md disabled:opacity-50 hover:bg-backdrop-medium"
                       onClick={() =>
                         router.get(
-                          '/admin/forms',
+                          adminPath('forms'),
                           { ...meta, page: meta.page + 1 },
                           { preserveState: true }
                         )

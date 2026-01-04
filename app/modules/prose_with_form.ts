@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 export default class ProseWithFormModule extends BaseModule {
   /**
@@ -68,28 +68,17 @@ export default class ProseWithFormModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        heading: "Let's talk about your next project.",
+        heading: LIPSUM_TITLE,
         content: {
           root: {
             type: 'root',
-            format: '',
-            indent: 0,
-            version: 1,
             children: [
               {
                 type: 'paragraph',
-                format: '',
-                indent: 0,
-                version: 1,
                 children: [
                   {
-                    detail: 0,
-                    format: 0,
-                    mode: 'normal',
-                    style: '',
-                    text: 'Use this section to tell a short story about how your team partners with customers, and include a simple form for follow-up.',
                     type: 'text',
-                    version: 1,
+                    text: LIPSUM_PARAGRAPH,
                   },
                 ],
               },

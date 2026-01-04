@@ -68,8 +68,8 @@ export function HeatmapModal({ post, open, onOpenChange }: HeatmapModalProps) {
       const x = point.x
       const y = point.y
 
-      // Only draw if within bounds
-      if (x != null && y != null) {
+      // Only draw if within bounds and meaningful
+      if (x != null && y != null && x > 0 && y > 0) {
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, 25)
         gradient.addColorStop(0, 'rgba(255, 69, 0, 0.5)')
         gradient.addColorStop(0.5, 'rgba(255, 140, 0, 0.2)')
@@ -83,8 +83,8 @@ export function HeatmapModal({ post, open, onOpenChange }: HeatmapModalProps) {
     })
   }
 
-  // Use the public path from the post data
-  const publicUrl = post?.publicPath || ''
+  // Use the public path from the post data, and ensure it's absolute for the iframe
+  const publicUrl = post?.publicPath ? (post.publicPath.startsWith('/') ? post.publicPath : `/${post.slug}`) : ''
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

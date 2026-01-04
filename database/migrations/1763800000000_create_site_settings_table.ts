@@ -20,6 +20,7 @@ export default class extends BaseSchema {
 
       table.boolean('is_maintenance_mode').defaultTo(false)
       table.jsonb('social_settings').nullable()
+      table.string('default_theme_mode').notNullable().defaultTo('light')
 
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())

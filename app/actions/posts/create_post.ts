@@ -8,6 +8,9 @@ import postTypeConfigService from '#services/post_type_config_service'
 import postTypeRegistry from '#services/post_type_registry'
 import moduleRegistry from '#services/module_registry'
 
+import logActivityAction from '#actions/log_activity_action'
+import dispatchWebhookAction from '#actions/dispatch_webhook_action'
+
 type CreatePostParams = {
   type: string
   locale: string
@@ -215,6 +218,27 @@ export default class CreatePost {
         // If canonical URL generation fails, continue without it
       }
     }
+
+    // Log activity
+    await logActivityAction.handle({
+      action: 'post.create',
+      userId,
+      entityType: 'post',
+      entityId: post.id,
+      metadata: { type, locale, slug },
+    })
+
+    // Dispatch webhook
+    await dispatchWebhookAction.handle({
+      event: 'post.created',
+      data: {
+        id: post.id,
+        type: post.type,
+        locale: post.locale,
+        slug: post.slug,
+        title: post.title,
+      },
+    })
 
     return post
   }

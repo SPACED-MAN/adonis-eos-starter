@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_CTA } from './shared_fields.js'
 
 export default class ShareModule extends BaseModule {
   /**
@@ -54,7 +54,7 @@ export default class ShareModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Share:',
+        title: LIPSUM_CTA + ':',
         alignment: 'center',
         theme: 'transparent',
       },

@@ -17,6 +17,7 @@ import { LexicalEditor } from '../../admin/components/LexicalEditor'
 import { MediaRenderer } from '../MediaRenderer'
 import { FontAwesomeIcon } from '../../site/lib/icons'
 import { iconOptions } from '../../admin/components/ui/iconOptions'
+import { useAdminPath } from '~/utils/adminPath'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { EditablePostReference } from './EditablePostReference'
@@ -47,6 +48,7 @@ type PopoverState = {
 }
 
 export function InlineOverlay() {
+  const adminPath = useAdminPath()
   const {
     enabled,
     canEdit,
@@ -175,7 +177,7 @@ export function InlineOverlay() {
         modEl.dataset.inlineGlobalLabel || modEl.dataset.inlineGlobalSlug || 'Global module'
       const link = document.createElement('a')
       const slug = modEl.dataset.inlineGlobalSlug
-      link.href = `/admin/modules?tab=globals${slug ? `&editSlug=${encodeURIComponent(slug)}` : ''}`
+      link.href = adminPath(`modules?tab=globals${slug ? `&editSlug=${encodeURIComponent(slug)}` : ''}`)
       link.target = '_blank'
       link.rel = 'noopener noreferrer'
       link.className =

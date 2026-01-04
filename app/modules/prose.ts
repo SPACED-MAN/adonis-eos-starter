@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 /**
  * Prose Module
@@ -98,7 +98,7 @@ export default class ProseModule extends BaseModule {
                 children: [
                   {
                     type: 'text',
-                    text: 'Add your content here...',
+                    text: LIPSUM_PARAGRAPH,
                   },
                 ],
               },

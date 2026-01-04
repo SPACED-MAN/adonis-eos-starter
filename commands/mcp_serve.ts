@@ -5,6 +5,8 @@ import moduleScopeService from '#services/module_scope_service'
 import postTypeRegistry from '#services/post_type_registry'
 import postTypeConfigService from '#services/post_type_config_service'
 import agentRegistry from '#services/agent_registry'
+import formRegistry from '#services/form_registry'
+import webhookService from '#services/webhook_service'
 import db from '@adonisjs/lucid/services/db'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
@@ -20,9 +22,17 @@ import PostSerializerService from '#services/post_serializer_service'
 import CreateTranslation from '#actions/translations/create_translation'
 import previewService from '#services/preview_service'
 import taxonomyService from '#services/taxonomy_service'
+import urlPatternService from '#services/url_pattern_service'
+import Post from '#models/post'
 import { getUserIdForAgent } from '#services/agent_user_service'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
 import { mcpLayoutConfig } from '../app/mcp/layout_config.js'
+import { promisify } from 'node:util'
+import { exec } from 'node:child_process'
+import path from 'node:path'
+import fs from 'node:fs/promises'
+
+const execAsync = promisify(exec)
 
 type JsonTextResult = {
   content: Array<{ type: 'text'; text: string }>
@@ -234,6 +244,52 @@ function createServerInstance() {
   })
 
   server.tool(
+    'list_registry_items',
+    'Returns a structured list of everything registered in PostTypeRegistry, ModuleRegistry, and FormRegistry.',
+    async () => {
+      try {
+        const postTypes = postTypeRegistry.list().map((t) => {
+          const cfg = postTypeConfigService.getUiConfig(t)
+          return {
+            slug: t,
+            name: cfg.label || t,
+            hierarchical: !!cfg.hierarchyEnabled,
+            permalinksEnabled: !!cfg.permalinksEnabled,
+            moduleGroupsEnabled: !!cfg.moduleGroupsEnabled,
+          }
+        })
+
+        const modules = moduleRegistry.getAll().map((m) => {
+          const cfg = m.getConfig()
+          return {
+            type: cfg.type,
+            name: cfg.name,
+            description: cfg.description,
+            allowedScopes: cfg.allowedScopes,
+            layoutRoles: cfg.aiGuidance?.layoutRoles || [],
+          }
+        })
+
+        const forms = formRegistry.list().map((f) => ({
+          slug: f.slug,
+          name: f.title,
+          description: f.description,
+        }))
+
+        return jsonResult({
+          data: {
+            postTypes,
+            modules,
+            forms,
+          },
+        })
+      } catch (e: any) {
+        return errorResult('Failed to list registry items', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
     'get_post_type_config',
     'Get a post type config as used by the admin/editor UI (normalized defaults)',
     {
@@ -350,6 +406,38 @@ function createServerInstance() {
         return jsonResult({ data: moduleRegistry.getSchema(type) })
       } catch (e: any) {
         return errorResult('Failed to load module schema', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'inspect_module_definition',
+    'Returns the defaultProps, config, and the TS/Inertia component path for a specific module.',
+    {
+      moduleSlug: z.string().min(1).describe('Module type/slug (e.g. "hero", "prose")'),
+    },
+    async ({ moduleSlug }) => {
+      try {
+        if (!moduleRegistry.has(moduleSlug)) {
+          return errorResult(`Module "${moduleSlug}" not found`)
+        }
+        const m = moduleRegistry.get(moduleSlug)
+        const cfg = m.getConfig()
+        const schema = moduleRegistry.getSchema(moduleSlug)
+
+        return jsonResult({
+          data: {
+            slug: moduleSlug,
+            name: cfg.name,
+            description: cfg.description,
+            defaultProps: schema.defaultValues,
+            config: cfg,
+            // Component path is often derived from type in our system
+            componentName: m.getComponentName(),
+          },
+        })
+      } catch (e: any) {
+        return errorResult('Failed to inspect module definition', { message: e?.message })
       }
     }
   )
@@ -607,6 +695,23 @@ function createServerInstance() {
         })
       } catch (e: any) {
         return errorResult('Failed to load post context', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'get_post_manifest',
+    'A "Super-Getter" that returns the Post record + all associated Modules + all Overrides + all Custom Fields in one JSON tree, flattened for easy understanding.',
+    {
+      postId: z.string().min(1),
+      mode: z.enum(['source', 'review', 'ai-review']).optional().default('ai-review'),
+    },
+    async ({ postId, mode }) => {
+      try {
+        const context = await PostSerializerService.serialize(postId, mode as any)
+        return jsonResult({ data: context })
+      } catch (e: any) {
+        return errorResult('Failed to get post manifest', { message: e?.message })
       }
     }
   )
@@ -2038,9 +2143,8 @@ function createServerInstance() {
         if (!agent) return errorResult('Agent not found', { agentId })
 
         // 1. Verify scope availability
-        const fieldKey = context?.fieldKey
-        const fieldType = context?.fieldType
-        if (!agentRegistry.isAvailableInScope(agentId, scope as any, undefined, fieldKey, fieldType)) {
+        const formSlug = context?.formSlug
+        if (!agentRegistry.isAvailableInScope(agentId, scope as any, formSlug)) {
           return errorResult(`Agent not available for ${scope} scope`, { agentId, scope })
         }
 
@@ -2259,6 +2363,61 @@ function createServerInstance() {
         return jsonResult({ data: row })
       } catch (e: any) {
         return errorResult('Failed to load media', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'check_media_integrity',
+    'Verifies the DB record exists, the file exists on disk (or R2), and all variants/optimized versions listed in the metadata are actually present.',
+    {
+      mediaId: z.string().min(1),
+    },
+    async ({ mediaId }) => {
+      try {
+        const row = await db.from('media_assets').where('id', mediaId).first()
+        if (!row) return errorResult('Media not found in database', { mediaId })
+
+        const results: any = {
+          database: true,
+          original: { url: row.url, exists: false },
+          variants: [],
+          optimized: row.optimized_url ? { url: row.optimized_url, exists: false } : null,
+        }
+
+        const checkExists = async (u: string) => {
+          if (u.startsWith('http')) {
+            return true
+          }
+          const absPath = path.join(process.cwd(), 'public', u.replace(/^\//, ''))
+          try {
+            await fs.access(absPath)
+            return true
+          } catch {
+            return false
+          }
+        }
+
+        results.original.exists = await checkExists(row.url)
+
+        if (row.optimized_url) {
+          results.optimized.exists = await checkExists(row.optimized_url)
+        }
+
+        const meta = (row.metadata || {}) as any
+        if (Array.isArray(meta.variants)) {
+          for (const v of meta.variants) {
+            results.variants.push({
+              name: v.name,
+              url: v.url,
+              exists: await checkExists(v.url),
+            })
+          }
+        }
+
+        return jsonResult({ data: results })
+      } catch (e: any) {
+        return errorResult('Failed to check media integrity', { message: e?.message })
       }
     }
   )
@@ -2663,6 +2822,306 @@ function createServerInstance() {
         })
       } catch (e: any) {
         return errorResult('Failed to suggest modules for layout', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'tail_activity_logs',
+    'Returns the latest entries from the activity_logs table for debugging and auditing.',
+    {
+      limit: z.number().int().min(1).max(100).optional().default(20),
+      entityId: z.string().optional(),
+      action: z.string().optional(),
+    },
+    async ({ limit, entityId, action }) => {
+      try {
+        let query = db.from('activity_logs')
+        if (entityId) query = query.where('entity_id', entityId)
+        if (action) query = query.where('action', action)
+
+        const logs = await query.orderBy('created_at', 'desc').limit(limit)
+        return jsonResult({ data: logs })
+      } catch (e: any) {
+        return errorResult('Failed to tail activity logs', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'simulate_webhook_event',
+    'Triggers the webhook_service dispatch logic with a mock payload to test integrations.',
+    {
+      event: z.string().min(1).describe('The webhook event name (e.g. "post.published")'),
+      payload: z.record(z.any()).describe('The mock data payload to send'),
+    },
+    async ({ event, payload }) => {
+      try {
+        await webhookService.dispatch(event as any, payload)
+        return jsonResult({ success: true, message: `Dispatched ${event}` })
+      } catch (e: any) {
+        return errorResult('Failed to simulate webhook event', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'run_ace_command',
+    'Execute a node ace command (e.g. list:routes, migration:status).',
+    {
+      command: z.string().min(1).describe('The ace command to run'),
+      args: z
+        .array(z.string())
+        .optional()
+        .default([])
+        .describe('Optional arguments for the command'),
+    },
+    async ({ command, args }) => {
+      try {
+        const fullCmd = `node ace ${command} ${args.join(' ')}`
+        const { stdout, stderr } = await execAsync(fullCmd)
+        return jsonResult({ stdout, stderr })
+      } catch (e: any) {
+        return errorResult('Ace command failed', { message: e?.message, stderr: e?.stderr })
+      }
+    }
+  )
+
+  server.tool(
+    'test_local_route',
+    'Make a request to a local URL to verify behavior, check status codes, and see response data.',
+    {
+      url: z.string().min(1).describe('Local URL path (e.g. "/api/posts")'),
+      method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).optional().default('GET'),
+      body: z.record(z.any()).optional().describe('Optional request body for POST/PUT/PATCH'),
+    },
+    async ({ url, method, body }) => {
+      try {
+        // Assume default port 3333 if not specified in env
+        const appPort = process.env.PORT || 3333
+        const fullUrl = `http://localhost:${appPort}${url.startsWith('/') ? '' : '/'}${url}`
+
+        const response = await fetch(fullUrl, {
+          method,
+          headers: body ? { 'Content-Type': 'application/json' } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        })
+
+        const data = await response.json().catch(() => null)
+        const text = !data ? await response.text().catch(() => '') : null
+
+        return jsonResult({
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          text,
+        })
+      } catch (e: any) {
+        return errorResult('Local route test failed', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'read_server_logs',
+    'Read the last N lines of the application logs from the terminal output.',
+    {
+      lines: z.number().int().min(1).max(500).optional().default(50),
+    },
+    async ({ lines }) => {
+      try {
+        // Try to find terminal files in the project's terminal folder
+        const terminalDir = path.join(process.cwd(), '.cursor/projects', 'home-spaced-man-Dev-applications-adonis-eos', 'terminals')
+        
+        // This is a bit speculative as the path might change, but it's based on the user's provided info.
+        // If it fails, we'll try a more generic approach.
+        let logContent = ''
+        try {
+          const files = await fs.readdir(terminalDir)
+          // Find the most recently modified .txt file
+          const stats = await Promise.all(
+            files.map(async (f) => ({
+              name: f,
+              stat: await fs.stat(path.join(terminalDir, f)),
+            }))
+          )
+          const latest = stats
+            .filter((s) => s.name.endsWith('.txt'))
+            .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)[0]
+
+          if (latest) {
+            const content = await fs.readFile(path.join(terminalDir, latest.name), 'utf-8')
+            const allLines = content.split('\n')
+            logContent = allLines.slice(-lines).join('\n')
+          }
+        } catch {
+          return errorResult('Could not find or read terminal logs in .cursor directory.')
+        }
+
+        return jsonResult({
+          logs: logContent,
+        })
+      } catch (e: any) {
+        return errorResult('Failed to read server logs', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'trace_url_resolution',
+    'Resolves a URL path to its corresponding Post or URL Pattern.',
+    {
+      path: z.string().min(1).describe('The URL path to trace (e.g. "/blog/my-post")'),
+    },
+    async ({ path: urlPath }) => {
+      try {
+        const match = await urlPatternService.matchPath(urlPath)
+        if (!match) {
+          return jsonResult({ matched: false, message: 'No pattern matched this URL' })
+        }
+
+        const post = await Post.query()
+          .where({
+            type: match.postType,
+            locale: match.locale,
+            slug: match.slug,
+          })
+          .whereNull('deleted_at')
+          .first()
+
+        return jsonResult({
+          matched: true,
+          matchInfo: match,
+          post: post
+            ? {
+                id: post.id,
+                title: post.title,
+                status: post.status,
+              }
+            : null,
+        })
+      } catch (e: any) {
+        return errorResult('URL resolution trace failed', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'validate_mcp_payload',
+    'Dry run validation for module props against their schema without saving.',
+    {
+      type: z.string().min(1).describe('Module type (e.g. "hero")'),
+      props: z.record(z.any()).describe('The props to validate'),
+    },
+    async ({ type, props }) => {
+      try {
+        if (!moduleRegistry.has(type)) {
+          return errorResult(`Module type "${type}" not found`)
+        }
+        const module = moduleRegistry.get(type)
+        try {
+          module.validate(props)
+          return jsonResult({ valid: true })
+        } catch (err: any) {
+          return jsonResult({ valid: false, error: err.message })
+        }
+      } catch (e: any) {
+        return errorResult('Payload validation failed', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'diff_post_versions',
+    'Compares two versions of a post (revision, draft, or source) and returns a detailed field-level and module-level diff.',
+    {
+      postId: z.string().min(1).describe('The post ID'),
+      baseMode: z.enum(['source', 'review', 'ai-review']).optional().default('source').describe('Base version to compare from'),
+      targetMode: z.enum(['source', 'review', 'ai-review']).optional().default('ai-review').describe('Target version to compare to'),
+    },
+    async ({ postId, baseMode, targetMode }) => {
+      try {
+        const [base, target] = await Promise.all([
+          PostSerializerService.serialize(postId, baseMode as any),
+          PostSerializerService.serialize(postId, targetMode as any)
+        ])
+
+        const fieldDiff: Record<string, { base: any; target: any; changed: boolean }> = {}
+        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredImageId']
+        
+        postFields.forEach(field => {
+          const bVal = (base.post as any)[field]
+          const tVal = (target.post as any)[field]
+          fieldDiff[field] = {
+            base: bVal,
+            target: tVal,
+            changed: JSON.stringify(bVal) !== JSON.stringify(tVal)
+          }
+        })
+
+        // Simple module diff
+        const baseModules = base.modules || []
+        const targetModules = target.modules || []
+        const moduleDiff = {
+          added: targetModules.filter(tm => !baseModules.some(bm => bm.postModuleId === tm.postModuleId)),
+          removed: baseModules.filter(bm => !targetModules.some(tm => tm.postModuleId === bm.postModuleId)),
+          changed: targetModules.filter(tm => {
+            const bm = baseModules.find(b => b.postModuleId === tm.postModuleId)
+            return bm && JSON.stringify(bm.props) !== JSON.stringify(tm.props)
+          })
+        }
+
+        return jsonResult({
+          postId,
+          baseMode,
+          targetMode,
+          fields: fieldDiff,
+          modules: {
+            addedCount: moduleDiff.added.length,
+            removedCount: moduleDiff.removed.length,
+            changedCount: moduleDiff.changed.length,
+            added: moduleDiff.added.map(m => ({ id: m.postModuleId, type: m.type })),
+            removed: moduleDiff.removed.map(m => ({ id: m.postModuleId, type: m.type })),
+            changed: moduleDiff.changed.map(m => ({ id: m.postModuleId, type: m.type }))
+          }
+        })
+      } catch (e: any) {
+        return errorResult('Failed to diff post versions', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'query_db_summary',
+    'Returns a high-level summary of database statistics (post counts by type/status, media usage, etc.).',
+    {},
+    async () => {
+      try {
+        const [posts, media, users] = await Promise.all([
+          db.from('posts').select('type', 'status').count('* as count').groupBy('type', 'status'),
+          db.from('media_assets').count('* as count').first(),
+          db.from('users').count('* as count').first()
+        ])
+
+        const postStats: Record<string, any> = {}
+        posts.forEach((p: any) => {
+          if (!postStats[p.type]) postStats[p.type] = { total: 0, byStatus: {} }
+          const count = Number(p.count)
+          postStats[p.type].total += count
+          postStats[p.type].byStatus[p.status] = count
+        })
+
+        return jsonResult({
+          posts: postStats,
+          media: {
+            total: Number(media?.count || 0)
+          },
+          users: {
+            total: Number(users?.count || 0)
+          }
+        })
+      } catch (e: any) {
+        return errorResult('Failed to query database summary', { message: e?.message })
       }
     }
   )

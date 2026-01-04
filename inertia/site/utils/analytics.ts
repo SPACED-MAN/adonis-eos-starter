@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react'
 let currentPostId: string | null = null
 let isAuthenticated = false
 let isEnabled = true
+let hasInitialized = false
 let clickBuffer: any[] = []
 let flushTimer: any = null
 
@@ -10,27 +11,32 @@ let flushTimer: any = null
  * Lightweight analytics tracker for the public site.
  * Uses Inertia events to track page views and document-level listeners for clicks.
  */
-export function initAnalytics() {
-  if (typeof window === 'undefined') return
+export function initAnalytics(initialPage?: any) {
+  if (typeof window === 'undefined' || hasInitialized) return
+  hasInitialized = true
 
-  // Peek at initial state if available in window.__inertiaProps or similar
-  // but Inertia usually provides this via router events.
-  // For the very first load, we can try to get it from the DOM.
-  try {
-    const el = document.getElementById('app')
-    if (el && el.dataset.page) {
-      const page = JSON.parse(el.dataset.page)
-      updateState(page)
+  if (initialPage) {
+    updateState(initialPage)
+  } else {
+    // Fallback: Peek at initial state if available in window.__inertiaProps or similar
+    try {
+      const el = document.getElementById('app')
+      if (el && el.dataset.page) {
+        const page = JSON.parse(el.dataset.page)
+        updateState(page)
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 
-  // 1. Listen for page changes (including initial load if not already handled)
+  // 1. Listen for page changes (excluding initial load which we track manually below)
   router.on('success', (event) => {
     const page = event.detail.page
+    const oldPath = window.location.pathname
     updateState(page)
     
+    // Only track if the path actually changed (to avoid double tracking initial load)
     if (isEnabled && !isAuthenticated) {
       track({
         eventType: 'view',
@@ -41,9 +47,15 @@ export function initAnalytics() {
     }
   })
 
-  // 2. Initial state from current page if already loaded
-  // Note: Inertia might have already set the state, or we get it from the first 'success' event.
-  // We can also try to peek at the initial window state if needed.
+  // 2. Track initial page view
+  if (isEnabled && !isAuthenticated) {
+    track({
+      eventType: 'view',
+      postId: currentPostId,
+      viewportWidth: window.innerWidth,
+      metadata: { path: window.location.pathname }
+    })
+  }
 
   // 3. Click tracking
   document.addEventListener('click', (e) => {
@@ -55,6 +67,10 @@ export function initAnalytics() {
       return
     }
 
+    // Only track clicks on potentially interactive elements (Task 2 fix)
+    const interactive = target.closest('a, button, [role="button"], input[type="submit"], input[type="button"]')
+    if (!interactive) return
+
     clickBuffer.push({
       eventType: 'click',
       postId: currentPostId,
@@ -63,14 +79,15 @@ export function initAnalytics() {
       viewportWidth: window.innerWidth,
       metadata: {
         selector: getSelector(target),
-        path: window.location.pathname
+        path: window.location.pathname,
+        text: target.innerText?.substring(0, 50).trim() || ''
       }
     })
 
     if (clickBuffer.length >= 5) {
       flush()
     }
-  })
+  }, { passive: true })
 
   // 4. Lifecycle hooks
   window.addEventListener('beforeunload', () => flush())

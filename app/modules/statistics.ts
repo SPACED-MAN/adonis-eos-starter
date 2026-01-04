@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE } from './shared_fields.js'
 
 export default class StatisticsModule extends BaseModule {
   /**
@@ -75,9 +75,9 @@ export default class StatisticsModule extends BaseModule {
       ],
       defaultValues: {
         stats: [
-          { value: 73_000_000, suffix: 'M+', label: 'developers' },
-          { value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
-          { value: 4_000_000, suffix: 'M+', label: 'organizations' },
+          { value: 100, suffix: '%', label: LIPSUM_TITLE },
+          { value: 500, suffix: '+', label: LIPSUM_TITLE },
+          { value: 10, suffix: 'k', label: LIPSUM_TITLE },
         ],
         theme: 'low',
       },

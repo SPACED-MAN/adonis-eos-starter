@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import db from '@adonisjs/lucid/services/db'
 import app from '@adonisjs/core/services/app'
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
 
 export default class DevToolsMiddleware {
@@ -20,7 +21,7 @@ export default class DevToolsMiddleware {
     if (auth.user?.role !== 'admin') {
       try {
         await auth.use('web').check()
-      } catch {}
+      } catch { }
     }
 
     const user = auth.use('web').user
@@ -33,25 +34,39 @@ export default class DevToolsMiddleware {
     const startTime = process.hrtime()
     const queries: any[] = []
 
-    // Listen for queries
+    // Listen for queries using the central emitter service
     const queryListener = (query: any) => {
+      // Lucid emits duration as [seconds, nanoseconds] hrtime array
+      const durationMs = Array.isArray(query.duration)
+        ? query.duration[0] * 1000 + query.duration[1] / 1000000
+        : query.duration
+
       // SOC2/Security: never collect query bindings in production (often contains PII/secrets).
       const safeQuery = {
         sql: query.sql,
         bindings: app.inProduction ? undefined : query.bindings,
-        duration: query.duration,
+        duration: durationMs,
         timestamp: new Date().toISOString(),
       }
-      queries.push({
-        ...safeQuery,
-      })
+      queries.push(safeQuery)
     }
-    // @ts-ignore - access private emitter for dev tools
-    db.emitter.on('db:query', queryListener)
+
+    // IMPORTANT: For Lucid to emit 'db:query' events, the connection MUST have debug enabled.
+    // We temporarily enable it for the duration of this request.
+    const primaryConnection = db.primaryConnectionName
+    const connectionNode = db.manager.get(primaryConnection)
+    const originalDebug = connectionNode?.config?.debug
+
+    if (connectionNode && connectionNode.config) {
+      connectionNode.config.debug = true
+    }
+
+    emitter.on('db:query', queryListener)
 
     try {
-      // For the UI, we share the metrics of the PREVIOUS request stored in session
-      // This is because we can't calculate current request metrics until after it's rendered
+      // For the UI, we share the metrics of the PREVIOUS request as well if possible,
+      // but Inertia shares happen BEFORE the final metrics are collected.
+      // So we continue to share the last metrics for immediate UI feedback.
       if (isAdmin) {
         const lastMetrics = session.get('devToolsLastMetrics')
         if (lastMetrics) {
@@ -63,18 +78,28 @@ export default class DevToolsMiddleware {
 
       await next()
     } finally {
-      // @ts-ignore - access private emitter for dev tools
-      db.emitter.off('db:query', queryListener)
+      // Cleanup
+      emitter.off('db:query', queryListener)
+
+      // Restore original debug state
+      if (connectionNode && connectionNode.config) {
+        connectionNode.config.debug = originalDebug
+      }
 
       const endTime = process.hrtime(startTime)
       const durationMs = (endTime[0] * 1000 + endTime[1] / 1000000).toFixed(2)
-      const memoryUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
+
+      // Use heapUsed for a more accurate picture of current active objects,
+      // and run global.gc() if --expose-gc is used to get the most accurate baseline.
+      const mem = process.memoryUsage()
+      const memoryUsage = (mem.heapUsed / 1024 / 1024).toFixed(2)
+      const rss = (mem.rss / 1024 / 1024).toFixed(2)
 
       const devToolsData = {
         url: ctx.request.url(),
         method: ctx.request.method(),
         executionTime: durationMs,
-        memoryUsage: `${memoryUsage}MB`,
+        memoryUsage: `${memoryUsage}MB (RSS: ${rss}MB)`,
         queries: queries,
         queryCount: queries.length,
         totalQueryDuration: queries.reduce((sum, q) => sum + (q.duration || 0), 0).toFixed(2),

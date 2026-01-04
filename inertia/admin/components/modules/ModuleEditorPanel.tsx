@@ -56,6 +56,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { DragHandle } from '../ui/DragHandle'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
+import { useAdminPath } from '~/utils/adminPath'
 import { CustomFieldDefinition } from '~/types/custom_field'
 import { type MediaVariant } from '~/lib/media'
 import { TokenField } from '../ui/TokenField'
@@ -2912,7 +2913,7 @@ export function ModuleEditorPanel({
               Global modules are shared across posts and must be edited in the global settings.
             </span>
             <a
-              href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+              href={adminPath(`modules?tab=globals&editSlug=${moduleItem.globalSlug}`)}
               className="font-semibold underline hover:text-amber-400"
             >
               Edit Global Module
@@ -2990,7 +2991,7 @@ export function ModuleEditorPanel({
                 </p>
                 {moduleItem.globalSlug && (
                   <a
-                    href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+                    href={adminPath(`modules?tab=globals&editSlug=${moduleItem.globalSlug}`)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-standout-high text-on-high rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
                   >
                     Edit Global Module
@@ -3100,6 +3101,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   customFields?: Array<{ slug: string; label: string }>
   allModules?: ModuleListItem[]
 }) {
+  const adminPath = useAdminPath()
   const merged = useMemo(
     () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
     [moduleItem]
@@ -3425,7 +3427,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-500 flex items-center justify-between">
           <span>Global module (shared) - edit in settings.</span>
           <a
-            href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+            href={adminPath(`modules?tab=globals&editSlug=${moduleItem.globalSlug}`)}
             className="font-semibold underline hover:text-amber-400"
           >
             Edit Global

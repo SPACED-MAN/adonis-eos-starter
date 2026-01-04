@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 export default class AccordionModule extends BaseModule {
   getRenderingMode() {
@@ -88,12 +88,12 @@ export default class AccordionModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum',
-        subtitle: 'Consectetur adipiscing elit, sed do eiusmod tempor.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         items: [
           {
-            title: 'Lorem ipsum dolor sit amet?',
-            content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
+            title: LIPSUM_TITLE + '?',
+            content: `<p>${LIPSUM_PARAGRAPH}</p>`,
           },
         ],
         allowMultiple: false,

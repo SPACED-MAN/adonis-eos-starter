@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_PARAGRAPH, LIPSUM_CTA } from './shared_fields.js'
 
 export default class FeaturesListExpandedModule extends BaseModule {
   /**
@@ -125,29 +125,23 @@ export default class FeaturesListExpandedModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
-        subtitle:
-          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         features: [
           {
             icon: 'rocket',
-            title: 'Consectetur adipiscing',
-            body: 'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.',
+            title: LIPSUM_TITLE + ' 1',
+            body: LIPSUM_PARAGRAPH,
           },
           {
             icon: 'layer-group',
-            title: 'Labore et dolore',
-            body: 'Ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit.',
-          },
-          {
-            icon: 'users',
-            title: 'Veniam quis nostrud',
-            body: 'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+            title: LIPSUM_TITLE + ' 2',
+            body: LIPSUM_PARAGRAPH,
           },
         ],
         ctas: [
           {
-            label: 'Lorem Ipsum',
+            label: LIPSUM_CTA,
             url: { kind: 'url', url: '#', target: '_self' },
             style: 'primary',
           },

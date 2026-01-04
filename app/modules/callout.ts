@@ -1,7 +1,7 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
-import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField, LIPSUM_TITLE, LIPSUM_CTA, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 /**
  * Callout Module
@@ -131,10 +131,25 @@ export default class CalloutModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
-        prose: null,
+        title: LIPSUM_TITLE,
+        prose: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [
+                  {
+                    type: 'text',
+                    text: LIPSUM_PARAGRAPH,
+                  },
+                ],
+              },
+            ],
+          },
+        },
         ctas: [
-          { label: 'Lorem Ipsum', url: '#', style: 'primary' },
+          { label: LIPSUM_CTA, url: '#', style: 'primary' },
           { label: 'Dolor Sit', url: '#', style: 'outline' },
         ],
         variant: 'centered',

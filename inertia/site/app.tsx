@@ -30,7 +30,7 @@ createInertiaApp({
   },
 
   setup({ el, App, props }) {
-    initAnalytics()
+    initAnalytics(props.initialPage)
     // Prefer the DB-backed site title when available (shared via Inertia props)
     const initialSiteTitle = (props.initialPage?.props as any)?.siteTitle
     if (initialSiteTitle) {

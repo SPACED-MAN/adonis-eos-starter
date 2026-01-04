@@ -7,6 +7,7 @@ import postRenderingService from '#services/post_rendering_service'
 import previewService from '#services/preview_service'
 import postTypeViewService from '#services/post_type_view_service'
 import roleRegistry from '#services/role_registry'
+import { adminPath } from '#services/admin_path_service'
 import taxonomyService from '#services/taxonomy_service'
 import activityLogService from '#services/activity_log_service'
 import BasePostsController from './base_posts_controller.js'
@@ -795,7 +796,7 @@ export default class PostsViewController extends BasePostsController {
       // Handle protected/private statuses
       if (post.status === 'private') {
         if (!isAuthenticated) {
-          return response.redirect('/admin/login', true)
+          return response.redirect(adminPath('login'), true)
         }
       } else if (post.status === 'protected') {
         const ok = request.cookie('PROTECTED_AUTH') === '1'

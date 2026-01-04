@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Head, usePage, router } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
@@ -16,6 +17,7 @@ import { getXsrf } from '~/utils/xsrf'
 import { ROLES, type Role } from '~/types/roles'
 
 export default function UserEdit() {
+  const adminPath = useAdminPath()
   const page = usePage()
   const idParam =
     (page as any)?.props?.id ||
@@ -328,7 +330,7 @@ export default function UserEdit() {
                           )}
                           <div className="flex items-center gap-2">
                             <a
-                              href={`/admin/posts/${profileId}/edit`}
+                              href={adminPath(`posts/${profileId}/edit`)}
                               className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
                             >
                               Edit Profile
@@ -371,7 +373,7 @@ export default function UserEdit() {
                               }
                               toast.success('Profile created')
                               bypassUnsavedChanges(true)
-                              router.visit(`/admin/posts/${j.id}/edit`)
+                              router.visit(adminPath(`posts/${j.id}/edit`))
                             } catch {
                               toast.error('Failed to create profile')
                             }

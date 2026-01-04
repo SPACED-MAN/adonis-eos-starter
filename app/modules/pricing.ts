@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_CTA } from './shared_fields.js'
 
 export default class PricingModule extends BaseModule {
   /**
@@ -154,26 +154,23 @@ export default class PricingModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
-        subtitle:
-          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         plans: [
           {
             name: 'Lorem',
-            description: 'Consectetur adipiscing elit, sed do eiusmod tempor.',
+            description: LIPSUM_SUBTITLE,
             price: '29',
             period: '/month',
             features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 1 developer',
-              'Premium support: 6 months',
-              'Free updates: 6 months',
+              'Feature 1',
+              'Feature 2',
+              'Feature 3',
             ],
             primary: false,
             ctas: [
               {
-                label: 'Lorem Ipsum',
+                label: LIPSUM_CTA,
                 url: '#',
                 style: 'primary',
               },
@@ -181,41 +178,18 @@ export default class PricingModule extends BaseModule {
           },
           {
             name: 'Ipsum',
-            description: 'Relevant for multiple users, extended & premium support.',
+            description: LIPSUM_SUBTITLE,
             price: '99',
             period: '/month',
             features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 10 developers',
-              'Premium support: 24 months',
-              'Free updates: 24 months',
+              'Feature 1',
+              'Feature 2',
+              'Feature 3',
             ],
             primary: true,
             ctas: [
               {
-                label: 'Lorem Ipsum',
-                url: '#',
-                style: 'primary',
-              },
-            ],
-          },
-          {
-            name: 'Dolor',
-            description: 'Best for large scale uses and extended redistribution rights.',
-            price: '499',
-            period: '/month',
-            features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 100+ developers',
-              'Premium support: 36 months',
-              'Free updates: 36 months',
-            ],
-            primary: false,
-            ctas: [
-              {
-                label: 'Lorem Ipsum',
+                label: LIPSUM_CTA,
                 url: '#',
                 style: 'primary',
               },

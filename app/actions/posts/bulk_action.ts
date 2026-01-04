@@ -1,3 +1,4 @@
+import logActivityAction from '#actions/log_activity_action'
 import Post from '#models/post'
 import authorizationService from '#services/authorization_service'
 import db from '@adonisjs/lucid/services/db'
@@ -226,6 +227,15 @@ export default class BulkPostsAction {
     }
 
     await db.from('posts').whereIn('id', uniqueIds).update({ status: nextStatus, updated_at: now })
+
+    await logActivityAction.handle({
+      action: `post.bulk.${action}`,
+      userId,
+      entityType: 'post',
+      entityId: 'bulk',
+      metadata: { count: uniqueIds.length },
+    })
+
     return { message: `Updated status to ${nextStatus}`, count: uniqueIds.length }
   }
 

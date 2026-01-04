@@ -1,8 +1,10 @@
 import { Head, Link } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 
 export default function Forbidden({ message = 'Access denied.' }: { message?: string }) {
+  const adminPath = useAdminPath()
   return (
     <div className="min-h-screen bg-backdrop-medium">
       <Head title="Forbidden" />
@@ -15,13 +17,13 @@ export default function Forbidden({ message = 'Access denied.' }: { message?: st
           <p className="text-neutral-medium mb-6">{message}</p>
           <div className="flex items-center gap-3">
             <Link
-              href="/admin"
+              href={adminPath()}
               className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium"
             >
               Back to Dashboard
             </Link>
             <Link
-              href="/admin/logout"
+              href={adminPath('logout')}
               method="post"
               as="button"
               className="px-3 py-2 text-sm rounded bg-standout-high text-on-high"

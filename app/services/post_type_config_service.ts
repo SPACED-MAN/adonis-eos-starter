@@ -24,7 +24,7 @@ class PostTypeConfigService {
       taxonomies: [],
       featuredImage: { enabled: false, label: 'Featured Image' },
       abTesting: { enabled: false, strategy: 'cookie', variations: [] },
-      seoDefaults: { noindex: false, nofollow: false, robotsJson: null },
+      seoDefaults: { noindex: false, nofollow: false, robotsJson: undefined },
     }
     const isDev = process.env.NODE_ENV === 'development'
     if (!isDev && cache.has(postType)) return cache.get(postType)!

@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import string from '@adonisjs/core/helpers/string'
 import mail from '@adonisjs/mail/services/main'
 import ForgotPasswordMail from '#mails/forgot_password_mail'
+import { adminPath } from '#services/admin_path_service'
 import vine from '@vinejs/vine'
 
 export default class PasswordResetsController {
@@ -42,7 +43,7 @@ export default class PasswordResetsController {
       })
 
       // Send email
-      const resetUrl = `${request.protocol()}://${request.host()}/admin/reset-password?token=${token}`
+      const resetUrl = `${request.protocol()}://${request.host()}${adminPath('reset-password')}?token=${token}`
       await mail.send(new ForgotPasswordMail(user, resetUrl))
     }
 
@@ -61,7 +62,7 @@ export default class PasswordResetsController {
     const token = request.input('token')
 
     if (!token) {
-      return response.redirect().toPath('/admin/login')
+      return response.redirect().toPath(adminPath('login'))
     }
 
     const record = await db
@@ -72,7 +73,7 @@ export default class PasswordResetsController {
 
     if (!record) {
       session.flash('error', 'Invalid or expired token.')
-      return response.redirect().toPath('/admin/login')
+      return response.redirect().toPath(adminPath('login'))
     }
 
     return inertia.render('admin/auth/reset-password', { token })
@@ -99,14 +100,14 @@ export default class PasswordResetsController {
 
     if (!record) {
       session.flash('error', 'Invalid or expired token.')
-      return response.redirect().toPath('/admin/login')
+      return response.redirect().toPath(adminPath('login'))
     }
 
     const user = await User.findBy('email', record.email)
 
     if (!user) {
       session.flash('error', 'User not found.')
-      return response.redirect().toPath('/admin/login')
+      return response.redirect().toPath(adminPath('login'))
     }
 
     // Update password
@@ -117,6 +118,6 @@ export default class PasswordResetsController {
     await db.from('password_reset_tokens').where('email', record.email).delete()
 
     session.flash('success', 'Your password has been reset successfully.')
-    return response.redirect().toPath('/admin/login')
+    return response.redirect().toPath(adminPath('login'))
   }
 }

@@ -1,3 +1,5 @@
+import logActivityAction from '#actions/log_activity_action'
+import dispatchWebhookAction from '#actions/dispatch_webhook_action'
 import Post from '#models/post'
 import { DateTime } from 'luxon'
 import urlPatternService from '#services/url_pattern_service'
@@ -225,6 +227,27 @@ export default class UpdatePost {
       } catch {
         // If canonical URL generation fails, continue without it
       }
+    }
+
+    // Log activity
+    await logActivityAction.handle({
+      action: 'post.update',
+      userId: (trx as any)?.userId || null, // Best effort to get userId if passed through trx metadata
+      entityType: 'post',
+      entityId: post.id,
+    })
+
+    // Dispatch webhooks
+    await dispatchWebhookAction.handle({
+      event: 'post.updated',
+      data: { id: post.id },
+    })
+
+    if (status === 'published' && post.status !== 'published') {
+      await dispatchWebhookAction.handle({
+        event: 'post.published',
+        data: { id: post.id },
+      })
     }
 
     return post

@@ -63,21 +63,22 @@ export default class AnalyticsController {
 
     const topPosts = await db
       .from('analytics_events')
-      .join('posts', 'posts.id', 'analytics_events.post_id')
+      .leftJoin('posts', 'posts.id', 'analytics_events.post_id')
       .where('event_type', 'view')
       .select('posts.id', 'posts.title', 'posts.slug')
+      .select(db.raw("analytics_events.metadata->>'path' as path"))
       .count('analytics_events.id as views')
-      .groupBy('posts.id', 'posts.title', 'posts.slug')
+      .groupBy('posts.id', 'posts.title', 'posts.slug', 'path')
       .orderBy('views', 'desc')
       .limit(10)
 
     const postsWithPaths = await Promise.all(
       topPosts.map(async (p) => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
+        id: p.id || p.path || 'unknown',
+        title: p.title || p.path || 'Unknown Page',
+        slug: p.slug || p.path || '',
         views: Number(p.views),
-        publicPath: await urlPatternService.buildPostPathForPost(p.id),
+        publicPath: p.id ? await urlPatternService.buildPostPathForPost(p.id) : (p.path || ''),
       }))
     )
 

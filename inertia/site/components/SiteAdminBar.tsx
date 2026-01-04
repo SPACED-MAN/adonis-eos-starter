@@ -10,6 +10,7 @@ import {
   faPencil,
 } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
+import { useAdminPath, buildAdminPath } from '~/utils/adminPath'
 import { DevTools } from '../../admin/components/DevTools'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
@@ -62,6 +63,10 @@ type InlineBridge = {
 }
 
 export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
+  // Use buildAdminPath directly because SiteAdminBar is rendered outside <App /> context in site/app.tsx
+  const prefix = initialProps?.adminPathPrefix || 'admin'
+  const adminPath = (path?: string) => buildAdminPath(prefix, path)
+
   const [inline, setInline] = useState<InlineBridge>({
     enabled: false,
     canEdit: false,
@@ -552,7 +557,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               <div className="flex items-center justify-between">
                 <span>Go to Dashboard</span>
                 <a
-                  href="/admin"
+                  href={adminPath()}
                   className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
                 >
                   Open
@@ -562,7 +567,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <div className="flex items-center justify-between">
                   <span>Edit this page</span>
                   <a
-                    href={`/admin/posts/${post.id}/edit`}
+                    href={adminPath(`posts/${post.id}/edit`)}
                     className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
                   >
                     Edit

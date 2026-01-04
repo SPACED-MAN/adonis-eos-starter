@@ -42,6 +42,16 @@ export default class extends BaseSchema {
       table.string('canonical_url', 500).nullable()
       table.jsonb('robots_json').nullable()
       table.jsonb('jsonld_overrides').nullable()
+
+      // Social fields
+      table.string('social_title', 255).nullable()
+      table.text('social_description').nullable()
+      table.uuid('social_image_id').nullable()
+
+      // Simplified robots toggles
+      table.boolean('noindex').notNullable().defaultTo(false)
+      table.boolean('nofollow').notNullable().defaultTo(false)
+
       // GIN indexes for JSONB (added post-create)
 
       // Module group relationship (nullable)

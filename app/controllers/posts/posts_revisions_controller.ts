@@ -5,7 +5,6 @@ import db from '@adonisjs/lucid/services/db'
 import authorizationService from '#services/authorization_service'
 import PostSnapshotService from '#services/post_snapshot_service'
 import BasePostsController from './base_posts_controller.js'
-import { randomUUID } from 'node:crypto'
 
 /**
  * Posts Revisions Controller

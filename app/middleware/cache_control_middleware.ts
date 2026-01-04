@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import cmsConfig from '#config/cms'
+import { adminPath } from '#services/admin_path_service'
 
 export default class CacheControlMiddleware {
   public async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -14,7 +15,7 @@ export default class CacheControlMiddleware {
     }
 
     // Skip admin and non-GET
-    if (ctx.request.url().startsWith('/admin') || !['GET', 'HEAD'].includes(ctx.request.method())) {
+    if (ctx.request.url().startsWith(adminPath()) || !['GET', 'HEAD'].includes(ctx.request.method())) {
       return
     }
 

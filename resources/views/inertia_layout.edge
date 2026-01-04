@@ -19,7 +19,8 @@
     <script>
       (function() {
         // Detect theme context (admin vs site) from URL
-        const isAdmin = window.location.pathname.startsWith("/admin");
+        const adminPrefix = "{{ page.props.adminPathPrefix || 'admin' }}";
+        const isAdmin = window.location.pathname.startsWith("/" + adminPrefix);
         const theme = isAdmin ? "admin" : "site";
         
         // Site-wide default from settings

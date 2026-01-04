@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 export default class FeaturesListModule extends BaseModule {
   /**
@@ -91,39 +91,23 @@ export default class FeaturesListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
-        subtitle:
-          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         features: [
           {
             icon: 'bullhorn',
-            title: 'Consectetur',
-            body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization.',
+            title: 'LIPSUM 1',
+            body: LIPSUM_PARAGRAPH.substring(0, 100),
           },
           {
             icon: 'scale-balanced',
-            title: 'Adipiscing',
-            body: 'Protect your organization and stay compliant with structured workflows.',
+            title: 'LIPSUM 2',
+            body: LIPSUM_PARAGRAPH.substring(0, 100),
           },
           {
             icon: 'gear',
-            title: 'Elit sed',
-            body: 'Automate handoffs, notifications, and approvals so your team can focus.',
-          },
-          {
-            icon: 'coins',
-            title: 'Tempor',
-            body: 'Audit‑ready workflows for close, forecasting, and quarterly budgeting.',
-          },
-          {
-            icon: 'pen-ruler',
-            title: 'Incididunt',
-            body: 'Craft consistent experiences for both marketing and product with shared systems.',
-          },
-          {
-            icon: 'diagram-project',
-            title: 'Labore',
-            body: 'Keep the business running smoothly with repeatable, measurable processes.',
+            title: 'LIPSUM 3',
+            body: LIPSUM_PARAGRAPH.substring(0, 100),
           },
         ],
         theme: 'low',

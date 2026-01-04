@@ -7,4 +7,5 @@ AGENT PROTOCOL - CONTENT QUALITY:
    - DOUBLE-CHECK: Ensure you are actually providing the full copy you intend to see. Do not send empty strings or brief summaries for content fields.
    - TITLES: Ensure you provide a unique, relevant title for every module. DO NOT leave default titles (like "Let's create more tools...") in place.
   - PLACEHOLDERS: NEVER use default placeholder text (like "Lorem Ipsum" or "Built for growing teams"). ALWAYS provide actual, meaningful copy that fulfills the user's request. If you are unsure of the content, provide a high-quality best-effort version based on the context. DO NOT leave fields blank if they are intended to hold copy.
+  - DEFAULT PROPS: When adding or updating modules, NEVER leave copy fields with their default values. The default "Lorem Ipsum" props in module definitions are for UI placeholders only. Your job is to replace them with real, high-quality content.
 

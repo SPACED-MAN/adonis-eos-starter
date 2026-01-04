@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react'
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { useHasPermission } from '~/utils/permissions'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import {
@@ -137,6 +138,7 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
 }
 
 export default function DatabaseIndex() {
+  const adminPath = useAdminPath()
   const [activeTab, setActiveTab] = useState<'export' | 'optimize' | 'search-replace'>('export')
 
   // Export/Import state
@@ -1076,10 +1078,10 @@ export default function DatabaseIndex() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       {[
-                        { label: 'Posts', href: '/admin/posts' },
-                        { label: 'Media', href: '/admin/media' },
-                        { label: 'Modules', href: '/admin/modules' },
-                        { label: 'Menus', href: '/admin/menus' },
+                        { label: 'Posts', href: adminPath('posts') },
+                        { label: 'Media', href: adminPath('media') },
+                        { label: 'Modules', href: adminPath('modules') },
+                        { label: 'Menus', href: adminPath('menus') },
                       ].map((item) => (
                         <a
                           key={item.label}

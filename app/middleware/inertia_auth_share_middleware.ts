@@ -10,6 +10,7 @@ import moduleRegistry from '#services/module_registry'
 import siteSettingsService from '#services/site_settings_service'
 import menuService from '#services/menu_service'
 import postRenderingService from '#services/post_rendering_service'
+import { getAdminPathPrefix } from '#services/admin_path_service'
 import cmsConfig from '#config/cms'
 
 export default class InertiaAuthShareMiddleware {
@@ -90,6 +91,7 @@ export default class InertiaAuthShareMiddleware {
           thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,
           modalVariant: process.env.MEDIA_ADMIN_MODAL_VARIANT || null,
         },
+        adminPathPrefix: getAdminPathPrefix(),
       })
     }
     await next()

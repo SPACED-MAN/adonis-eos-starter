@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Head, router } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { getXsrf } from '~/utils/xsrf'
@@ -7,6 +8,7 @@ import { toast } from 'sonner'
 import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 
 export default function ProfileIndex() {
+  const adminPath = useAdminPath()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<{
     enabledForRole: boolean
@@ -24,7 +26,7 @@ export default function ProfileIndex() {
           setStatus(j.data)
           if (j.data.hasProfile && j.data.profilePostId) {
             bypassUnsavedChanges(true)
-            router.visit(`/admin/posts/${j.data.profilePostId}/edit`)
+            router.visit(adminPath(`posts/${j.data.profilePostId}/edit`))
           }
         }
       } finally {
@@ -62,7 +64,7 @@ export default function ProfileIndex() {
                     const j = await res.json().catch(() => ({}))
                     if (res.ok && j?.id) {
                       bypassUnsavedChanges(true)
-                      router.visit(`/admin/posts/${j.id}/edit`)
+                      router.visit(adminPath(`posts/${j.id}/edit`))
                     } else {
                       toast.error(j?.error || 'Failed to create profile')
                     }

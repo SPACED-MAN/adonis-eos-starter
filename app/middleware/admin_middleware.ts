@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import roleRegistry from '#services/role_registry'
+import { adminPath } from '#services/admin_path_service'
 
 export default class AdminMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -12,7 +13,7 @@ export default class AdminMiddleware {
       const isInertia = !!ctx.request.header('x-inertia')
       if (isInertia) {
         // For Inertia navigations, redirect to a graceful forbidden page
-        return ctx.response.redirect('/admin/forbidden')
+        return ctx.response.redirect(adminPath('forbidden'))
       }
       // Fallback for non-Inertia/API requests
       return ctx.response.forbidden({ error: 'Admin access required' })

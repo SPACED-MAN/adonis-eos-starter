@@ -71,6 +71,12 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
     - Template-based seeding
     - AI agent compatibility
 
+12. **[mcp.md](./mcp.md)** - **⭐ AI INTEGRATION** - MCP server tools and usage
+    - Context & Introspection tools
+    - Debugging & Testing tools
+    - **Verification & Collaborative Debugging workflow**
+    - Extending the MCP server
+
 ## Actions Quick Start
 
 **For complex operations, use action classes with static methods:**

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Head } from '@inertiajs/react'
+import { Head, Link } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
 import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
@@ -62,6 +63,7 @@ function getXsrf(): string | undefined {
 }
 
 export default function CategoriesPage() {
+  const adminPath = useAdminPath()
   const { confirm } = useConfirm()
   const [taxonomies, setTaxonomies] = useState<Taxonomy[]>([])
   const [selectedTaxonomy, setSelectedTaxonomy] = useState<string>('') // slug
@@ -474,12 +476,12 @@ export default function CategoriesPage() {
                         {posts.map((p) => (
                           <TableRow key={p.id}>
                             <TableCell className="font-medium">
-                              <a
+                              <Link
                                 className="text-standout-high hover:text-standout-high transition-colors"
-                                href={`/admin/posts/${p.id}/edit`}
+                                href={adminPath(`posts/${p.id}/edit`)}
                               >
                                 {p.title}
-                              </a>
+                              </Link>
                               <div className="text-[10px] text-neutral-low mt-0.5 uppercase tracking-tighter">
                                 {p.locale} · {p.status}
                               </div>

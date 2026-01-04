@@ -11,6 +11,8 @@ export default class extends BaseSchema {
       table.string('default_text_model').nullable()
       table.string('default_media_provider').nullable()
       table.string('default_media_model').nullable()
+      table.string('default_video_provider').nullable()
+      table.string('default_video_model').nullable()
 
       table.jsonb('options').nullable()
 

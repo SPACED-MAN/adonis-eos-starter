@@ -11,15 +11,22 @@ import SaveReviewDraft from '#actions/posts/save_review_draft'
 import PostSerializerService from '#services/post_serializer_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import postTypeRegistry from '#services/post_type_registry'
+import formRegistry from '#services/form_registry'
+import webhookService from '#services/webhook_service'
 import Post from '#models/post'
 import RevisionService from '#services/revision_service'
+import urlPatternService from '#services/url_pattern_service'
 import moduleRegistry from '#services/module_registry'
 import agentRegistry from '#services/agent_registry'
 import db from '@adonisjs/lucid/services/db'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
+import { promisify } from 'node:util'
+import { exec } from 'node:child_process'
 import storageService from '#services/storage_service'
+
+const execAsync = promisify(exec)
 import mediaService from '#services/media_service'
 
 /**
@@ -58,11 +65,26 @@ class MCPClientService {
     // In a full implementation, this would query the MCP server
     return [
       { name: 'list_post_types', description: 'List all registered post types' },
+      {
+        name: 'list_registry_items',
+        description:
+          'Returns a structured list of everything registered in PostTypeRegistry, ModuleRegistry, and FormRegistry.',
+      },
       { name: 'get_post_type_config', description: 'Get a post type config' },
       { name: 'list_modules', description: 'List all module configs' },
       { name: 'get_module_schema', description: 'Get a module schema' },
+      {
+        name: 'inspect_module_definition',
+        description:
+          'Returns the defaultProps, config, and the TS/Inertia component path for a specific module.',
+      },
       { name: 'list_posts', description: 'List posts' },
       { name: 'get_post_context', description: 'Get full post context for editing' },
+      {
+        name: 'get_post_manifest',
+        description:
+          'A "Super-Getter" that returns the Post record + all associated Modules + all Overrides + all Custom Fields in one JSON tree, flattened for easy understanding.',
+      },
       {
         name: 'create_post_ai_review',
         description:
@@ -118,6 +140,42 @@ class MCPClientService {
         name: 'generate_image',
         description:
           'Generate an image using DALL-E (OpenAI) and add it to the media library. Returns media ID and URL. Requires AI_PROVIDER_OPENAI_API_KEY. Only use this if the user explicitly asks to generate/create a new image, or if no suitable existing image is found via search_media.',
+      },
+      {
+        name: 'check_media_integrity',
+        description:
+          'Verifies the DB record exists, the file exists on disk (or R2), and all variants/optimized versions listed in the metadata are actually present.',
+      },
+      {
+        name: 'tail_activity_logs',
+        description:
+          'Returns the latest entries from the activity_logs table for debugging and auditing.',
+      },
+      {
+        name: 'simulate_webhook_event',
+        description:
+          'Triggers the webhook_service dispatch logic with a mock payload to test integrations.',
+      },
+      {
+        name: 'run_ace_command',
+        description: 'Execute a node ace command (e.g. list:routes, migration:status).',
+      },
+      {
+        name: 'test_local_route',
+        description:
+          'Make a request to a local URL to verify behavior, check status codes, and see response data.',
+      },
+      {
+        name: 'read_server_logs',
+        description: 'Read the last N lines of the application logs from the terminal output.',
+      },
+      {
+        name: 'trace_url_resolution',
+        description: 'Resolves a URL path to its corresponding Post or URL Pattern.',
+      },
+      {
+        name: 'validate_mcp_payload',
+        description: 'Dry run validation for module props against their schema without saving.',
       },
     ]
   }
@@ -202,11 +260,51 @@ class MCPClientService {
     // For internal agents, we directly call the underlying actions
     // This avoids the overhead of HTTP/SSE communication
 
-    const targetMode = (mode || params.mode || 'ai-review') as any
+    const targetMode = (mode || params.mode) as any
+    if (!targetMode) {
+      throw new Error('Mode parameter is required (source, review, or ai-review)')
+    }
     switch (toolName) {
       case 'list_post_types': {
         const types = postTypeRegistry.list()
         return { success: true, postTypes: types }
+      }
+
+      case 'list_registry_items': {
+        const postTypes = postTypeRegistry.list().map((t) => {
+          const cfg = postTypeConfigService.getUiConfig(t)
+          return {
+            slug: t,
+            name: cfg.label || t,
+            hierarchical: !!cfg.hierarchyEnabled,
+            permalinksEnabled: !!cfg.permalinksEnabled,
+            moduleGroupsEnabled: !!cfg.moduleGroupsEnabled,
+          }
+        })
+
+        const modules = moduleRegistry.getAll().map((m) => {
+          const cfg = m.getConfig()
+          return {
+            type: cfg.type,
+            name: cfg.name,
+            description: cfg.description,
+            allowedScopes: cfg.allowedScopes,
+            layoutRoles: cfg.aiGuidance?.layoutRoles || [],
+          }
+        })
+
+        const forms = formRegistry.list().map((f) => ({
+          slug: f.slug,
+          name: f.title,
+          description: f.description,
+        }))
+
+        return {
+          success: true,
+          postTypes,
+          modules,
+          forms,
+        }
       }
 
       case 'get_post_type_config': {
@@ -240,6 +338,27 @@ class MCPClientService {
         if (!type) throw new Error('get_module_schema requires "type"')
         const schema = moduleRegistry.getSchema(type)
         return { success: true, schema }
+      }
+
+      case 'inspect_module_definition': {
+        const { moduleSlug } = params
+        if (!moduleSlug) throw new Error('inspect_module_definition requires "moduleSlug"')
+        if (!moduleRegistry.has(moduleSlug)) {
+          throw new Error(`Module "${moduleSlug}" not found`)
+        }
+        const m = moduleRegistry.get(moduleSlug)
+        const cfg = m.getConfig()
+        const schema = moduleRegistry.getSchema(moduleSlug)
+
+        return {
+          success: true,
+          slug: moduleSlug,
+          name: cfg.name,
+          description: cfg.description,
+          defaultProps: schema.defaultValues,
+          config: cfg,
+          componentName: m.getComponentName(),
+        }
       }
 
       case 'list_posts': {
@@ -622,8 +741,19 @@ class MCPClientService {
         const post = await Post.find(postId)
         if (!post) throw new Error(`Post not found: ${postId}`)
 
-        // Serialize post in the requested mode (default to ai-review for backward compat)
+        // Serialize post in the requested mode
         const context = await PostSerializerService.serialize(post.id, targetMode)
+        return {
+          success: true,
+          ...context,
+        }
+      }
+
+      case 'get_post_manifest': {
+        const { postId, mode: manifestMode } = params
+        if (!postId) throw new Error('get_post_manifest requires "postId"')
+        const effectiveMode = manifestMode || targetMode
+        const context = await PostSerializerService.serialize(postId, effectiveMode)
         return {
           success: true,
           ...context,
@@ -644,7 +774,7 @@ class MCPClientService {
         const currentCanonical = await PostSerializerService.serialize(postId, targetMode)
 
         // Merge patch into the canonical post fields
-        const mergedPayload = {
+        const mergedPayload: any = {
           ...currentCanonical.post,
           modules: currentCanonical.modules,
         }
@@ -1335,11 +1465,11 @@ class MCPClientService {
 
         if (agentId) {
           const agentDef = agentRegistry.get(agentId)
-          if (agentDef?.internal) {
-            providerMedia = agentDef.internal.providerMedia || agentDef.internal.provider
-            modelMedia = modelMedia || agentDef.internal.modelMedia || agentDef.internal.model
-            apiKey = agentDef.internal.apiKey
-            baseUrl = agentDef.internal.baseUrl
+          if (agentDef?.llmConfig) {
+            providerMedia = agentDef.llmConfig.providerMedia || agentDef.llmConfig.provider
+            modelMedia = modelMedia || agentDef.llmConfig.modelMedia || agentDef.llmConfig.model
+            apiKey = agentDef.llmConfig.apiKey
+            baseUrl = agentDef.llmConfig.baseUrl
           }
         }
 
@@ -1527,11 +1657,11 @@ class MCPClientService {
 
         if (agentId) {
           const agentDef = agentRegistry.get(agentId)
-          if (agentDef?.internal) {
-            providerVideo = agentDef.internal.providerVideo || agentDef.internal.provider
-            modelVideo = modelVideo || agentDef.internal.modelVideo || agentDef.internal.model
-            apiKey = agentDef.internal.apiKey
-            baseUrl = agentDef.internal.baseUrl
+          if (agentDef?.llmConfig) {
+            providerVideo = agentDef.llmConfig.providerVideo || agentDef.llmConfig.provider
+            modelVideo = modelVideo || agentDef.llmConfig.modelVideo || agentDef.llmConfig.model
+            apiKey = agentDef.llmConfig.apiKey
+            baseUrl = agentDef.llmConfig.baseUrl
           }
         }
 
@@ -1643,9 +1773,9 @@ class MCPClientService {
 
         // Log activity
         try {
-          const activityLogService = (await import('#services/activity_log_service')).default
+          const activityLogServiceImport = (await import('#services/activity_log_service')).default
           const actorUserId = await this.resolveActorUserId(agentId)
-          await activityLogService.log({
+          await activityLogServiceImport.log({
             action: 'media.generate_video',
             userId: actorUserId,
             entityType: 'media',
@@ -1665,6 +1795,216 @@ class MCPClientService {
           mediaId,
           url,
           mimeType,
+        }
+      }
+
+      case 'check_media_integrity': {
+        const { mediaId } = params
+        if (!mediaId) throw new Error('check_media_integrity requires "mediaId"')
+        const row = await db.from('media_assets').where('id', mediaId).first()
+        if (!row) throw new Error(`Media not found: ${mediaId}`)
+
+        const results: any = {
+          database: true,
+          original: { url: row.url, exists: false },
+          variants: [],
+          optimized: row.optimized_url ? { url: row.optimized_url, exists: false } : null,
+        }
+
+        const checkExists = async (u: string) => {
+          if (u.startsWith('http')) return true
+          const absPath = path.join(process.cwd(), 'public', u.replace(/^\//, ''))
+          try {
+            await fs.access(absPath)
+            return true
+          } catch {
+            return false
+          }
+        }
+
+        results.original.exists = await checkExists(row.url)
+        if (row.optimized_url) {
+          results.optimized.exists = await checkExists(row.optimized_url)
+        }
+
+        const meta = (row.metadata || {}) as any
+        if (Array.isArray(meta.variants)) {
+          for (const v of meta.variants) {
+            results.variants.push({
+              name: v.name,
+              url: v.url,
+              exists: await checkExists(v.url),
+            })
+          }
+        }
+
+        return { success: true, ...results }
+      }
+
+      case 'tail_activity_logs': {
+        const { limit = 20, entityId, action } = params
+        let query = db.from('activity_logs')
+        if (entityId) query = query.where('entity_id', entityId)
+        if (action) query = query.where('action', action)
+
+        const logs = await query.orderBy('created_at', 'desc').limit(limit)
+        return { success: true, logs }
+      }
+
+      case 'simulate_webhook_event': {
+        const { event, payload } = params
+        if (!event || !payload) throw new Error('simulate_webhook_event requires "event" and "payload"')
+        await webhookService.dispatch(event as any, payload)
+        return { success: true, message: `Dispatched ${event}` }
+      }
+
+      case 'run_ace_command': {
+        const { command, args = [] } = params
+        if (!command) throw new Error('run_ace_command requires "command"')
+        const fullCmd = `node ace ${command} ${args.join(' ')}`
+        const { stdout, stderr } = await execAsync(fullCmd)
+        return { success: true, stdout, stderr }
+      }
+
+      case 'test_local_route': {
+        const { url, method = 'GET', body } = params
+        if (!url) throw new Error('test_local_route requires "url"')
+        const appPort = process.env.PORT || 3333
+        const fullUrl = `http://localhost:${appPort}${url.startsWith('/') ? '' : '/'}${url}`
+
+        const response = await fetch(fullUrl, {
+          method,
+          headers: body ? { 'Content-Type': 'application/json' } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        })
+
+        const data = await response.json().catch(() => null)
+        const text = !data ? await response.text().catch(() => '') : null
+
+        return {
+          success: true,
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          text,
+        }
+      }
+
+      case 'read_server_logs': {
+        const { lines = 50 } = params
+        const terminalDir = path.join(process.cwd(), '.cursor/projects', 'home-spaced-man-Dev-applications-adonis-eos', 'terminals')
+
+        let logContent = ''
+        try {
+          const files = await fs.readdir(terminalDir)
+          const stats = await Promise.all(
+            files.map(async (f) => ({
+              name: f,
+              stat: await fs.stat(path.join(terminalDir, f)),
+            }))
+          )
+          const latest = stats
+            .filter((s) => s.name.endsWith('.txt'))
+            .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)[0]
+
+          if (latest) {
+            const content = await fs.readFile(path.join(terminalDir, latest.name), 'utf-8')
+            const allLines = content.split('\n')
+            logContent = allLines.slice(-lines).join('\n')
+          } else {
+            throw new Error('No terminal log files found')
+          }
+        } catch (e: any) {
+          throw new Error(`Failed to read server logs: ${e.message}`)
+        }
+
+        return { success: true, logs: logContent }
+      }
+
+      case 'diff_post_versions': {
+        const { postId, baseMode = 'source', targetMode = 'ai-review' } = params
+        if (!postId) throw new Error('diff_post_versions requires "postId"')
+
+        const [base, target] = await Promise.all([
+          PostSerializerService.serialize(postId, baseMode as any),
+          PostSerializerService.serialize(postId, targetMode as any)
+        ])
+
+        const fieldDiff: Record<string, any> = {}
+        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredImageId']
+        postFields.forEach(field => {
+          const bVal = (base.post as any)[field]
+          const tVal = (target.post as any)[field]
+          fieldDiff[field] = {
+            base: bVal,
+            target: tVal,
+            changed: JSON.stringify(bVal) !== JSON.stringify(tVal)
+          }
+        })
+
+        return {
+          success: true,
+          diff: fieldDiff,
+          baseModules: base.modules?.length || 0,
+          targetModules: target.modules?.length || 0
+        }
+      }
+
+      case 'query_db_summary': {
+        const [posts, media] = await Promise.all([
+          db.from('posts').select('type').count('* as count').groupBy('type'),
+          db.from('media_assets').count('* as count').first(),
+        ])
+        return {
+          success: true,
+          posts,
+          mediaCount: Number(media?.count || 0)
+        }
+      }
+
+      case 'trace_url_resolution': {
+        const { path: urlPath } = params
+        if (!urlPath) throw new Error('trace_url_resolution requires "path"')
+        const match = await urlPatternService.matchPath(urlPath)
+        if (!match) {
+          return { success: true, matched: false, message: 'No pattern matched this URL' }
+        }
+
+        const post = await Post.query()
+          .where({
+            type: match.postType,
+            locale: match.locale,
+            slug: match.slug,
+          })
+          .whereNull('deleted_at')
+          .first()
+
+        return {
+          success: true,
+          matched: true,
+          matchInfo: match,
+          post: post
+            ? {
+              id: post.id,
+              title: post.title,
+              status: post.status,
+            }
+            : null,
+        }
+      }
+
+      case 'validate_mcp_payload': {
+        const { type, props } = params
+        if (!type || !props) throw new Error('validate_mcp_payload requires "type" and "props"')
+        if (!moduleRegistry.has(type)) {
+          throw new Error(`Module type "${type}" not found`)
+        }
+        const module = moduleRegistry.get(type)
+        try {
+          module.validate(props)
+          return { success: true, valid: true }
+        } catch (err: any) {
+          return { success: true, valid: false, error: err.message }
         }
       }
 

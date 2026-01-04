@@ -7,7 +7,6 @@ import ApplyPostTaxonomyAssignments from '#actions/posts/apply_post_taxonomy_ass
 import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import moduleRegistry from '#services/module_registry'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
-import Post from '#models/post'
 
 export type SnapshotApplyMode = 'source' | 'review' | 'ai-review'
 

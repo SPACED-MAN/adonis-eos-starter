@@ -86,6 +86,7 @@ import {
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
+import { useAdminPath } from '~/utils/adminPath'
 import { MediaThumb } from '../../components/media/MediaThumb'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
@@ -732,6 +733,7 @@ export default function Editor({
   selectedTaxonomyTermIds = [],
   fieldTypes = [],
 }: EditorProps) {
+  const adminPath = useAdminPath()
   const { confirm } = useConfirm()
   const hasFieldPermission = useHasPermission('agents.field')
   const initialTaxonomyIds = useMemo(
@@ -1667,7 +1669,7 @@ export default function Editor({
     if (res.ok) {
       toast.success('Post deleted successfully')
       bypassUnsavedChanges(true)
-      router.visit('/admin/posts')
+      router.visit(adminPath('posts'))
       return
     }
     const err = await res.json().catch(() => null)
@@ -4017,7 +4019,7 @@ export default function Editor({
                         const target = translations?.find((t) => t.locale === nextLocale)
                         if (target) {
                           bypassUnsavedChanges(true)
-                          router.visit(`/admin/posts/${target.id}/edit`)
+                          router.visit(adminPath(`posts/${target.id}/edit`))
                         }
                       }}
                     >
@@ -4074,7 +4076,7 @@ export default function Editor({
                               // We use view=ai-review because the agent likely put content there
                               setTimeout(() => {
                                 bypassUnsavedChanges(true)
-                                router.visit(`/admin/posts/${newId}/edit${translationAgents.length > 0 ? '?view=ai-review' : ''}`)
+                                router.visit(adminPath(`posts/${newId}/edit${translationAgents.length > 0 ? '?view=ai-review' : ''}`))
                               }, 500)
                             } else {
                               setTimeout(() => {
@@ -4127,7 +4129,7 @@ export default function Editor({
                                 if (res.ok) {
                                   toast.success('Variation promoted successfully!')
                                   bypassUnsavedChanges(true)
-                                  router.visit(`/admin/posts/${j.id}/edit`)
+                                  router.visit(adminPath(`posts/${j.id}/edit`))
                                 } else {
                                   toast.error(j.error || 'Failed to promote variation')
                                 }
@@ -4169,7 +4171,7 @@ export default function Editor({
                               type="button"
                               onClick={() => {
                                 if (v.id === post.id) return
-                                router.visit(`/admin/posts/${v.id}/edit`)
+                                router.visit(adminPath(`posts/${v.id}/edit`))
                               }}
                               className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${v.id === post.id
                                 ? 'bg-backdrop-low text-neutral-high shadow-sm'
@@ -4722,7 +4724,7 @@ export default function Editor({
                                     // Use window.location for a hard redirect if router.visit feels stuck,
                                     // but router.visit is preferred for Inertia.
                                     router.visit(
-                                      `/admin/posts/${(agentResponse as any).redirectPostId}/edit?view=${targetMode}`
+                                      adminPath(`posts/${(agentResponse as any).redirectPostId}/edit?view=${targetMode}`)
                                     )
                                     return
                                   }
@@ -5745,7 +5747,7 @@ export default function Editor({
                       `Variation ${pendingVariationToCreate.value} created for all locales`
                     )
                     bypassUnsavedChanges(true)
-                    router.visit(`/admin/posts/${j.id}/edit`)
+                    router.visit(adminPath(`posts/${j.id}/edit`))
                   } else {
                     toast.error(j.error || 'Failed to create variation')
                   }
@@ -5795,7 +5797,7 @@ export default function Editor({
                     toast.success(j.message || 'Variation deleted')
                     bypassUnsavedChanges(true)
                     if (j.remainingPostId) {
-                      router.visit(`/admin/posts/${j.remainingPostId}/edit`)
+                      router.visit(adminPath(`posts/${j.remainingPostId}/edit`))
                     } else {
                       router.reload()
                     }

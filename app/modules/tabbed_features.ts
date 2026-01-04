@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField, LIPSUM_CTA, LIPSUM_PARAGRAPH } from './shared_fields.js'
 
 export default class TabbedFeaturesModule extends BaseModule {
   getRenderingMode() {
@@ -100,12 +100,42 @@ export default class TabbedFeaturesModule extends BaseModule {
       defaultValues: {
         tabs: [
           {
-            label: 'Lorem Ipsum',
-            prose: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
+            label: LIPSUM_CTA + ' 1',
+            prose: {
+              root: {
+                type: 'root',
+                children: [
+                  {
+                    type: 'paragraph',
+                    children: [
+                      {
+                        type: 'text',
+                        text: LIPSUM_PARAGRAPH,
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
           },
           {
-            label: 'Dolor Sit',
-            prose: '<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>',
+            label: LIPSUM_CTA + ' 2',
+            prose: {
+              root: {
+                type: 'root',
+                children: [
+                  {
+                    type: 'paragraph',
+                    children: [
+                      {
+                        type: 'text',
+                        text: LIPSUM_PARAGRAPH,
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
           },
         ],
         layout: 'top',

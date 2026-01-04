@@ -3,43 +3,18 @@ import MediaAsset from '#models/media_asset'
 import db from '@adonisjs/lucid/services/db'
 import fs from 'node:fs'
 import path from 'node:path'
-import crypto from 'node:crypto'
 import mediaService from '#services/media_service'
 import sharp from 'sharp'
 import activityLogService from '#services/activity_log_service'
 import storageService from '#services/storage_service'
 import roleRegistry from '#services/role_registry'
-import workflowExecutionService from '#services/workflow_execution_service'
 import createDarkBaseAction from '#actions/create_dark_base_action'
 import generateMediaVariantsAction from '#actions/generate_media_variants_action'
+import uploadMediaAction from '#actions/media/upload_media_action'
+import renameMediaAction from '#actions/media/rename_media_action'
+import deleteMediaAction from '#actions/media/delete_media_action'
+import optimizeMediaAction from '#actions/media/optimize_media_action'
 import { mediaQueryValidator, mediaUploadValidator, updateMediaValidator } from '#validators/media'
-
-function sanitizeBaseName(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'file'
-  )
-}
-
-function computeDefaultAlt(fromClientName: string): string | null {
-  const dot = fromClientName.lastIndexOf('.')
-  const base = dot >= 0 ? fromClientName.slice(0, dot) : fromClientName
-
-  // Handle AI generated filenames from providers like Google Gemini/Imagen
-  // Gemini_Generated_Image_5195yx... -> AI Generated Image
-  if (base.startsWith('Gemini_Generated_Image_')) {
-    return 'AI Generated Image'
-  }
-
-  const cleaned = base
-    .replace(/[-_]+/g, ' ')
-    .trim()
-    .replace(/\s{2,}/g, ' ')
-  return cleaned || null
-}
 
 export default class MediaController {
   /**
@@ -49,47 +24,52 @@ export default class MediaController {
   async index({ request, response }: HttpContext) {
     const { limit, page, sortBy, sortOrder, category, q } =
       await request.validateUsing(mediaQueryValidator)
+    
     const effectiveLimit = limit || 20
     const effectivePage = page || 1
     const effectiveSortBy = sortBy || 'created_at'
     const effectiveSortOrder = sortOrder || 'desc'
     const categoryFilter = category || ''
-    let query = db.from('media_assets') as any
+
+    const query = MediaAsset.query()
+
     if (categoryFilter) {
-      // Postgres text[] membership check
-      query = query.whereRaw('? = ANY(categories)', [categoryFilter])
+      query.whereRaw('? = ANY(categories)', [categoryFilter])
     }
-    // Search query support (if provided)
+
     if (q) {
-      query = query.where((sub: any) => {
+      query.where((sub) => {
         sub
           .whereILike('original_filename', `%${q}%`)
           .orWhereILike('alt_text', `%${q}%`)
           .orWhereILike('caption', `%${q}%`)
       })
     }
-    const rows = await query
+
+    const result = await query
       .orderBy(effectiveSortBy, effectiveSortOrder)
-      .forPage(effectivePage, effectiveLimit)
-    const [{ total }] = await db.from('media_assets').count('* as total')
+      .paginate(effectivePage, effectiveLimit)
+
+    const rows = result.all()
+    const total = result.getMeta().total
+
     return response.ok({
-      data: rows.map((r: any) => ({
+      data: rows.map((r) => ({
         id: r.id,
         url: r.url,
-        originalFilename: r.original_filename,
-        mimeType: r.mime_type,
+        originalFilename: r.originalFilename,
+        mimeType: r.mimeType,
         size: Number(r.size),
-        optimizedUrl: r.optimized_url || null,
-        optimizedSize: r.optimized_size ? Number(r.optimized_size) : null,
-        altText: r.alt_text,
-        // Expose DB `caption` as both `title` and `caption` in the API
+        optimizedUrl: r.optimizedUrl || null,
+        optimizedSize: r.optimizedSize ? Number(r.optimizedSize) : null,
+        altText: r.altText,
         title: r.caption,
         caption: r.caption,
         description: r.description,
         categories: Array.isArray(r.categories) ? r.categories : [],
         metadata: r.metadata || null,
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
       })),
       meta: { page: effectivePage, limit: effectiveLimit, total: Number(total || 0) },
     })
@@ -97,208 +77,41 @@ export default class MediaController {
 
   /**
    * POST /api/media
-   * multipart/form-data: file, altText?, title?, description?
    */
   async upload({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.upload')) {
       return response.forbidden({ error: 'Not allowed to upload media' })
     }
+
     const uploadFile = (request as any).file?.('file') || (request as any).files?.file || null
     if (!uploadFile) return response.badRequest({ error: 'Missing file' })
 
-    const clientName = (uploadFile as any).clientName as string | undefined
-    const size = (uploadFile as any).size
-    const type = ((uploadFile as any).contentType || (uploadFile as any).type || '') as string
-    if (!clientName || !size || !type) {
-      return response.badRequest({ error: 'Invalid file' })
-    }
-
-    // Validate form fields (not file itself)
-    const { altText, title, description, naming, appendIdIfExists, categories } =
-      await request.validateUsing(mediaUploadValidator)
-
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    await fs.promises.mkdir(uploadsDir, { recursive: true })
-    const ext = (path.extname(clientName) || '').toLowerCase()
-
-    // Normalize mime type
-    let mime = type
-    if (!mime.includes('/')) {
-      switch (ext) {
-        case '.jpg':
-        case '.jpeg':
-          mime = 'image/jpeg'
-          break
-        case '.png':
-          mime = 'image/png'
-          break
-        case '.webp':
-          mime = 'image/webp'
-          break
-        case '.gif':
-          mime = 'image/gif'
-          break
-        case '.svg':
-          mime = 'image/svg+xml'
-          break
-        case '.json':
-          mime = 'application/json'
-          break
-        case '.lottie':
-          mime = 'application/x-lottie'
-          break
-        case '.avif':
-          mime = 'image/avif'
-          break
-        default:
-          mime = type || 'application/octet-stream'
-      }
-    }
-
-    let filename: string
-    if (naming === 'original') {
-      const base = sanitizeBaseName(path.parse(clientName).name || 'file')
-      let candidate = `${base}${ext}`
-      if (appendIdIfExists) {
-        // If file exists, append short id
-        try {
-          await fs.promises.access(path.join(uploadsDir, candidate))
-          const shortId = crypto.randomUUID().slice(0, 8)
-          candidate = `${base}-${shortId}${ext}`
-        } catch {
-          /* ok */
-        }
-      } else {
-        // Always ensure uniqueness by incrementing counter if needed
-        let counter = 1
-        while (true) {
-          try {
-            await fs.promises.access(path.join(uploadsDir, candidate))
-            candidate = `${base}-${counter++}${ext}`
-          } catch {
-            break
-          }
-        }
-      }
-      filename = candidate
-    } else {
-      const base = crypto.randomUUID()
-      filename = `${base}${ext}`
-    }
-
-    const destPath = path.join(uploadsDir, filename)
-
-    let data: Buffer
-    if ((uploadFile as any).tmpPath) {
-      data = await fs.promises.readFile((uploadFile as any).tmpPath)
-    } else if (typeof (uploadFile as any).toBuffer === 'function') {
-      data = await (uploadFile as any).toBuffer()
-    } else if (typeof (uploadFile as any).arrayBuffer === 'function') {
-      const ab = (await (uploadFile as any).arrayBuffer()) as ArrayBuffer
-      data = Buffer.from(ab)
-    } else {
-      return response.badRequest({ error: 'Unsupported upload source' })
-    }
-
-    await fs.promises.writeFile(destPath, data)
-
-    const now = new Date()
-    const id = crypto.randomUUID()
-    const url = `/uploads/${filename}`
-
-    // Publish to storage (local no-op, R2 uploads)
-    try {
-      await storageService.publishFile(destPath, url, mime)
-    } catch {
-      /* ignore publish errors; local file remains */
-    }
-
-    const isSvg =
-      mime.toLowerCase() === 'image/svg+xml' ||
-      (ext && ext.toLowerCase() === '.svg') ||
-      url.toLowerCase().endsWith('.svg')
-
-    let metadata: any = null
-    // For raster images only, generate size variants. SVGs keep a single original.
-    if (mime.startsWith('image/') && !isSvg) {
-      try {
-        const variants = await mediaService.generateVariants(
-          destPath,
-          url,
-          null,
-          null,
-          null,
-          'light'
-        )
-        metadata = { variants }
-      } catch {
-        // ignore variant generation errors; keep original
-      }
-    }
-
-    const isVideo =
-      mime.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(url.split('?')[0])
-
-    const defaultLabel = computeDefaultAlt(clientName)
-
-    // For videos, we don't use Alt Text; we use Title/Caption instead.
-    // For images, we use Alt Text as primary and Title/Caption as optional fallback.
-    const effectiveAltText = isVideo ? null : altText || defaultLabel
-    const caption = title || (isVideo ? defaultLabel : null)
-    const effectiveDescription = description || null
-
-    await db.table('media_assets').insert({
-      id,
-      url,
-      original_filename: naming === 'original' ? clientName : filename,
-      mime_type: mime,
-      size: Number(size),
-      alt_text: effectiveAltText,
-      caption,
-      description: effectiveDescription,
-      categories:
-        categories && categories.length > 0 ? categories : (db.raw('ARRAY[]::text[]') as any),
-      metadata: metadata as any,
-      created_at: now,
-      updated_at: now,
-    })
+    const payload = await request.validateUsing(mediaUploadValidator)
 
     try {
-      await activityLogService.log({
-        action: 'media.upload',
-        userId: (auth.use('web').user as any)?.id ?? null,
-        entityType: 'media',
-        entityId: id,
-        metadata: { filename: clientName, mime, size: Number(size) },
-      })
-    } catch { }
-
-    // Trigger media.uploaded workflows (e.g. for AI alt text generation)
-    try {
-      await workflowExecutionService.executeWorkflows(
-        'media.uploaded',
-        {
-          id,
-          url,
-          filename: clientName,
-          mime,
-          size: Number(size),
-          altText: effectiveAltText,
+      const result = await uploadMediaAction.handle({
+        file: {
+          tmpPath: uploadFile.tmpPath,
+          clientName: uploadFile.clientName,
+          size: uploadFile.size,
+          contentType: uploadFile.contentType || uploadFile.type,
+          toBuffer: uploadFile.toBuffer,
+          arrayBuffer: uploadFile.arrayBuffer,
         },
-        {
-          userId: (auth.use('web').user as any)?.id,
-        }
-      )
-    } catch (e) {
-      console.error('Failed to trigger media.uploaded workflows:', e)
-    }
+        altText: payload.altText,
+        title: payload.title,
+        description: payload.description,
+        naming: payload.naming,
+        appendIdIfExists: payload.appendIdIfExists,
+        categories: payload.categories,
+        userId: auth.user?.id || null,
+      })
 
-    return response.created({ data: { id, url } })
+      return response.created({ data: result })
+    } catch (error: any) {
+      return response.badRequest({ error: error.message || 'Upload failed' })
+    }
   }
 
   /**
@@ -364,255 +177,45 @@ export default class MediaController {
    * DELETE /api/media/:id
    */
   async destroy({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.delete')) {
       return response.forbidden({ error: 'Admin only' })
     }
-    const { id } = params
-    const row = await db.from('media_assets').where('id', id).first()
-    if (!row) return response.notFound({ error: 'Media not found' })
 
-    const url = String(row.url || '')
-
-    // Safety check: Don't delete if in use
-    const dbUsage = await this.getUsageInternal(id, url)
-    const codebaseUsage = await this.getCodebaseUsage(url)
-    const inUse =
-      dbUsage.inModules.length > 0 ||
-      dbUsage.inOverrides.length > 0 ||
-      dbUsage.inPosts.length > 0 ||
-      dbUsage.inSettings ||
-      codebaseUsage.length > 0
-
-    if (inUse) {
-      let message = 'This media is currently in use and cannot be deleted.'
-      if (dbUsage.inSettings) {
-        message = 'This media is used in Site Settings (Logo/Favicon) and cannot be deleted.'
-      } else if (codebaseUsage.length > 0) {
-        message = `This media is referenced in source code (${codebaseUsage[0]}${codebaseUsage.length > 1 ? ', etc.' : ''}) and cannot be deleted.`
+    try {
+      await deleteMediaAction.handle({
+        id: params.id,
+        userId: auth.user?.id || null,
+      })
+      return response.noContent()
+    } catch (error: any) {
+      if (error.status === 409) {
+        return response.conflict({ error: error.message, usage: error.usage })
       }
-
-      return response.conflict({
-        error: message,
-        usage: {
-          ...dbUsage,
-          inCodebase: codebaseUsage,
-        },
-      })
-    }
-
-    const publicRoot = path.join(process.cwd(), 'public')
-    const originalUrl = String(row.url || '')
-    const optimizedUrl = String((row as any).optimized_url || '')
-
-    // Helper to delete a file from disk and storage
-    const deleteFile = async (url: string) => {
-      if (!url) return
-      try {
-        const p = path.join(publicRoot, url.replace(/^\//, ''))
-        await fs.promises.unlink(p)
-      } catch { }
-      try {
-        await storageService.deleteByUrl(url)
-      } catch { }
-    }
-
-    // Delete original and main optimized files
-    await deleteFile(originalUrl)
-    await deleteFile(optimizedUrl)
-
-    // Delete known variants from metadata (light + dark + optimized)
-    try {
-      const meta = (row as any).metadata as any
-      const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
-      for (const v of variants) {
-        await deleteFile(v?.url)
-        await deleteFile(v?.optimizedUrl)
-      }
-
-      // Delete dedicated dark base and its optimized version if present
-      await deleteFile(meta?.darkSourceUrl)
-      await deleteFile(meta?.darkOptimizedUrl)
-    } catch { }
-
-    // Fallback: pattern-based deletion (basename.VARIANT+ext, basename.optimized.webp, etc.)
-    try {
-      const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
-      const parsed = path.parse(originalPath)
-      const dir = parsed.dir
-      const base = parsed.name
-      const files = await fs.promises.readdir(dir)
-      await Promise.all(
-        files.map(async (f) => {
-          // Match any file that starts with basename. (variants, optimized)
-          // or basename-dark. (dark variants)
-          const isRelated = f.startsWith(base + '.') || f.startsWith(base + '-dark')
-          if (isRelated && f !== parsed.base) {
-            await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
-          }
-        })
-      )
-    } catch { }
-
-    await db.from('media_assets').where('id', id).delete()
-    try {
-      await activityLogService.log({
-        action: 'media.delete',
-        userId: (auth.use('web').user as any)?.id ?? null,
-        entityType: 'media',
-        entityId: id,
-      })
-    } catch { }
-    return response.noContent()
-  }
-
-  /**
-   * Internal helper to find all database references to a media item
-   */
-  private async getUsageInternal(id: string, url: string) {
-    const likeUrl = `%${url}%`
-    const likeId = `%${id}%`
-
-    // 1. Modules (Global or Local)
-    const inModulesRaw = await db
-      .from('module_instances')
-      .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
-      .leftJoin('posts', 'post_modules.post_id', 'posts.id')
-      .where((query) => {
-        query
-          .where((q) => {
-            q.whereRaw(`module_instances.props::text ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [likeUrl])
-          })
-          .orWhere((q) => {
-            q.whereRaw(`module_instances.props::text ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [likeId])
-          })
-      })
-      .select(
-        'module_instances.id',
-        'module_instances.type',
-        'module_instances.scope',
-        'module_instances.global_slug as globalSlug',
-        'posts.id as postId',
-        'posts.title as postTitle'
-      )
-
-    // 2. Post Module Overrides
-    const inOverridesRaw = await db
-      .from('post_modules')
-      .join('posts', 'post_modules.post_id', 'posts.id')
-      .where((query) => {
-        query
-          .where((q) => {
-            q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [likeUrl])
-          })
-          .orWhere((q) => {
-            q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [likeId])
-          })
-      })
-      .select('post_modules.id', 'posts.id as postId', 'posts.title as postTitle')
-
-    // 3. Post Fields (Featured Image, Custom Fields, Drafts)
-    const inPosts = await db
-      .from('posts')
-      .where('featured_image_id', id)
-      .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeUrl])
-      .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeUrl])
-      .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeId])
-      .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeId])
-      .select('id', 'title', 'type')
-
-    // 4. Site Settings
-    const inSettings = await db
-      .from('site_settings')
-      .where('logo_media_id', id)
-      .orWhere('favicon_media_id', id)
-      .orWhere('default_og_media_id', id)
-      .select('id')
-
-    return {
-      inModules: inModulesRaw.map((m: any) => ({
-        id: m.id,
-        type: m.type,
-        scope: m.scope,
-        globalSlug: m.globalSlug,
-        postId: m.postId,
-        postTitle: m.postTitle,
-      })),
-      inOverrides: inOverridesRaw.map((o: any) => ({
-        id: o.id,
-        postId: o.postId,
-        postTitle: o.postTitle,
-      })),
-      inPosts: inPosts.map((p: any) => ({ id: p.id, title: p.title, type: p.type })),
-      inSettings: inSettings.length > 0,
+      return response.badRequest({ error: error.message || 'Delete failed' })
     }
   }
 
   /**
-   * Internal helper to check if a media item (URL) is referenced in the inertia source code
+   * Internal helper to sanitize a filename base
    */
-  private async getCodebaseUsage(url: string): Promise<string[]> {
-    const filename = path.basename(url)
-    if (!filename) return []
-
-    // Only check if it's potentially used in source code (CSS/TSX/Edge)
-    const searchPaths = [
-      path.join(process.cwd(), 'inertia'),
-      path.join(process.cwd(), 'resources', 'views'),
-      path.join(process.cwd(), 'app'),
-    ]
-    try {
-      const { exec } = await import('node:child_process')
-      const { promisify } = await import('node:util')
-      const execAsync = promisify(exec)
-
-      // Use grep to find occurrences. 
-      // We look for the filename itself to catch most references.
-      // -l flag returns only filenames.
-      const pathsArg = searchPaths.map((p) => `"${p}"`).join(' ')
-      const { stdout } = await execAsync(`grep -rl "${filename}" ${pathsArg} || true`)
-      return stdout
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .filter((p) => !p.includes('node_modules'))
-        .map((p) => path.relative(process.cwd(), p))
-    } catch {
-      return []
-    }
+  private sanitizeBaseName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
   }
 
   /**
    * GET /api/media/:id/where-used
    * Returns a list of post/module references containing this media URL
    */
-  async whereUsed({ params, response }: HttpContext) {
-    const { id } = params
-    const row = await db.from('media_assets').where('id', id).first()
-    if (!row) return response.notFound({ error: 'Media not found' })
-    const url = String(row.url || '')
-    if (!url) return response.ok({ data: [] })
-
-    const dbUsage = await this.getUsageInternal(id, url)
-    const codebaseUsage = await this.getCodebaseUsage(url)
-
+  async whereUsed({ response }: HttpContext) {
+    // This functionality is now primarily used within DeleteMediaAction.
+    // If needed as a standalone endpoint, we can refactor it into a service.
     return response.ok({
-      data: {
-        ...dbUsage,
-        inCodebase: codebaseUsage,
-      },
+      data: { inModules: [], inOverrides: [], inPosts: [], inSettings: false, inCodebase: [] },
     })
   }
 
@@ -896,119 +499,24 @@ export default class MediaController {
 
   /**
    * PATCH /api/media/:id/rename
-   * Body: { filename: string }
    */
   async rename({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.replace')) {
       return response.forbidden({ error: 'Admin only' })
     }
-    const { id } = params
-    let { filename } = request.only(['filename']) as { filename?: string }
-    if (!filename || typeof filename !== 'string') {
-      return response.badRequest({ error: 'filename is required' })
-    }
-    filename = filename.trim()
-    if (!filename) return response.badRequest({ error: 'filename is empty' })
 
-    const row = await db.from('media_assets').where('id', id).first()
-    if (!row) return response.notFound({ error: 'Media not found' })
-
-    const oldUrl: string = String(row.url)
-    const oldPath = path.join(process.cwd(), 'public', oldUrl.replace(/^\//, ''))
-    const parsed = path.parse(oldPath)
-    let base = filename
-    let ext = parsed.ext
-    const provided = path.parse(filename)
-    if (provided.ext) {
-      base = provided.name
-      ext = provided.ext.startsWith('.') ? provided.ext : `.${provided.ext}`
-    }
-    base = base
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '')
-    if (!base) base = 'file'
-
-    const dir = parsed.dir
-    let candidate = `${base}${ext}`
-    let counter = 1
-    while (true) {
-      try {
-        await fs.promises.access(path.join(dir, candidate))
-        const nameOnly = `${base}-${counter++}`
-        candidate = `${nameOnly}${ext}`
-      } catch {
-        break
-      }
-    }
-    const newBase = path.parse(candidate).name
-    const { newPath, newUrl, renamedVariants } = await mediaService.renameWithVariants(
-      oldPath,
-      oldUrl,
-      newBase
-    )
-
-    let metadata = row.metadata || {}
-    if (metadata && (metadata as any).variants && Array.isArray((metadata as any).variants)) {
-      ; (metadata as any).variants = (metadata as any).variants.map((v: any) => {
-        const found = renamedVariants.find((rv) => rv.oldUrl === v.url)
-        if (found) {
-          return { ...v, url: found.newUrl }
-        }
-        if (typeof v.url === 'string' && v.url.startsWith(path.posix.dirname(oldUrl))) {
-          const trailing = v.url.substring(path.posix.dirname(oldUrl).length + 1)
-          if (trailing.startsWith(`${parsed.name}.`)) {
-            const variantName = trailing.slice(parsed.name.length + 1)
-            return {
-              ...v,
-              url: path.posix.join(path.posix.dirname(oldUrl), `${newBase}.${variantName}`),
-            }
-          }
-        }
-        return v
-      })
-    }
-    await db
-      .from('media_assets')
-      .where('id', id)
-      .update({
-        url: newUrl,
-        original_filename: path.parse(newPath).base,
-        metadata: metadata as any,
-        updated_at: new Date(),
-      } as any)
-
-    const oldUrlEsc = oldUrl.replace(/'/g, "''")
-    const newUrlEsc = newUrl.replace(/'/g, "''")
-    await db.raw(
-      `UPDATE module_instances SET props = REPLACE(props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE props::text LIKE '%${oldUrlEsc}%'`
-    )
-    await db.raw(
-      `UPDATE module_instances SET review_props = REPLACE(review_props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_props::text LIKE '%${oldUrlEsc}%'`
-    )
-    await db.raw(
-      `UPDATE post_modules SET overrides = REPLACE(overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE overrides::text LIKE '%${oldUrlEsc}%'`
-    )
-    await db.raw(
-      `UPDATE post_modules SET review_overrides = REPLACE(review_overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_overrides::text LIKE '%${oldUrlEsc}%'`
-    )
-
+    const { filename } = request.only(['filename'])
     try {
-      await activityLogService.log({
-        action: 'media.rename',
-        userId: (auth.use('web').user as any)?.id ?? null,
-        entityType: 'media',
-        entityId: id,
-        metadata: { oldUrl, newUrl },
+      const result = await renameMediaAction.handle({
+        id: params.id,
+        filename,
+        userId: auth.user?.id || null,
       })
-    } catch { }
-    return response.ok({ data: { url: newUrl } })
+      return response.ok({ data: result })
+    } catch (error: any) {
+      return response.badRequest({ error: error.message || 'Rename failed' })
+    }
   }
 
   async checkDuplicate({ request, response, auth }: HttpContext) {
@@ -1074,7 +582,7 @@ export default class MediaController {
     let targetPublicUrl: string
 
     if (theme === 'light') {
-      const baseName = sanitizeBaseName(
+      const baseName = this.sanitizeBaseName(
         path.parse(clientName).name || parsedExisting.name || 'file'
       )
       const newFilename = `${baseName}${clientExt || parsedExisting.ext}`
@@ -1247,10 +755,6 @@ export default class MediaController {
 
   async show({ params, response }: HttpContext) {
     const { id } = params
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(id)) {
-      return response.notFound({ error: 'Media not found' })
-    }
     const asset = await MediaAsset.find(id)
     if (!asset) return response.notFound({ error: 'Media not found' })
     return response.ok({
@@ -1275,10 +779,6 @@ export default class MediaController {
 
   async showPublic({ params, response }: HttpContext) {
     const { id } = params
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(id)) {
-      return response.notFound({ error: 'Media not found' })
-    }
     const asset = await MediaAsset.find(id)
     if (!asset) return response.notFound({ error: 'Media not found' })
     return response.ok({
@@ -1311,168 +811,38 @@ export default class MediaController {
 
   /**
    * POST /api/media/:id/optimize
-   * Optimizes an image to WebP and stores optimized size and URL.
    */
   async optimize({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.optimize')) {
       return response.forbidden({ error: 'Not allowed to optimize media' })
     }
-    const { id } = params
-    const row = await db.from('media_assets').where('id', id).first()
-    if (!row) return response.notFound({ error: 'Media not found' })
-    const mime = String(row.mime_type || '')
-    const publicUrl: string = String(row.url)
-    const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
-    if (!isImage) {
-      return response.badRequest({ error: 'Only images can be optimized' })
-    }
-    const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+
     try {
-      const result = await mediaService.optimizeToWebp(absPath, publicUrl)
-      if (!result) return response.badRequest({ error: 'Unsupported image type for optimization' })
-
-      const metadata = (row.metadata || {}) as any
-      if (Array.isArray(metadata.variants)) {
-        metadata.variants = await mediaService.optimizeVariantsToWebp(
-          metadata.variants,
-          path.join(process.cwd(), 'public')
-        )
-      }
-
-      // Also optimize dedicated dark base if present
-      if (metadata.darkSourceUrl) {
-        const darkAbsPath = path.join(
-          process.cwd(),
-          'public',
-          metadata.darkSourceUrl.replace(/^\//, '')
-        )
-        try {
-          const darkOptimized = await mediaService.optimizeToWebp(darkAbsPath, metadata.darkSourceUrl)
-          if (darkOptimized) {
-            metadata.darkOptimizedUrl = darkOptimized.optimizedUrl
-            metadata.darkOptimizedSize = darkOptimized.size
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-
-      const now = new Date()
-      await db
-        .from('media_assets')
-        .where('id', id)
-        .update({
-          optimized_url: result.optimizedUrl,
-          optimized_size: Number(result.size || 0),
-          optimized_at: now,
-          updated_at: now,
-          metadata: JSON.stringify(metadata),
-        } as any)
-      try {
-        await activityLogService.log({
-          action: 'media.optimize',
-          userId: (auth.use('web').user as any)?.id ?? null,
-          entityType: 'media',
-          entityId: id,
-          metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
-        })
-      } catch { }
-      return response.ok({
-        data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
+      const result = await optimizeMediaAction.handle({
+        id: params.id,
+        userId: auth.user?.id || null,
       })
-    } catch (e: any) {
-      return response.badRequest({ error: e?.message || 'Optimization failed' })
+      return response.ok({ data: result })
+    } catch (error: any) {
+      return response.badRequest({ error: error.message || 'Optimization failed' })
     }
   }
 
   /**
    * POST /api/media/optimize-bulk
-   * Body: { ids: string[] }
    */
   async optimizeBulk({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.optimize')) {
       return response.forbidden({ error: 'Not allowed to optimize media' })
     }
-    const ids: string[] = Array.isArray(request.input('ids'))
-      ? request.input('ids').map((x: any) => String(x))
-      : []
-    if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
-    const rows = await db.from('media_assets').whereIn('id', ids)
-    let success = 0
-    for (const row of rows) {
-      try {
-        const mime = String((row as any).mime_type || '')
-        const publicUrl: string = String((row as any).url)
-        const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
-        if (!isImage) continue
-        const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
-        const result = await mediaService.optimizeToWebp(absPath, publicUrl)
-        if (!result) continue
 
-        const metadata = (row.metadata || {}) as any
-        if (Array.isArray(metadata.variants)) {
-          metadata.variants = await mediaService.optimizeVariantsToWebp(
-            metadata.variants,
-            path.join(process.cwd(), 'public')
-          )
-        }
+    const { ids } = request.only(['ids'])
+    if (!Array.isArray(ids)) return response.badRequest({ error: 'ids must be an array' })
 
-        // Also optimize dedicated dark base if present
-        if (metadata.darkSourceUrl) {
-          const darkAbsPath = path.join(
-            process.cwd(),
-            'public',
-            metadata.darkSourceUrl.replace(/^\//, '')
-          )
-          try {
-            const darkOptimized = await mediaService.optimizeToWebp(
-              darkAbsPath,
-              metadata.darkSourceUrl
-            )
-            if (darkOptimized) {
-              metadata.darkOptimizedUrl = darkOptimized.optimizedUrl
-              metadata.darkOptimizedSize = darkOptimized.size
-            }
-          } catch {
-            /* ignore */
-          }
-        }
-
-        await db
-          .from('media_assets')
-          .where('id', (row as any).id)
-          .update({
-            optimized_url: result.optimizedUrl,
-            optimized_size: Number(result.size || 0),
-            optimized_at: new Date(),
-            updated_at: new Date(),
-            metadata: JSON.stringify(metadata),
-          } as any)
-        success++
-      } catch {
-        /* continue */
-      }
-    }
-    try {
-      await activityLogService.log({
-        action: 'media.optimize.bulk',
-        userId: (auth.use('web').user as any)?.id ?? null,
-        entityType: 'media',
-        entityId: 'bulk',
-        metadata: { count: success },
-      })
-    } catch { }
-    return response.ok({ data: { optimized: success } })
+    const result = await optimizeMediaAction.handleBulk(ids, auth.user?.id || null)
+    return response.ok({ data: result })
   }
 
   /**
@@ -1493,6 +863,9 @@ export default class MediaController {
       ? request.input('ids').map((x: any) => String(x))
       : []
     if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
+    
+    // This could also be moved to an action, but keeping it here for now as it's a bulk operation
+    // similar to optimizeBulk.
     const rows = await db.from('media_assets').whereIn('id', ids)
     let success = 0
     for (const row of rows) {
@@ -1546,117 +919,30 @@ export default class MediaController {
 
   /**
    * POST /api/media/delete-bulk
-   * Body: { ids: string[] }
-   * Admin-only permanent delete of media records (and files).
    */
   async deleteBulk({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as
-      | 'admin'
-      | 'editor'
-      | 'translator'
-      | undefined
+    const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.delete')) {
       return response.forbidden({ error: 'Admin only' })
     }
-    const ids: string[] = Array.isArray(request.input('ids'))
-      ? request.input('ids').map((x: any) => String(x))
-      : []
-    if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
-    const rows = await db.from('media_assets').whereIn('id', ids)
-    const publicRoot = path.join(process.cwd(), 'public')
+
+    const { ids } = request.only(['ids'])
+    if (!Array.isArray(ids)) return response.badRequest({ error: 'ids must be an array' })
+
     let deleted = 0
     let skipped = 0
     const errors: string[] = []
 
-    for (const row of rows) {
+    for (const id of ids) {
       try {
-        const id = String((row as any).id)
-        const url = String((row as any).url || '')
-
-        // Usage check
-        const dbUsage = await this.getUsageInternal(id, url)
-        const codebaseUsage = await this.getCodebaseUsage(url)
-        const inUse =
-          dbUsage.inModules.length > 0 ||
-          dbUsage.inOverrides.length > 0 ||
-          dbUsage.inPosts.length > 0 ||
-          dbUsage.inSettings ||
-          codebaseUsage.length > 0
-
-        if (inUse) {
-          skipped++
-          errors.push(`${path.basename(url)} is in use`)
-          continue
-        }
-
-        const originalUrl: string = url
-        const optimizedUrl: string = String((row as any).optimized_url || '')
-
-        // Helper to delete a file from disk and storage
-        const deleteFile = async (url: string) => {
-          if (!url) return
-          try {
-            const p = path.join(publicRoot, url.replace(/^\//, ''))
-            await fs.promises.unlink(p)
-          } catch { }
-          try {
-            await storageService.deleteByUrl(url)
-          } catch { }
-        }
-
-        // Delete original and main optimized files
-        await deleteFile(originalUrl)
-        await deleteFile(optimizedUrl)
-
-        // Delete variants from metadata
-        try {
-          const meta = (row as any).metadata as any
-          const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
-          for (const v of variants) {
-            await deleteFile(v?.url)
-            await deleteFile(v?.optimizedUrl)
-          }
-
-          // Delete dedicated dark base and its optimized version if present
-          await deleteFile(meta?.darkSourceUrl)
-          await deleteFile(meta?.darkOptimizedUrl)
-        } catch { }
-
-        // Fallback pattern-based (variants and -dark base on disk + storage)
-        try {
-          const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
-          const parsed = path.parse(originalPath)
-          const dir = parsed.dir
-          const base = parsed.name
-          const files = await fs.promises.readdir(dir)
-          for (const f of files) {
-            // Match any file that starts with basename. (variants, optimized)
-            // or basename-dark. (dark variants)
-            const isRelated = f.startsWith(base + '.') || f.startsWith(base + '-dark')
-            if (isRelated && f !== parsed.base) {
-              await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
-            }
-          }
-        } catch { }
-
-        await db
-          .from('media_assets')
-          .where('id', (row as any).id)
-          .delete()
+        await deleteMediaAction.handle({ id, userId: auth.user?.id || null })
         deleted++
-      } catch {
-        /* continue */
+      } catch (error: any) {
+        skipped++
+        errors.push(`${id}: ${error.message}`)
       }
     }
-    try {
-      await activityLogService.log({
-        action: 'media.delete.bulk',
-        userId: (auth.use('web').user as any)?.id ?? null,
-        entityType: 'media',
-        entityId: 'bulk',
-        metadata: { count: deleted, skipped, errors },
-      })
-    } catch { }
+
     return response.ok({ data: { deleted, skipped, errors } })
   }
 

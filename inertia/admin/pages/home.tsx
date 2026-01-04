@@ -5,6 +5,7 @@ import { AdminFooter } from '../components/AdminFooter'
 import { toast } from 'sonner'
 import { DashboardWidget } from '../components/DashboardWidget'
 import { Clock, FileText, ChevronRight } from 'lucide-react'
+import { useAdminPath } from '~/utils/adminPath'
 
 function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export default function Home({ recentPosts = [], widgets = [] }: Props) {
+  const adminPath = useAdminPath()
   const [profileEnabled, setProfileEnabled] = useState<boolean>(false)
   const [hasProfile, setHasProfile] = useState<boolean>(false)
   const [profilePostId, setProfilePostId] = useState<string | null>(null)
@@ -93,9 +95,9 @@ export default function Home({ recentPosts = [], widgets = [] }: Props) {
                 })
                 const j = await res.json().catch(() => ({}))
                 if (res.ok && j?.id) {
-                  router.visit(`/admin/posts/${j.id}/edit`)
+                  router.visit(adminPath(`posts/${j.id}/edit`))
                 } else if (res.ok && profilePostId) {
-                  router.visit(`/admin/posts/${profilePostId}/edit`)
+                  router.visit(adminPath(`posts/${profilePostId}/edit`))
                 } else {
                   toast.error(j?.error || 'Failed to create profile')
                 }
@@ -135,7 +137,7 @@ export default function Home({ recentPosts = [], widgets = [] }: Props) {
                   Recent Activity
                 </h2>
                 <Link 
-                  href="/admin/posts" 
+                  href={adminPath('posts')} 
                   className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
                 >
                   View All <ChevronRight className="w-3 h-3" />
@@ -147,7 +149,7 @@ export default function Home({ recentPosts = [], widgets = [] }: Props) {
                     {recentPosts.map((post) => (
                       <Link
                         key={post.id}
-                        href={`/admin/posts/${post.id}/edit`}
+                        href={adminPath(`posts/${post.id}/edit`)}
                         className="block p-4 hover:bg-backdrop-medium transition-colors group"
                       >
                         <div className="flex items-start gap-3">

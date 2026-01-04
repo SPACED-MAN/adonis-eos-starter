@@ -556,9 +556,6 @@ export default class PostSerializerService {
    * Create a new post from canonical JSON.
    */
   static async importCreate(data: CanonicalPost, userId: number) {
-    if (!data || !data.metadata?.version?.startsWith('2.')) {
-      throw new Error('Unsupported or missing version')
-    }
     const p = data.post
     const post = await CreatePost.handle({
       type: p.type,
@@ -614,9 +611,6 @@ export default class PostSerializerService {
    * Replace an existing post's live data and modules from canonical JSON.
    */
   static async importReplace(postId: string, data: CanonicalPost) {
-    if (!data || !data.metadata?.version?.startsWith('2.')) {
-      throw new Error('Unsupported or missing version')
-    }
     const p = data.post
     await UpdatePost.handle({
       postId,

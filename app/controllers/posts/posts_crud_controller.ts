@@ -11,11 +11,15 @@ import DeleteVariation from '#actions/posts/delete_variation'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import UpsertPostCustomFields from '#actions/posts/upsert_post_custom_fields'
 import BulkPostsAction from '#actions/posts/bulk_action'
+import deletePostAction from '#actions/posts/delete_post_action'
+import restorePostAction from '#actions/posts/restore_post_action'
+import reorderPostsAction from '#actions/posts/reorder_posts_action'
+import updatePostAuthorAction from '#actions/posts/update_post_author_action'
+import getPostAbStatsAction from '#actions/posts/get_post_ab_stats_action'
 import db from '@adonisjs/lucid/services/db'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
-import webhookService from '#services/webhook_service'
 import roleRegistry from '#services/role_registry'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
 import BasePostsController from './base_posts_controller.js'
@@ -64,29 +68,6 @@ export default class PostsCrudController extends BasePostsController {
         robotsJson: payload.robotsJson,
         moduleGroupId: (payload as any).moduleGroupId,
         userId: auth.user!.id,
-      })
-
-      // Log activity
-      try {
-        const activityService = (await import('#services/activity_log_service')).default
-        await activityService.log({
-          action: 'post.create',
-          userId: auth.user?.id ?? null,
-          entityType: 'post',
-          entityId: post.id,
-          metadata: { type: payload.type, locale: payload.locale, slug: payload.slug },
-        })
-      } catch {
-        /* ignore */
-      }
-
-      // Dispatch webhook
-      await webhookService.dispatch('post.created', {
-        id: post.id,
-        type: post.type,
-        locale: post.locale,
-        slug: post.slug,
-        title: post.title,
       })
 
       return this.response.created(
@@ -249,25 +230,6 @@ export default class PostsCrudController extends BasePostsController {
         userId: auth.user?.id,
       })
 
-      // Log activity
-      try {
-        const activityService = (await import('#services/activity_log_service')).default
-        await activityService.log({
-          action: 'post.update',
-          userId: auth.user?.id ?? null,
-          entityType: 'post',
-          entityId: id,
-        })
-      } catch {
-        /* ignore */
-      }
-
-      // Dispatch webhook
-      await webhookService.dispatch('post.updated', { id })
-      if (payload.status === 'published' && currentPost.status !== 'published') {
-        await webhookService.dispatch('post.published', { id })
-      }
-
       return response.ok({ message: 'Post updated successfully', id })
     } catch (error) {
       if (error instanceof UpdatePostException) {
@@ -294,31 +256,12 @@ export default class PostsCrudController extends BasePostsController {
       return this.response.forbidden(response, 'Not allowed to delete posts')
     }
 
-    if (post.status !== 'archived') {
-      return this.response.badRequest(response, 'Only archived posts can be deleted')
-    }
-
-    // Soft delete
-    await post.softDelete()
-
-    // Log activity
     try {
-      const activityService = (await import('#services/activity_log_service')).default
-      await activityService.log({
-        action: 'post.delete',
-        userId: auth.user?.id ?? null,
-        entityType: 'post',
-        entityId: id,
-        metadata: { type: post.type, slug: post.slug, locale: post.locale },
-      })
-    } catch {
-      /* ignore */
+      await deletePostAction.handle({ id, userId: auth.user?.id })
+      return this.response.noContent(response)
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Delete failed')
     }
-
-    // Dispatch webhook
-    await webhookService.dispatch('post.deleted', { id, type: post.type, slug: post.slug })
-
-    return this.response.noContent(response)
   }
 
   /**
@@ -326,40 +269,12 @@ export default class PostsCrudController extends BasePostsController {
    * Restore a soft-deleted post
    */
   async restore({ params, response, auth }: HttpContext) {
-    const { id } = params
-
-    // Temporarily include deleted posts
-    Post.softDeleteEnabled = false
-    const post = await Post.find(id)
-    Post.softDeleteEnabled = true
-
-    if (!post) {
-      return this.response.notFound(response, 'Post not found')
-    }
-
-    if (!post.isDeleted) {
-      return this.response.badRequest(response, 'Post is not deleted')
-    }
-
-    await post.restore()
-
-    // Log activity
     try {
-      const activityService = (await import('#services/activity_log_service')).default
-      await activityService.log({
-        action: 'post.restore',
-        userId: auth.user?.id ?? null,
-        entityType: 'post',
-        entityId: id,
-      })
-    } catch {
-      /* ignore */
+      await restorePostAction.handle({ id: params.id, userId: auth.user?.id })
+      return response.ok({ message: 'Post restored' })
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Restore failed')
     }
-
-    // Dispatch webhook
-    await webhookService.dispatch('post.restored', { id })
-
-    return response.ok({ message: 'Post restored' })
   }
 
   /**
@@ -382,20 +297,6 @@ export default class PostsCrudController extends BasePostsController {
         role,
         userId: auth.user?.id,
       })
-
-      // Log activity
-      try {
-        const activityService = (await import('#services/activity_log_service')).default
-        await activityService.log({
-          action: `post.bulk.${payload.action}`,
-          userId: auth.user?.id ?? null,
-          entityType: 'post',
-          entityId: 'bulk',
-          metadata: { count: payload.ids.length },
-        })
-      } catch {
-        /* ignore */
-      }
 
       return response.ok(result)
     } catch (error: any) {
@@ -420,51 +321,12 @@ export default class PostsCrudController extends BasePostsController {
 
     try {
       const payload = await request.validateUsing(reorderPostsValidator)
-      const { scope, items } = payload
-
-      const now = new Date()
-
-      await db.transaction(async (trx) => {
-        // Validate all items belong to the same scope
-        const ids = items.map((i) => i.id)
-        const rows = await trx.from('posts').whereIn('id', ids)
-        const idToRow = new Map(rows.map((r: any) => [r.id, r]))
-
-        for (const item of items) {
-          const row = idToRow.get(item.id)
-          if (!row) {
-            throw new Error(`Post not found: ${item.id}`)
-          }
-          if (row.type !== scope.type || row.locale !== scope.locale) {
-            throw new Error('Reorder items must match scope type/locale')
-          }
-        }
-
-        // Update each item
-        for (const item of items) {
-          const update: any = { order_index: item.orderIndex, updated_at: now }
-          if (item.parentId !== undefined) {
-            update.parent_id = item.parentId
-          }
-          await trx.from('posts').where('id', item.id).update(update)
-        }
+      const result = await reorderPostsAction.handle({
+        scope: payload.scope,
+        items: payload.items,
+        userId: auth.user?.id,
       })
-
-      // Log activity
-      try {
-        const activityService = (await import('#services/activity_log_service')).default
-        await activityService.log({
-          action: 'post.reorder',
-          userId: auth.user?.id ?? null,
-          entityType: 'post',
-          entityId: 'bulk',
-          metadata: { count: items.length },
-        })
-      } catch {
-        /* ignore */
-      }
-
-      return response.ok({ updated: items.length })
+      return response.ok(result)
     } catch (error: any) {
       return this.response.badRequest(response, error.message || 'Failed to reorder posts')
     }
@@ -474,41 +336,24 @@ export default class PostsCrudController extends BasePostsController {
    * PATCH /api/posts/:id/author
    * Reassign post author (admin only)
    */
-  async updateAuthor({ params, request, response }: HttpContext) {
+  async updateAuthor({ params, request, response, auth }: HttpContext) {
     const { id } = params
-    const authorIdRaw = request.input('authorId')
-    const authorId = Number(authorIdRaw)
+    const authorId = Number(request.input('authorId'))
 
     if (!authorId || Number.isNaN(authorId)) {
       return this.response.badRequest(response, 'authorId must be a valid user id')
     }
 
-    const post = await Post.find(id)
-    if (!post) {
-      return this.response.notFound(response, 'Post not found')
+    try {
+      await updatePostAuthorAction.handle({
+        postId: id,
+        authorId,
+        userId: auth.user?.id,
+      })
+      return response.ok({ message: 'Author updated' })
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Failed to update author')
     }
-
-    // Check target user exists
-    const exists = await db.from('users').where('id', authorId).first()
-    if (!exists) {
-      return this.response.notFound(response, 'User not found')
-    }
-
-    // Prevent multiple profiles per user
-    if (post.type === 'profile') {
-      const existing = await db
-        .from('posts')
-        .where({ type: 'profile', author_id: authorId })
-        .andWhereNot('id', id)
-        .first()
-      if (existing) {
-        return this.response.conflict(response, 'Target user already has a profile')
-      }
-    }
-
-    await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
-
-    return response.ok({ message: 'Author updated' })
   }
 
   /**
@@ -586,73 +431,12 @@ export default class PostsCrudController extends BasePostsController {
    * Get A/B testing stats for a post and its variations
    */
   async getAbStats({ params, response }: HttpContext) {
-    const { id } = params
-    const post = await Post.find(id)
-    if (!post) {
-      return this.response.notFound(response, 'Post not found')
+    try {
+      const stats = await getPostAbStatsAction.handle({ postId: params.id })
+      return response.ok({ data: stats })
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Failed to get stats')
     }
-
-    const abGroupId = post.abGroupId || post.id
-
-    // Get views per variation
-    const views = await db
-      .from('post_variation_views')
-      .where('ab_group_id', abGroupId)
-      .select('ab_variation')
-      .count('* as count')
-      .groupBy('ab_variation')
-
-    // Get submissions per variation
-    const submissions = await db
-      .from('form_submissions')
-      .where('ab_group_id', abGroupId)
-      .select('ab_variation')
-      .count('* as count')
-      .groupBy('ab_variation')
-
-    const stats: Record<string, { views: number; submissions: number; conversionRate: number }> = {}
-
-    // Initialize with variations from config if possible
-    const uiConfig = postTypeConfigService.getUiConfig(post.type)
-    const variations = uiConfig.abTesting.variations || []
-
-    // We should also look at actual variations in the DB for this group
-    const dbVariations = await Post.query().where('abGroupId', abGroupId).select('ab_variation')
-    const labels = new Set([
-      ...variations.map((v) => v.value),
-      ...(dbVariations.map((v) => v.abVariation).filter(Boolean) as string[]),
-      'A', // fallback
-    ])
-
-    for (const label of labels) {
-      stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
-    }
-
-    views.forEach((v: any) => {
-      const label = v.ab_variation || 'A'
-      if (!stats[label]) {
-        stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
-      }
-      stats[label].views = parseInt(v.count)
-    })
-
-    submissions.forEach((s: any) => {
-      const label = s.ab_variation || 'A'
-      if (!stats[label]) {
-        stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
-      }
-      stats[label].submissions = parseInt(s.count)
-    })
-
-    // Calculate rates
-    Object.keys(stats).forEach((label) => {
-      const s = stats[label]
-      if (s.views > 0) {
-        s.conversionRate = (s.submissions / s.views) * 100
-      }
-    })
-
-    return response.ok({ data: stats })
   }
 
   // Private helper methods

@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_PARAGRAPH, LIPSUM_CTA } from './shared_fields.js'
 
 export default class FaqModule extends BaseModule {
   /**
@@ -98,25 +98,17 @@ export default class FaqModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
-        subtitle:
-          'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         items: [
           {
-            question: 'Lorem ipsum dolor sit amet?',
-            answer:
-              'Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.',
+            question: LIPSUM_TITLE + '?',
+            answer: LIPSUM_PARAGRAPH,
           },
           {
-            question: 'Consectetur adipiscing elit?',
-            answer:
-              'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-          },
-          {
-            question: 'Sed do eiusmod tempor incididunt?',
-            answer:
-              'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit.',
-            linkLabel: 'Lorem Ipsum',
+            question: LIPSUM_TITLE + '?',
+            answer: LIPSUM_PARAGRAPH,
+            linkLabel: LIPSUM_CTA,
             linkUrl: { kind: 'url', url: '#' },
           },
         ],

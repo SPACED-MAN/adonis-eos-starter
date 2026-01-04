@@ -16,6 +16,8 @@ export default class extends BaseSchema {
       // One pattern per post type+locale should be the default
       table.boolean('is_default').notNullable().defaultTo(false)
 
+      table.uuid('aggregate_post_id').nullable()
+
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
 

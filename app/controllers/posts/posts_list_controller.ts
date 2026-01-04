@@ -109,29 +109,32 @@ export default class PostsListController extends BasePostsController {
       let permalinkEnabledTypes: string[] | null = null
       if (hasPermalinksOnly) {
         try {
+          // Also include types from directory scan
+          const dirScan = await (async () => {
+            try {
+              const dir = path.join(process.cwd(), 'app', 'post_types')
+              const exists = await fs.promises.access(dir).then(() => true).catch(() => false)
+              if (exists) {
+                const files = await fs.promises.readdir(dir)
+                return files
+                  .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
+                  .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
+              }
+              return []
+            } catch {
+              return []
+            }
+          })()
+
           const allTypes: string[] = Array.from(
             new Set([
               ...(Array.isArray(postTypeRegistry.list?.()) ? postTypeRegistry.list() : []),
-              // Also include types from directory scan
-              ...(() => {
-                try {
-                  const dir = path.join(process.cwd(), 'app', 'post_types')
-                  return fs.existsSync(dir)
-                    ? fs
-                        .readdirSync(dir)
-                        .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
-                        .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
-                    : []
-                } catch {
-                  return []
-                }
-              })(),
+              ...dirScan,
             ])
           )
 
           permalinkEnabledTypes = allTypes.filter((t) => {
             const cfg = postTypeConfigService.getUiConfig(t)
-            // hasPermalinks logic: enabled AND has patterns
             return cfg.permalinksEnabled && cfg.urlPatterns.length > 0
           })
         } catch (e) {
@@ -323,11 +326,13 @@ export default class PostsListController extends BasePostsController {
 
     try {
       const dir = path.join(process.cwd(), 'app', 'post_types')
-      const list = fs.existsSync(dir) ? fs.readdirSync(dir) : []
-      list
-        .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
-        .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
-        .forEach((s: string) => s && out.add(s))
+      if (fs.existsSync(dir)) {
+        const list = await fs.promises.readdir(dir)
+        list
+          .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
+          .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
+          .forEach((s: string) => s && out.add(s))
+      }
     } catch {
       /* ignore */
     }

@@ -158,15 +158,6 @@ class DatabaseImportService {
       return { valid: false, error: 'Invalid export data: missing version' }
     }
 
-    // Check version compatibility (accepting 2.x.x)
-    const version = data.metadata.version
-    if (!version.startsWith('2.')) {
-      return {
-        valid: false,
-        error: `Incompatible export version: ${version} (expected 2.x.x)`,
-      }
-    }
-
     return { valid: true }
   }
 

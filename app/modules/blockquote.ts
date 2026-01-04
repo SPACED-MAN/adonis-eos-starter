@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_PARAGRAPH, LIPSUM_TITLE } from './shared_fields.js'
 
 export default class BlockquoteModule extends BaseModule {
   /**
@@ -65,10 +65,9 @@ export default class BlockquoteModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        quote:
-          'Flowbite is just awesome. It contains tons of predesigned components and pages starting from login screen to complex dashboard. Perfect choice for your next SaaS application.',
-        authorName: 'Michael Gough',
-        authorTitle: 'CEO at Google',
+        quote: LIPSUM_PARAGRAPH,
+        authorName: LIPSUM_TITLE,
+        authorTitle: 'CEO at Lorem Ipsum',
         avatar: null,
         theme: 'low',
       },

@@ -138,16 +138,19 @@ If you build your own service (instead of n8n), treat MCP as your “CMS tool AP
 ## Exposed tools
 
 - `list_post_types`
+- `list_registry_items` (Context aggregator for all registries)
 - `get_post_type_config`
 - `list_module_groups`
 - `get_module_group`
 - `list_modules`
 - `get_module_schema`
+- `inspect_module_definition` (Detailed module config + component info)
 - `get_allowed_modules_for_post_type`
 - `list_global_modules`
 - `get_global_module`
 - `list_posts`
 - `get_post_context`
+- `get_post_manifest` (Super-getter for flattened post state)
 - `create_post_ai_review` (requires `MCP_SYSTEM_USER_ID`)
 - `save_post_ai_review`
 - `submit_ai_review_to_review`
@@ -169,11 +172,27 @@ If you build your own service (instead of n8n), treat MCP as your “CMS tool AP
 - `get_media`
 - `list_media_categories`
 - `media_where_used`
+- `check_media_integrity` (Filesystem/DB consistency check)
 - `list_taxonomies`
 - `list_taxonomy_terms`
 - `get_post_taxonomy_term_ids`
 - `set_post_taxonomy_terms_ai_review`
 - `suggest_modules_for_layout`
+- `tail_activity_logs` (Debug/Audit logging)
+- `simulate_webhook_event` (Integration testing)
+- `run_ace_command` (CLI interaction)
+- `test_local_route` (Internal request testing)
+- `read_server_logs` (Read terminal log output)
+- `trace_url_resolution` (Path-to-post mapping)
+- `validate_mcp_payload` (Dry-run validation)
+
+## AI Verification Workflow (Cursor/External LLMs)
+
+To maintain a clean and DRY backend, the MCP server does not implement its own rendering logic. Instead, AI models are encouraged to:
+
+1.  **Request a Preview**: Call `create_post_preview_link` to generate a secure, short-lived link.
+2.  **Browse the Result**: Visit the link using internal browsing tools (e.g., Cursor's Browser Tool).
+3.  **Collaborative Fixes**: The model should proactively ask the user: *"Should I preview the page to verify the rendering?"* especially after a failed attempt to fix a UI bug.
 
 ## Module groups (default templates) and AI-created posts
 

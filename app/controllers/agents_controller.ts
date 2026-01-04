@@ -787,7 +787,7 @@ export default class AgentsController {
         const executionContext: AgentExecutionContext = {
           agent,
           scope: 'global',
-          userId: null, // External trigger
+          userId: undefined, // External trigger
           data: { ...context },
         }
 

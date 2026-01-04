@@ -1,4 +1,4 @@
-import type { AgentDefinition, AgentExecutionContext, AIProvider } from '#types/agent_types'
+import type { AgentDefinition, AgentExecutionContext, AIProvider, AgentConfig } from '#types/agent_types'
 import aiProviderService from '#services/ai_provider_service'
 import type {
   AIProviderConfig,
@@ -476,7 +476,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         ]
           .filter(Boolean)
           .join('\n')
-        systemPrompt += `\n\n${writingStyleText}\n\nWhen writing or editing text content, follow the writing style preferences above.`
+        systemPrompt += `\n\n${writingStyleText}\n\nWhen writing or editing text content, follow the writing style preferences above. Additionally, NEVER leave module copy fields with their default "Lorem Ipsum" values; always replace them with high-quality, relevant content.`
       }
 
       // Add format instructions to ensure proper JSON response
@@ -516,7 +516,7 @@ Only include fields/modules that you are actually changing. Do not include any t
   }
 }
 
-Only include fields that you are actually changing.`,
+Only include fields that you are actually changing. NEVER leave module copy fields with their default "Lorem Ipsum" values; always replace them with high-quality, relevant content.`,
       })
     }
 
@@ -592,6 +592,9 @@ Only include fields that you are actually changing.`,
         })
         parts.push(
           `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
+        )
+        parts.push(
+          `CRITICAL: NEVER leave module copy fields with their default "Lorem Ipsum" values. Always replace them with high-quality, relevant content.`
         )
         const hasProse = payload.modules.some((m: any) =>
           String(m.type || '')

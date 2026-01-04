@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE } from './shared_fields.js'
 
 export default class CompanyListModule extends BaseModule {
   /**
@@ -61,8 +61,8 @@ export default class CompanyListModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'You’ll be in good company',
-        subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
+        title: LIPSUM_TITLE,
+        subtitle: LIPSUM_SUBTITLE,
         companies: [],
         theme: 'low',
       },

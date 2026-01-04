@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField, LIPSUM_TITLE, LIPSUM_PARAGRAPH, LIPSUM_CTA } from './shared_fields.js'
 
 export default class ProseWithMediaModule extends BaseModule {
   /**
@@ -113,7 +113,7 @@ export default class ProseWithMediaModule extends BaseModule {
         ...mediaBackgroundFields,
       ],
       defaultValues: {
-        title: 'Lorem ipsum dolor sit amet',
+        title: LIPSUM_TITLE,
         body: {
           root: {
             type: 'root',
@@ -123,7 +123,7 @@ export default class ProseWithMediaModule extends BaseModule {
                 children: [
                   {
                     type: 'text',
-                    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                    text: LIPSUM_PARAGRAPH,
                   },
                 ],
               },
@@ -135,7 +135,7 @@ export default class ProseWithMediaModule extends BaseModule {
         objectFit: 'contain',
         ctas: [
           {
-            label: 'Lorem Ipsum',
+            label: LIPSUM_CTA,
             url: '#',
             style: 'primary',
           },

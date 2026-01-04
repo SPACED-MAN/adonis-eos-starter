@@ -13,6 +13,7 @@ export default class extends BaseSchema {
 
       // If true, posts using this module group cannot add/remove modules
       table.boolean('locked').notNullable().defaultTo(false)
+      table.boolean('is_default').notNullable().defaultTo(false)
 
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()

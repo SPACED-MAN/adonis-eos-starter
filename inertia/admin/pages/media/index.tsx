@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, usePage } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useAdminPath } from '~/utils/adminPath'
 import {
   faPencil,
   faTrash,
@@ -85,6 +86,7 @@ type PageProps = {
 }
 
 export default function MediaIndex() {
+  const adminPath = useAdminPath()
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -2317,14 +2319,14 @@ export default function MediaIndex() {
                           <li key={m.id} className="text-xs">
                             {m.scope === 'global' ? (
                               <Link
-                                href={`/admin/modules?q=${encodeURIComponent(m.globalSlug || '')}`}
+                                href={adminPath(`modules?q=${encodeURIComponent(m.globalSlug || '')}`)}
                                 className="text-standout-high hover:underline"
                               >
                                 Global Module {m.type} ({m.globalSlug})
                               </Link>
                             ) : m.postId ? (
                               <Link
-                                href={`/admin/posts/${m.postId}/edit`}
+                                href={adminPath(`posts/${m.postId}/edit`)}
                                 className="text-standout-high hover:underline"
                               >
                                 Module {m.type} in "{m.postTitle || m.postId}"
@@ -2347,7 +2349,7 @@ export default function MediaIndex() {
                         {whereUsed.inOverrides.map((o: any) => (
                           <li key={o.id} className="text-xs">
                             <Link
-                              href={`/admin/posts/${o.postId}/edit`}
+                              href={adminPath(`posts/${o.postId}/edit`)}
                               className="text-standout-high hover:underline"
                             >
                               PostModule in "{o.postTitle || o.postId}"
@@ -2365,7 +2367,7 @@ export default function MediaIndex() {
                         {whereUsed.inPosts.map((p: any) => (
                           <li key={p.id} className="text-xs">
                             <Link
-                              href={`/admin/posts/${p.id}/edit`}
+                              href={adminPath(`posts/${p.id}/edit`)}
                               className="text-standout-high hover:underline"
                             >
                               {p.title || 'Untitled'} ({p.type})
@@ -2382,7 +2384,7 @@ export default function MediaIndex() {
                       <div className="text-xs text-neutral-medium">
                         Used in{' '}
                         <Link
-                          href="/admin/settings/general"
+                          href={adminPath('settings/general')}
                           className="text-standout-high hover:underline"
                         >
                           Logo, Favicon, or Social OG settings

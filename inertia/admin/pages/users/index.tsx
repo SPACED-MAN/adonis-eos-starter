@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePage, router } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
@@ -44,6 +45,7 @@ type UserRow = {
 }
 
 export default function UsersIndex() {
+  const adminPath = useAdminPath()
   const page = usePage()
   const me = (page.props as any)?.auth?.user
   const isSuperAdmin = me?.role === 'admin'
@@ -423,7 +425,7 @@ export default function UsersIndex() {
                           <>
                             <div className="flex items-center gap-2">
                               <a
-                                href={`/admin/users/${u.id}/edit`}
+                                href={adminPath(`users/${u.id}/edit`)}
                                 className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                               >
                                 Edit
@@ -463,7 +465,7 @@ export default function UsersIndex() {
                                     }
                                     if (pid) {
                                       bypassUnsavedChanges(true)
-                                      router.visit(`/admin/posts/${pid}/edit`)
+                                      router.visit(adminPath(`posts/${pid}/edit`))
                                     }
                                   } catch {
                                     toast.error('Failed to open profile')
