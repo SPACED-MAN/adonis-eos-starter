@@ -35,7 +35,7 @@ export function initAnalytics(initialPage?: any) {
     const page = event.detail.page
     const oldPath = window.location.pathname
     updateState(page)
-    
+
     // Only track if the path actually changed (to avoid double tracking initial load)
     if (isEnabled && !isAuthenticated) {
       track({
@@ -60,7 +60,7 @@ export function initAnalytics(initialPage?: any) {
   // 3. Click tracking
   document.addEventListener('click', (e) => {
     if (!isEnabled || isAuthenticated) return
-    
+
     // Don't track if clicking on Admin UI elements
     const target = e.target as HTMLElement
     if (target.closest('.site-admin-bar') || target.closest('[data-admin-ui]')) {
@@ -91,7 +91,7 @@ export function initAnalytics(initialPage?: any) {
 
   // 4. Lifecycle hooks
   window.addEventListener('beforeunload', () => flush())
-  
+
   // Periodic flush
   if (!flushTimer) {
     flushTimer = setInterval(() => {
@@ -111,7 +111,7 @@ function flush() {
   if (clickBuffer.length === 0) return
   const payload = [...clickBuffer]
   clickBuffer = []
-  
+
   if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
     navigator.sendBeacon('/api/public/analytics/track', blob)
@@ -121,7 +121,7 @@ function flush() {
       body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' },
       keepalive: true
-    }).catch(() => {})
+    }).catch(() => { })
   }
 }
 
@@ -131,7 +131,7 @@ function track(event: any) {
     body: JSON.stringify(event),
     headers: { 'Content-Type': 'application/json' },
     keepalive: true
-  }).catch(() => {})
+  }).catch(() => { })
 }
 
 function getSelector(el: HTMLElement): string {
