@@ -143,22 +143,84 @@
   }
 
   & pre {
-    background-color: var(--color-neutral-high) !important;
-    color: var(--color-backdrop-input) !important;
-    border: 1px solid var(--color-line-medium) !important;
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
     border-radius: 0.5rem !important;
-    padding: 1rem !important;
-    overflow-x: auto !important;
-    margin: 1rem 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    margin: 1.5rem 0 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 
     & code {
       background-color: transparent !important;
       color: inherit !important;
-      padding: 0 !important;
+      padding: 1.25rem !important;
       border-radius: 0 !important;
       font-size: 0.875rem !important;
-      line-height: 1.5 !important;
-      color: inherit !important;
+      line-height: 1.6 !important;
+      display: block !important;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    }
+
+    /* Prism.js Syntax Highlighting Overrides */
+    & .token.comment,
+    & .token.prolog,
+    & .token.doctype,
+    & .token.cdata {
+      color: #8b949e;
+    }
+
+    & .token.punctuation {
+      color: #d2a8ff;
+    }
+
+    & .token.namespace {
+      opacity: 0.7;
+    }
+
+    & .token.property,
+    & .token.tag,
+    & .token.boolean,
+    & .token.number,
+    & .token.constant,
+    & .token.symbol,
+    & .token.deleted {
+      color: #79c0ff;
+    }
+
+    & .token.selector,
+    & .token.attr-name,
+    & .token.string,
+    & .token.char,
+    & .token.builtin,
+    & .token.inserted {
+      color: #a5d6ff;
+    }
+
+    & .token.operator,
+    & .token.entity,
+    & .token.url,
+    & .language-css .token.string,
+    & .style .token.string {
+      color: #ff7b72;
+    }
+
+    & .token.atrule,
+    & .token.attr-value,
+    & .token.keyword {
+      color: #ff7b72;
+    }
+
+    & .token.function,
+    & .token.class-name {
+      color: #d2a8ff;
+    }
+
+    & .token.regex,
+    & .token.important,
+    & .token.variable {
+      color: #ffa657;
     }
   }
 
@@ -170,10 +232,35 @@
     border-top: 1px solid var(--tw-prose-hr) !important;
     margin: 2rem 0 !important;
   }
+
+  /* ---------------------------------------------------------
+     9. Alignment Fixes (Centering Bullets, etc.)
+     --------------------------------------------------------- */
+  .text-center & {
+    & :is(ul, ol) {
+      display: inline-block !important;
+      text-align: left !important;
+    }
+
+    & li {
+      text-align: left !important;
+    }
+  }
+
+  .text-right & {
+    & :is(ul, ol) {
+      display: inline-block !important;
+      text-align: left !important;
+    }
+
+    & li {
+      text-align: left !important;
+    }
+  }
 }
 
 /* ---------------------------------------------------------
-   9. Inverted (Dark Mode) Overrides
+   10. Inverted (Dark Mode) Overrides
    --------------------------------------------------------- */
 .prose-invert,
 .prose-invert [class*='prose-'] {

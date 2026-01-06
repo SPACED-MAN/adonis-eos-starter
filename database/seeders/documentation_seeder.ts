@@ -137,6 +137,83 @@ export default class extends BaseSeeder {
           version: 1,
         }
 
+      case 'image':
+        return {
+          type: 'lexical-media',
+          url: token.href,
+          alt: token.text || '',
+          version: 1,
+        }
+
+      case 'html':
+        return {
+          type: 'paragraph',
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+          children: [
+            {
+              type: 'text',
+              text: token.text,
+              detail: 0,
+              format: 0,
+              mode: 'normal',
+              style: '',
+              version: 1,
+            },
+          ],
+        }
+
+      case 'table':
+        const headerRow = {
+          type: 'tablerow',
+          version: 1,
+          children: token.header.map((cell: any, i: number) => ({
+            type: 'tablecell',
+            header: true,
+            align: token.align[i],
+            version: 1,
+            children: [
+              {
+                type: 'paragraph',
+                direction: 'ltr',
+                format: '',
+                indent: 0,
+                version: 1,
+                children: this.inlineTokensToLexical(cell.tokens || []),
+              },
+            ],
+          })),
+        }
+
+        const rows = token.rows.map((row: any) => ({
+          type: 'tablerow',
+          version: 1,
+          children: row.map((cell: any, i: number) => ({
+            type: 'tablecell',
+            header: false,
+            align: token.align[i],
+            version: 1,
+            children: [
+              {
+                type: 'paragraph',
+                direction: 'ltr',
+                format: '',
+                indent: 0,
+                version: 1,
+                children: this.inlineTokensToLexical(cell.tokens || []),
+              },
+            ],
+          })),
+        }))
+
+        return {
+          type: 'table',
+          version: 1,
+          children: [headerRow, ...rows],
+        }
+
       case 'blockquote':
         return {
           type: 'quote',
@@ -230,6 +307,7 @@ export default class extends BaseSeeder {
       format: '',
       indent: 0,
       version: 1,
+      checked: item.task ? (item.checked ? true : false) : undefined,
       children,
     }
   }
@@ -261,7 +339,7 @@ export default class extends BaseSeeder {
             const boldChildren = this.inlineTokensToLexical(token.tokens)
             boldChildren.forEach((child) => {
               if (child.type === 'text') {
-                child.format = 1 // Bold
+                child.format = (child.format || 0) | 1 // Bold
               }
               children.push(child)
             })
@@ -286,7 +364,7 @@ export default class extends BaseSeeder {
             const italicChildren = this.inlineTokensToLexical(token.tokens)
             italicChildren.forEach((child) => {
               if (child.type === 'text') {
-                child.format = 2 // Italic
+                child.format = (child.format || 0) | 2 // Italic
               }
               children.push(child)
             })
@@ -297,6 +375,29 @@ export default class extends BaseSeeder {
               text: token.text,
               detail: 0,
               format: 2, // Italic
+              mode: 'normal',
+              style: '',
+              version: 1,
+            })
+          }
+          break
+
+        case 'del':
+          // Strikethrough text (format: 4 = strikethrough)
+          if (token.tokens) {
+            const delChildren = this.inlineTokensToLexical(token.tokens)
+            delChildren.forEach((child) => {
+              if (child.type === 'text') {
+                child.format = (child.format || 0) | 4 // Strikethrough
+              }
+              children.push(child)
+            })
+          } else if (token.text) {
+            children.push({
+              type: 'text',
+              text: token.text,
+              detail: 0,
+              format: 4, // Strikethrough
               mode: 'normal',
               style: '',
               version: 1,
@@ -375,6 +476,7 @@ export default class extends BaseSeeder {
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
     postIdsBySlug: Record<string, string>,
+    currentFile: { file: string; path: string; dir: string },
     baseSlugToDir?: Record<string, string>
   ): any {
     if (!lexicalContent || !lexicalContent.root) return lexicalContent
@@ -389,6 +491,7 @@ export default class extends BaseSeeder {
           slugToPath,
           allFiles,
           postIdsBySlug,
+          currentFile,
           baseSlugToDir
         )
         return {
@@ -427,6 +530,7 @@ export default class extends BaseSeeder {
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
     postIdsBySlug: Record<string, string>,
+    currentFile: { file: string; path: string; dir: string },
     baseSlugToDir?: Record<string, string>
   ): string {
     // Skip external links, anchors, and mailto: links
@@ -441,103 +545,79 @@ export default class extends BaseSeeder {
 
     // Handle paths starting with /docs/
     if (href.startsWith('/docs/')) {
+      // Split anchor if present
+      const [pathWithoutAnchor, anchor] = href.split('#')
+      let currentHref = pathWithoutAnchor
+
       // Fix "for-developers" links to "developers"
-      if (href.startsWith('/docs/for-developers')) {
-        href = href.replace('/docs/for-developers', '/docs/developers')
+      if (currentHref.startsWith('/docs/for-developers')) {
+        currentHref = currentHref.replace('/docs/for-developers', '/docs/developers')
       }
-      if (href.startsWith('/docs/for-editors')) {
-        href = href.replace('/docs/for-editors', '/docs/editors')
+      if (currentHref.startsWith('/docs/for-editors')) {
+        currentHref = currentHref.replace('/docs/for-editors', '/docs/editors')
       }
 
       // Extract the path parts
-      const pathMatch = href.match(/^\/docs\/(.+)$/)
+      const pathMatch = currentHref.match(/^\/docs\/(.+)$/)
       if (pathMatch) {
         const pathParts = pathMatch[1].split('/').filter(Boolean)
 
-        // If it's a nested path (e.g., developers/theming)
-        if (pathParts.length === 2) {
-          const [parentSlug, childSlug] = pathParts
-          // First, try to resolve the child slug directly (most accurate)
-          if (slugToPath[childSlug]) {
-            return slugToPath[childSlug]
-          }
-          // Fallback: construct the path manually if parent is valid
-          if (parentSlug === 'developers' || parentSlug === 'editors') {
-            return `/docs/${parentSlug}/${childSlug}`
-          }
-        }
-
         // If it's a single slug (e.g., /docs/theming or /docs/developers)
-        if (pathParts.length === 1) {
-          const slug = pathParts[0]
+        if (pathParts.length >= 1) {
+          const slug = pathParts[pathParts.length - 1]
 
-          // Skip if it's a top-level parent slug (developers/editors/overview)
-          if (slug === 'developers' || slug === 'editors' || slug === 'overview') {
+          // Skip if it's a top-level parent slug (developers/editors/overview) and it's the only part
+          if (pathParts.length === 1 && (slug === 'developers' || slug === 'editors' || slug === 'overview')) {
+            console.log(`   🔗 /docs link (skipped parent): ${href}`)
             return href
           }
 
+          // Build final URL helper
+          const buildUrl = (resolvedPath: string) => anchor ? `${resolvedPath}#${anchor}` : resolvedPath
+
           // Look up the hierarchical path for this slug
           if (slugToPath[slug]) {
-            return slugToPath[slug]
+            const result = buildUrl(slugToPath[slug])
+            console.log(`   🔗 /docs link resolved: ${href} -> ${result}`)
+            return result
           }
 
-          // If not found, try to resolve using baseSlugToDir mapping
-          // This helps when links use base slugs (e.g., /docs/theming) but
-          // the actual slug might have a suffix due to collision (e.g., theming-developers)
-          if (baseSlugToDir && baseSlugToDir[slug]) {
-            const dir = baseSlugToDir[slug]
-            // Try the slug with directory suffix first (most likely collision pattern)
-            if (dir !== 'root') {
-              const dirSuffix = dir === 'developers' ? 'developers' : 'editors'
-              const candidateSlug = `${slug}-${dirSuffix}`
-              if (slugToPath[candidateSlug]) {
-                return slugToPath[candidateSlug]
-              }
-              // If not found with suffix, construct the hierarchical path directly
-              // This ensures links like /docs/theming resolve to /docs/developers/theming
-              return `/docs/${dir}/${slug}`
-            }
-          } else {
-            // Try common suffixes (in case of slug collisions)
-            // e.g., if slug is "theming" but stored as "theming-developers"
-            const suffixes = ['developers', 'editors']
-            for (const suffix of suffixes) {
-              const candidateSlug = `${slug}-${suffix}`
-              if (slugToPath[candidateSlug]) {
-                return slugToPath[candidateSlug]
-              }
+          // Try common suffixes (in case of slug collisions)
+          const suffixes = ['developers', 'editors']
+          for (const suffix of suffixes) {
+            const candidateSlug = `${slug}-${suffix}`
+            if (slugToPath[candidateSlug]) {
+              const result = buildUrl(slugToPath[candidateSlug])
+              console.log(`   🔗 /docs link resolved (suffix): ${href} -> ${result}`)
+              return result
             }
           }
 
-          // If still not found, return as-is (might be invalid or handled elsewhere)
-          return href
-        }
-
-        // If it's more than 2 parts, try to resolve the last part as a slug
-        if (pathParts.length > 2) {
-          const lastSlug = pathParts[pathParts.length - 1]
-          if (slugToPath[lastSlug]) {
-            return slugToPath[lastSlug]
+          // If still not found, try to find a match in slugToPath that ends with this slug
+          const partialMatch = Object.keys(slugToPath).find(s => s.startsWith(slug))
+          if (partialMatch && slugToPath[partialMatch]) {
+            const result = buildUrl(slugToPath[partialMatch])
+            console.log(`   🔗 /docs link resolved (partial): ${href} -> ${result}`)
+            return result
           }
         }
       }
 
+      console.log(`   🔗 /docs link (unresolved): ${href}`)
       // If we can't resolve it, return as-is (might be a valid path we don't know about)
       return href
     }
 
     // Handle relative markdown paths (should have been transformed already, but handle just in case)
     if (href.endsWith('.md')) {
-      const currentFile = (this as any).currentFile
-      if (currentFile) {
-        const transformed = this.transformLinkUrl(href, currentFile, allFiles, postIdsBySlug)
-        // If transformation resulted in /docs/{slug}, look up hierarchical path
-        const slugMatch2 = transformed.match(/^\/docs\/([^/]+)$/)
-        if (slugMatch2 && slugToPath[slugMatch2[1]]) {
-          return slugToPath[slugMatch2[1]]
-        }
-        return transformed
+      const transformed = this.transformLinkUrl(href, currentFile, allFiles, postIdsBySlug)
+      console.log(`   🔗 Transformed ${href} -> ${transformed}`)
+      // If transformation resulted in /docs/{slug}, look up hierarchical path
+      const slugMatch2 = transformed.match(/^\/docs\/([^/]+)$/)
+      if (slugMatch2 && slugToPath[slugMatch2[1]]) {
+        return slugToPath[slugMatch2[1]]
       }
+      return transformed
     }
 
     // Return as-is if we can't resolve it
@@ -583,46 +663,20 @@ export default class extends BaseSeeder {
       })
 
       if (targetFile) {
-        // Generate slug from target file (same logic as in run())
-        let targetSlug = targetFile.file.replace(/^\d+[a-z]?-/, '').replace('.md', '')
-
-        // Apply same remapping as in run()
-        if (targetSlug === 'quick-start') {
-          targetSlug = 'editors'
-        } else if (targetSlug === 'getting-started') {
-          targetSlug = 'developers'
+        // ... (existing logic)
+      } else {
+        // Fallback: search by filename only if path match fails
+        const filename = href.split('/').pop()
+        const targetByFilename = allFiles.find(f => f.file === filename)
+        if (targetByFilename) {
+          const targetSlug = targetByFilename.file.replace(/^\d+[a-z]?-/, '').replace('.md', '')
+          const dirSuffix = targetByFilename.dir.startsWith('developers') ? 'developers' : targetByFilename.dir.startsWith('editors') ? 'editors' : 'root'
+          let candidate = targetSlug
+          if (postIdsBySlug[candidate] && candidate !== 'editors' && candidate !== 'developers' && candidate !== 'overview') {
+            candidate = `${targetSlug}-${dirSuffix}`
+          }
+          return `/docs/${candidate}`
         }
-
-        // Check for slug collision and apply same logic
-        const dirSuffix =
-          targetFile.dir.startsWith('developers')
-            ? 'developers'
-            : targetFile.dir.startsWith('editors')
-              ? 'editors'
-              : 'root'
-        let candidate = targetSlug
-        if (
-          postIdsBySlug[candidate] &&
-          candidate !== 'editors' &&
-          candidate !== 'developers' &&
-          candidate !== 'overview'
-        ) {
-          candidate = `${targetSlug}-${dirSuffix}`
-        }
-        if (
-          postIdsBySlug[candidate] &&
-          candidate !== 'editors' &&
-          candidate !== 'developers' &&
-          candidate !== 'overview'
-        ) {
-          let n = 2
-          while (postIdsBySlug[`${candidate}-${n}`]) n++
-          candidate = `${candidate}-${n}`
-        }
-
-        // Build CMS URL using hierarchical path
-        // For now, use simple slug-based URL - will be updated after hierarchy is set
-        return `/docs/${candidate}`
       }
     }
 
@@ -716,7 +770,7 @@ export default class extends BaseSeeder {
         'services-and-actions',
       ],
       'extending-the-cms': ['theming', 'building-modules', 'global-modules', 'advanced-customization'],
-      'automation-and-ai': ['workflows-and-webhooks', 'ai-agents', 'mcp'],
+      'automation-and-ai': ['workflows-and-webhooks', 'ai-agents', 'mcp', 'external-triggers'],
       'content-and-data': [
         'taxonomies',
         'menus',
@@ -976,6 +1030,23 @@ export default class extends BaseSeeder {
     console.log(`\n🔗 Updating links to use hierarchical paths...`)
     for (const [slug, postId] of Object.entries(postIdsBySlug)) {
       try {
+        // Skip overview post for now (handled separately below)
+        if (slug === 'overview') continue
+
+        // Find file info for this slug to get correct currentFile context
+        const fileInfo = allFiles.find((f) => {
+          const baseSlug = f.file.replace(/^\d+[a-z]?-/, '').replace('.md', '')
+          if (baseSlug === slug) return true
+          const dirSuffix = f.dir.startsWith('developers')
+            ? 'developers'
+            : f.dir.startsWith('editors')
+              ? 'editors'
+              : 'root'
+          return `${baseSlug}-${dirSuffix}` === slug
+        })
+
+        if (!fileInfo) continue
+
         // Get the post's prose module (join with module_instances to get props)
         const postModules = await db
           .from('post_modules')
@@ -998,6 +1069,7 @@ export default class extends BaseSeeder {
               slugToPath,
               allFiles,
               postIdsBySlug,
+              fileInfo,
               baseSlugToDir
             )
 
@@ -1035,6 +1107,7 @@ export default class extends BaseSeeder {
             slugToPath,
             allFiles,
             postIdsBySlug,
+            { file: '00-index.md', path: docsIndexPath, dir: 'root' },
             baseSlugToDir
           )
 

@@ -66,11 +66,14 @@ export interface AgentHistoryItem {
 export interface AgentResponse {
   rawResponse?: string
   summary?: string | null
+  determination?: string | null
   applied?: string[]
   message?: string
   generatedMediaId?: string // Media ID if an image was generated
+  generatedMediaUrl?: string
+  generatedDarkUrl?: string
   suggestions?: any
-  executionMeta?: ExecutionMeta
+  executionMeta?: ExecutionMeta & { debug?: any }
   transcript?: any[]
 }
 
@@ -229,6 +232,11 @@ export function AgentModal({
         }
         setAgentResponse(response)
         toast.success('Agent completed successfully')
+
+        // Dispatch a global event if media was created
+        if (j.generatedMediaId) {
+          window.dispatchEvent(new CustomEvent('media:created', { detail: { id: j.generatedMediaId } }))
+        }
 
         // Perform a background reload to update the UI while the modal is still open
         if (contextId && scope !== 'global') {
@@ -393,6 +401,11 @@ export function AgentModal({
                                 })()
                                 : 'Changes applied.')}
                           </div>
+                          {item.response.determination && (
+                            <div className="text-xs italic text-neutral-medium px-1 mt-1 border-l-2 border-primary/20">
+                              {item.response.determination}
+                            </div>
+                          )}
                           {item.response.applied && item.response.applied.length > 0 && (
                             <div className="text-xs text-neutral-medium">
                               Applied: {item.response.applied.join(', ')}
@@ -423,11 +436,52 @@ export function AgentModal({
                                       <div className="font-bold uppercase tracking-tighter">
                                         Turn {turn.turn}
                                       </div>
-                                      {turn.toolCalls.map((call: any, j: number) => (
-                                        <div key={j} className="font-mono truncate">
-                                          {call.tool}
-                                        </div>
-                                      ))}
+                                      {turn.toolCalls.map((call: any, j: number) => {
+                                        const result = turn.toolResults?.[j]
+                                        const isMediaGen =
+                                          call.tool === 'generate_image' ||
+                                          call.tool === 'generate_video'
+                                        const mediaUrl = result?.success ? result.result?.url : null
+                                        const darkUrl = result?.success ? result.result?.darkUrl : null
+
+                                        return (
+                                          <div key={j} className="space-y-1">
+                                            <div className="font-mono truncate">
+                                              {call.tool}
+                                            </div>
+                                            {isMediaGen && (
+                                              <div className="flex gap-1">
+                                                {mediaUrl && (!darkUrl || mediaUrl !== darkUrl) && (
+                                                  <div className="mt-1 w-20 h-20 rounded border border-line-low overflow-hidden bg-backdrop-low relative">
+                                                    <img
+                                                      src={mediaUrl}
+                                                      alt="Generated"
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                    {darkUrl && (
+                                                      <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[6px] text-white px-0.5 py-0.5 text-center">
+                                                        LIGHT
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                {darkUrl && (
+                                                  <div className="mt-1 w-20 h-20 rounded border border-line-low overflow-hidden bg-backdrop-low relative">
+                                                    <img
+                                                      src={darkUrl}
+                                                      alt="Generated (Dark)"
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                    <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[6px] text-white px-0.5 py-0.5 text-center">
+                                                      DARK
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
                                     </div>
                                   ))}
                                 </div>
@@ -495,12 +549,85 @@ export function AgentModal({
             )}
 
             {/* Show AI's natural response */}
-            {agentResponse.summary && (
-              <div className="space-y-1">
-                <div className="text-xs text-neutral-medium">AI Response:</div>
-                <div className="bg-standout-low p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
-                  {agentResponse.summary}
-                </div>
+            {(agentResponse.summary || (agentResponse as any).determination) && (
+              <div className="space-y-2">
+                {agentResponse.summary && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-neutral-medium">AI Summary:</div>
+                    <div className="bg-standout-low p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
+                      {agentResponse.summary}
+                    </div>
+                  </div>
+                )}
+
+                {/* Surface generated media here for better visibility */}
+                {agentResponse.transcript &&
+                  agentResponse.transcript.some((turn) =>
+                    turn.toolCalls.some(
+                      (call: any) =>
+                        call.tool === 'generate_image' || call.tool === 'generate_video'
+                    )
+                  ) && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-neutral-medium">Generated Media:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {agentResponse.transcript.map((turn) =>
+                          turn.toolCalls.map((call: any, j: number) => {
+                            const isMedia =
+                              call.tool === 'generate_image' || call.tool === 'generate_video'
+                            const result = turn.toolResults?.[j]
+                            const mediaUrl = result?.success ? result.result?.url : null
+                            const darkUrl = result?.success ? result.result?.darkUrl : null
+
+                            if (!isMedia || !mediaUrl) return null
+
+                            return (
+                              <div
+                                key={`${turn.turn}-${j}`}
+                                className="space-y-1"
+                              >
+                                <div className="flex gap-2">
+                                  {mediaUrl && (!darkUrl || mediaUrl !== darkUrl) && (
+                                    <div className="w-32 h-32 rounded border border-line-medium overflow-hidden bg-backdrop-medium relative group">
+                                      <img
+                                        src={mediaUrl}
+                                        alt="Generated (Light)"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[8px] text-white px-1 py-0.5 text-center">
+                                        {darkUrl ? 'LIGHT' : 'GENERATED'}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {darkUrl && (
+                                    <div className="w-32 h-32 rounded border border-line-medium overflow-hidden bg-backdrop-low relative group">
+                                      <img
+                                        src={darkUrl}
+                                        alt="Generated (Dark)"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[8px] text-white px-1 py-0.5 text-center">
+                                        DARK
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {(agentResponse as any).determination && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-neutral-medium">Reasoning & Determination:</div>
+                    <div className="bg-backdrop-medium p-4 rounded-lg border border-line-medium text-sm italic text-neutral-high whitespace-pre-wrap wrap-break-word">
+                      {(agentResponse as any).determination}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {!agentResponse.summary && agentResponse.rawResponse && (
@@ -552,6 +679,11 @@ export function AgentModal({
                           Turn {turn.turn}
                           {turn.summary && `: ${turn.summary}`}
                         </div>
+                        {turn.determination && (
+                          <div className="text-[10px] italic text-neutral-high bg-primary/5 p-1.5 rounded border-l-2 border-primary/30">
+                            {turn.determination}
+                          </div>
+                        )}
                         <div className="space-y-1">
                           {turn.toolCalls.map((call: any, j: number) => {
                             const result = turn.toolResults[j]
@@ -564,6 +696,43 @@ export function AgentModal({
                                   {call.tool}({JSON.stringify(call.params).slice(0, 100)}
                                   {JSON.stringify(call.params).length > 100 && '...'})
                                 </div>
+                                {(() => {
+                                  const isMediaGen =
+                                    call.tool === 'generate_image' || call.tool === 'generate_video'
+                                  const mediaUrl = result?.success ? result.result?.url : null
+                                  const darkUrl = result?.success ? result.result?.darkUrl : null
+                                  if (isMediaGen && mediaUrl) {
+                                    return (
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        <div className="w-full max-w-sm rounded border border-line-medium overflow-hidden bg-backdrop-medium relative group">
+                                          <img
+                                            src={mediaUrl}
+                                            alt="Generated media (Light)"
+                                            className="w-full h-auto object-contain"
+                                          />
+                                          {darkUrl && (
+                                            <div className="absolute top-1 left-1 bg-black/60 text-[8px] text-white px-1.5 py-0.5 rounded">
+                                              LIGHT
+                                            </div>
+                                          )}
+                                        </div>
+                                        {darkUrl && (
+                                          <div className="w-full max-w-sm rounded border border-line-medium overflow-hidden bg-backdrop-low relative group">
+                                            <img
+                                              src={darkUrl}
+                                              alt="Generated media (Dark)"
+                                              className="w-full h-auto object-contain"
+                                            />
+                                            <div className="absolute top-1 left-1 bg-black/60 text-[8px] text-white px-1.5 py-0.5 rounded">
+                                              DARK
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  }
+                                  return null
+                                })()}
                                 <div className="mt-1 text-neutral-high overflow-x-auto max-h-32">
                                   {result?.success ? (
                                     <pre className="whitespace-pre-wrap">
@@ -595,6 +764,17 @@ export function AgentModal({
                       <li key={i}>{field}</li>
                     ))}
                   </ul>
+                </div>
+              </div>
+            )}
+
+            {agentResponse.executionMeta?.debug && (
+              <div className="space-y-1">
+                <div className="text-xs text-neutral-medium">Debug Information:</div>
+                <div className="bg-backdrop-low p-3 rounded border border-line-low overflow-auto max-h-[200px]">
+                  <pre className="text-[10px] text-neutral-medium">
+                    {JSON.stringify(agentResponse.executionMeta.debug, null, 2)}
+                  </pre>
                 </div>
               </div>
             )}

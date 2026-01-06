@@ -163,6 +163,8 @@ export default function DatabaseIndex() {
     feedbackCount: number
     auditCount: number
     agentCount: number
+    unreferencedMedia: number
+    totalMedia: number
     totalIssues: number
   } | null>(null)
   const [loadingOptimizeStats, setLoadingOptimizeStats] = useState(false)
@@ -1531,6 +1533,15 @@ export default function DatabaseIndex() {
                         </div>
                         <div className="text-xs text-neutral-medium mt-1">
                           Record of AI agent executions
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Total Media Assets</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.totalMedia.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Total assets in the media library
                         </div>
                       </div>
                     </div>

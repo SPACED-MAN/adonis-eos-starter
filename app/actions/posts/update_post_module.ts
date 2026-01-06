@@ -105,8 +105,11 @@ export default class UpdatePostModule {
     }
 
     if (orderIndex !== undefined) {
-      // Only apply order changes to approved version; review/ai-review ordering is staged
-      if (mode !== 'review' && mode !== 'ai-review') {
+      if (mode === 'ai-review') {
+        postModule.aiReviewOrderIndex = orderIndex
+      } else if (mode === 'review') {
+        postModule.reviewOrderIndex = orderIndex
+      } else {
         postModule.orderIndex = orderIndex
       }
     }

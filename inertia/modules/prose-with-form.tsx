@@ -79,7 +79,7 @@ export default function ProseWithForm({
   }
 
   const proseBlock = (
-    <div className="space-y-4">
+    <div className="space-y-4 py-8 lg:py-16">
       <h2
         className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
         data-inline-path="heading"

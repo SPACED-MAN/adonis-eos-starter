@@ -11,9 +11,17 @@ import { usePage } from '@inertiajs/react'
  * Get admin path prefix from Inertia shared props
  */
 export function useAdminPathPrefix(): string {
-  const page = usePage()
-  const prefix = (page.props as any)?.adminPathPrefix as string | undefined
-  return prefix || 'admin' // fallback to 'admin'
+  try {
+    const page = usePage()
+    const prefix = (page.props as any)?.adminPathPrefix as string | undefined
+    return prefix || 'admin' // fallback to 'admin'
+  } catch (e) {
+    if (typeof window !== 'undefined') {
+      return (window as any).Inertia?.page?.props?.adminPathPrefix || 
+             (window as any).__INITIAL_PROPS__?.adminPathPrefix || 'admin'
+    }
+    return 'admin'
+  }
 }
 
 /**

@@ -40,6 +40,8 @@ export default function TestimonialList({
 }: TestimonialListProps) {
   const [items, setItems] = useState<TestimonialSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [limit, setLimit] = useState(6)
+  const [totalCount, setTotalCount] = useState(0)
   const { enabled } = useInlineEditor()
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
@@ -58,7 +60,7 @@ export default function TestimonialList({
         try {
           const params = new URLSearchParams()
           params.set('status', 'published')
-          params.set('limit', '8')
+          params.set('limit', String(limit))
           const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
           if (ids.length > 0) {
             params.set('ids', ids.join(','))
@@ -72,6 +74,7 @@ export default function TestimonialList({
           }
           const j = await res.json().catch(() => null)
           const list: any[] = Array.isArray(j?.data) ? j.data : []
+          const total = typeof j?.meta?.total === 'number' ? j.meta.total : list.length
           if (cancelled) return
 
           const mapped: TestimonialSummary[] = list.map((t: any) => {
@@ -85,8 +88,12 @@ export default function TestimonialList({
           })
 
           setItems(mapped)
+          setTotalCount(total)
         } catch {
-          if (!cancelled) setItems([])
+          if (!cancelled) {
+            setItems([])
+            setTotalCount(0)
+          }
         } finally {
           if (!cancelled) setLoading(false)
         }
@@ -94,7 +101,7 @@ export default function TestimonialList({
     return () => {
       cancelled = true
     }
-  }, [JSON.stringify(testimonials ?? [])])
+  }, [JSON.stringify(testimonials ?? []), limit])
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -119,23 +126,23 @@ export default function TestimonialList({
     <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
       {showTitle &&
         (_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.0 }}
-          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0 }}
+            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
             {...titleProps}
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
             {...titleProps}
-        >
-          {title}
-        </h2>
+          >
+            {title}
+          </h2>
         ))}
       {showSubtitle &&
         (_useReact ? (
@@ -190,11 +197,13 @@ export default function TestimonialList({
           />
         )
         return _useReact ? (
-          <motion.div key={t.id} variants={itemVariants}>
+          <motion.div key={t.id} variants={itemVariants} className="flex h-full">
             {teaser}
           </motion.div>
         ) : (
-          teaser
+          <div key={t.id} className="flex h-full">
+            {teaser}
+          </div>
         )
       })}
     </div>
@@ -250,6 +259,7 @@ export default function TestimonialList({
         {headerContent}
         {_useReact ? (
           <motion.div
+            key={items.length}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
@@ -260,14 +270,17 @@ export default function TestimonialList({
         ) : (
           gridContent
         )}
-        <div className="text-center">
-          <a
-            href="#"
-            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${styles.inverted ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-high/40`}
-          >
-            Show more…
-          </a>
-        </div>
+        {items.length < totalCount && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setLimit((prev) => prev + 8)}
+              className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${styles.inverted ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-high/40`}
+            >
+              Show more…
+            </button>
+          </div>
+        )}
       </div>
     </section>
   )

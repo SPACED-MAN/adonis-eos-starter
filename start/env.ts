@@ -172,6 +172,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   AI_PROVIDER_OPENAI_API_KEY: Env.schema.string.optional(),
   AI_PROVIDER_ANTHROPIC_API_KEY: Env.schema.string.optional(),
   AI_PROVIDER_GOOGLE_API_KEY: Env.schema.string.optional(),
+  AI_AGENT_DEBUG: Env.schema.boolean.optional(),
   AGENT_SECRET: Env.schema.string.optional(),
   AGENT_USERS_BOOTSTRAP_DISABLED: Env.schema.boolean.optional(),
 

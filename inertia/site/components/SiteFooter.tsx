@@ -108,7 +108,7 @@ export function SiteFooter() {
             ))}
           </ul>
         )}
-        <div className="flex flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between max-w-3xl mx-auto">
+        <div className="items-center max-w-3xl mx-auto">
           <span className="text-xs text-neutral-low">
             © {new Date().getFullYear()} {siteTitle}. All rights reserved.
           </span>

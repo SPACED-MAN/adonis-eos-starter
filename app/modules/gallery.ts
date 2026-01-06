@@ -26,8 +26,8 @@ export default class GalleryModule extends BaseModule {
   getConfig(): ModuleConfig {
     return {
       type: 'gallery',
-      name: 'Image Gallery',
-      description: 'Interactive image gallery with lightbox and navigation',
+      name: 'Gallery',
+      description: 'Interactive gallery with lightbox and navigation',
       icon: 'image-multiple',
       category: 'media',
       allowedScopes: ['local', 'global'],
@@ -87,6 +87,7 @@ export default class GalleryModule extends BaseModule {
           options: [
             { label: 'Grid', value: 'grid' },
             { label: 'Masonry', value: 'masonry' },
+            { label: 'Carousel', value: 'carousel' },
           ],
         },
         {

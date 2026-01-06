@@ -13,12 +13,18 @@ import {
   TooltipTrigger,
 } from '~/components/ui/tooltip'
 
-export function AdminHeader({ title = 'Admin' }: { title?: string }) {
+export function AdminHeader({
+  title = 'Admin',
+  hideGlobalAgent = false,
+}: {
+  title?: string
+  hideGlobalAgent?: boolean
+}) {
   const page = usePage()
+  const props = page.props as any
   const adminPath = useAdminPath()
-  const role: string | undefined =
-    (page.props as any)?.currentUser?.role ?? (page.props as any)?.auth?.user?.role
-  const isAdminShared: boolean | undefined = (page.props as any)?.isAdmin
+  const role: string | undefined = props?.currentUser?.role ?? props?.auth?.user?.role
+  const isAdminShared: boolean | undefined = props?.isAdmin
   const isAdmin = isAdminShared === true || role === 'admin'
   // Fallback: if auth context is present but role not shared, still show links.
   const showAdminLinks = isAdmin
@@ -30,7 +36,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
           <div className="flex h-16 items-center justify-between gap-4">
             <div className="flex items-center gap-2 min-w-0">
               {showAdminLinks && <SidebarTrigger />}
-              
+
               <div className="flex items-center gap-1 min-w-0">
                 <TooltipProvider>
                   <Tooltip>
@@ -50,13 +56,15 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-
-                {title && title !== 'Admin' && (
-                  <h1 className="text-base sm:text-lg font-semibold text-neutral-high truncate ml-1">
-                    {title}
-                  </h1>
-                )}
               </div>
+            </div>
+
+            <div className="flex items-center gap-1 min-w-0">
+              {title && title !== 'Admin' && (
+                <h1 className="text-base sm:text-lg font-semibold text-neutral-high truncate ml-1">
+                  {title}
+                </h1>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
@@ -75,7 +83,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
           </div>
         </div>
       </header>
-      <GlobalAgentButton />
+      {!hideGlobalAgent && <GlobalAgentButton variant="floating" />}
     </SidebarProvider>
   )
 }

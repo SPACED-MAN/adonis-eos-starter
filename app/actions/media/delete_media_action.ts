@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import db from '@adonisjs/lucid/services/db'
 import storageService from '#services/storage_service'
+import mediaUsageService from '#services/media_usage_service'
 import logActivityAction from '#actions/log_activity_action'
 import dispatchWebhookAction from '#actions/dispatch_webhook_action'
 import { promisify } from 'node:util'
@@ -12,41 +13,38 @@ const execAsync = promisify(exec)
 export interface DeleteMediaOptions {
   id: string
   userId: number | null
+  force?: boolean
 }
 
 export class DeleteMediaAction {
   async handle(options: DeleteMediaOptions) {
-    const { id, userId } = options
+    const { id, userId, force = false } = options
     const row = await db.from('media_assets').where('id', id).first()
     if (!row) throw new Error('Media not found')
 
     const url = String(row.url || '')
 
-    // Safety check: Don't delete if in use
-    const dbUsage = await this.getUsageInternal(id, url)
-    const codebaseUsage = await this.getCodebaseUsage(url)
+    // Safety check: Don't delete if in use (unless force=true)
+    const usage = await mediaUsageService.getUsage(id, url)
     const inUse =
-      dbUsage.inModules.length > 0 ||
-      dbUsage.inOverrides.length > 0 ||
-      dbUsage.inPosts.length > 0 ||
-      dbUsage.inSettings ||
-      codebaseUsage.length > 0
+      usage.inModules.length > 0 ||
+      usage.inOverrides.length > 0 ||
+      usage.inPosts.length > 0 ||
+      usage.inSettings ||
+      usage.inCodebase.length > 0
 
-    if (inUse) {
+    if (inUse && !force) {
       let message = 'This media is currently in use and cannot be deleted.'
-      if (dbUsage.inSettings) {
+      if (usage.inSettings) {
         message = 'This media is used in Site Settings (Logo/Favicon) and cannot be deleted.'
-      } else if (codebaseUsage.length > 0) {
-        message = `This media is referenced in source code (${codebaseUsage[0]}${codebaseUsage.length > 1 ? ', etc.' : ''}) and cannot be deleted.`
+      } else if (usage.inCodebase.length > 0) {
+        message = `This media is referenced in source code (${usage.inCodebase[0]}${usage.inCodebase.length > 1 ? ', etc.' : ''}) and cannot be deleted.`
       }
 
       throw {
         status: 409,
         message,
-        usage: {
-          ...dbUsage,
-          inCodebase: codebaseUsage,
-        },
+        usage,
       }
     }
 
@@ -115,114 +113,6 @@ export class DeleteMediaAction {
     })
 
     return true
-  }
-
-  private async getUsageInternal(id: string, url: string) {
-    const likeUrl = `%${url}%`
-    const likeId = `%${id}%`
-
-    const inModulesRaw = await db
-      .from('module_instances')
-      .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
-      .leftJoin('posts', 'post_modules.post_id', 'posts.id')
-      .where((query) => {
-        query
-          .where((q) => {
-            q.whereRaw(`module_instances.props::text ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [likeUrl])
-          })
-          .orWhere((q) => {
-            q.whereRaw(`module_instances.props::text ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [likeId])
-          })
-      })
-      .select(
-        'module_instances.id',
-        'module_instances.type',
-        'module_instances.scope',
-        'module_instances.global_slug as globalSlug',
-        'posts.id as postId',
-        'posts.title as postTitle'
-      )
-
-    const inOverridesRaw = await db
-      .from('post_modules')
-      .join('posts', 'post_modules.post_id', 'posts.id')
-      .where((query) => {
-        query
-          .where((q) => {
-            q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [likeUrl])
-              .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [likeUrl])
-          })
-          .orWhere((q) => {
-            q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [likeId])
-              .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [likeId])
-          })
-      })
-      .select('post_modules.id', 'posts.id as postId', 'posts.title as postTitle')
-
-    const inPosts = await db
-      .from('posts')
-      .where('featured_image_id', id)
-      .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeUrl])
-      .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeUrl])
-      .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeId])
-      .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeId])
-      .select('id', 'title', 'type')
-
-    const inSettings = await db
-      .from('site_settings')
-      .where('logo_media_id', id)
-      .orWhere('favicon_media_id', id)
-      .orWhere('default_og_media_id', id)
-      .select('id')
-
-    return {
-      inModules: inModulesRaw.map((m: any) => ({
-        id: m.id,
-        type: m.type,
-        scope: m.scope,
-        globalSlug: m.globalSlug,
-        postId: m.postId,
-        postTitle: m.postTitle,
-      })),
-      inOverrides: inOverridesRaw.map((o: any) => ({
-        id: o.id,
-        postId: o.postId,
-        postTitle: o.postTitle,
-      })),
-      inPosts: inPosts.map((p: any) => ({ id: p.id, title: p.title, type: p.type })),
-      inSettings: inSettings.length > 0,
-    }
-  }
-
-  private async getCodebaseUsage(url: string): Promise<string[]> {
-    const filename = path.basename(url)
-    if (!filename) return []
-
-    const searchPaths = [
-      path.join(process.cwd(), 'inertia'),
-      path.join(process.cwd(), 'resources', 'views'),
-      path.join(process.cwd(), 'app'),
-    ]
-    
-    try {
-      // Use asynchronous exec
-      const pathsArg = searchPaths.map((p) => `"${p}"`).join(' ')
-      const { stdout } = await execAsync(`grep -rl "${filename}" ${pathsArg} || true`)
-      return stdout
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .filter((p) => !p.includes('node_modules'))
-        .map((p) => path.relative(process.cwd(), p))
-    } catch {
-      return []
-    }
   }
 }
 

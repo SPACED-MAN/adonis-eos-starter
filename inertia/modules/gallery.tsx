@@ -16,6 +16,13 @@ import type { MediaObject } from '../utils/useMediaUrl'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
 import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '../components/ui/carousel'
 
 interface GalleryProps {
   images: Array<{
@@ -28,7 +35,7 @@ interface GalleryProps {
     mimeType?: string
     metadata?: any
   }>
-  layout?: 'grid' | 'masonry'
+  layout?: 'grid' | 'masonry' | 'carousel'
   columns?: number
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   theme?: string
@@ -184,6 +191,57 @@ export default function Gallery({
     </div>
   )
 
+  const carouselContent = (
+    <div className="relative px-12">
+      <Carousel
+        opts={{
+          align: "start",
+          loop: true,
+        }}
+        className="w-full"
+      >
+        <CarouselContent className="-ml-4">
+          {imagesValue.map((item: any, idx: number) => {
+            const media = (item?.url && typeof item.url === 'object' ? item.url : null) as MediaObject | null
+            const imageSource = media || item?.url || item
+
+            const caption = media?.title || media?.caption || (item as any).caption
+            const hasCaption = !!caption?.trim()
+            const effectiveAlt = media?.altText || (item as any).alt || (item as any).altText || ''
+            const altText = effectiveAlt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
+
+            return (
+              <CarouselItem key={idx} className={`pl-4 basis-full sm:basis-1/2 ${columns >= 3 ? 'md:basis-1/3' : ''} ${columns >= 4 ? 'lg:basis-1/4' : ''}`}>
+                <figure
+                  className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium relative"
+                  onClick={() => openLightbox(idx)}
+                >
+                  <MediaRenderer
+                    image={imageSource}
+                    alt={altText}
+                    className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
+                    objectFit={objectFit}
+                  />
+                  {hasCaption && (
+                    <figcaption className="p-2 text-sm text-neutral-low truncate bg-backdrop-high/80">
+                      {caption}
+                    </figcaption>
+                  )}
+                </figure>
+              </CarouselItem>
+            )
+          })}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    </div>
+  )
+
+  const finalContent = layout === 'carousel' && _useReact ? carouselContent : gridContent
+
   return (
     <section
       className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
@@ -199,7 +257,7 @@ export default function Gallery({
         isInteractive={_useReact}
       />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Gallery Grid */}
+        {/* Gallery Grid/Carousel */}
         {_useReact ? (
           <motion.div
             initial="hidden"
@@ -207,10 +265,10 @@ export default function Gallery({
             viewport={{ once: true, margin: '-100px' }}
             variants={containerVariants}
           >
-            {gridContent}
+            {finalContent}
           </motion.div>
         ) : (
-          gridContent
+          finalContent
         )}
       </div>
 

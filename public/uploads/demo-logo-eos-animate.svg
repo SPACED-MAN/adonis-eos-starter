@@ -1,0 +1,149 @@
+<!-- EOS scattered background — LIGHT MODE version (transparent) -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1200 800"
+     preserveAspectRatio="xMidYMid slice"
+     aria-hidden="true">
+
+  <defs>
+    <!-- Light-mode gradient: deep slates that read on white / pale backgrounds -->
+    <linearGradient id="strokeGrad" x1="0" y1="0" x2="1200" y2="800" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="rgba(15, 23, 42, 0.26)"/>  <!-- slate-900 -->
+      <stop offset="100%" stop-color="rgba(51, 65, 85, 0.18)"/> <!-- slate-700 -->
+    </linearGradient>
+
+    <style>
+      :root {
+        --stroke: 6;
+        --ease: cubic-bezier(.4,0,.2,1);
+        --dur: 3.8s;
+      }
+
+      .shape {
+        fill: none;
+        stroke: url(#strokeGrad);
+        stroke-width: var(--stroke);
+        stroke-linecap: square;
+        stroke-linejoin: miter;
+        vector-effect: non-scaling-stroke;
+
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: draw var(--dur) var(--ease) infinite;
+      }
+
+      /* loop: draw in -> hold -> reset */
+      @keyframes draw {
+        0%   { stroke-dashoffset: 100; }
+        38%  { stroke-dashoffset: 0; }
+        70%  { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 100; }
+      }
+
+      /* Slight per-instance opacity variety (light mode) */
+      .o10 { opacity: 0.30; }
+      .o12 { opacity: 0.32; }
+      .o14 { opacity: 0.34; }
+      .o16 { opacity: 0.36; }
+      .o18 { opacity: 0.38; }
+      .o20 { opacity: 0.40; }
+
+      /* Per-instance negative delays so they don’t sync */
+      .inst1 .square1 { animation-delay: -0.20s; }
+      .inst1 .square2 { animation-delay: -0.02s; }
+      .inst1 .diag    { animation-delay:  0.16s; }
+
+      .inst2 .square1 { animation-delay: -1.10s; }
+      .inst2 .square2 { animation-delay: -0.92s; }
+      .inst2 .diag    { animation-delay: -0.74s; }
+
+      .inst3 .square1 { animation-delay: -2.30s; }
+      .inst3 .square2 { animation-delay: -2.12s; }
+      .inst3 .diag    { animation-delay: -1.94s; }
+
+      .inst4 .square1 { animation-delay: -0.90s; }
+      .inst4 .square2 { animation-delay: -0.72s; }
+      .inst4 .diag    { animation-delay: -0.54s; }
+
+      .inst5 .square1 { animation-delay: -2.90s; }
+      .inst5 .square2 { animation-delay: -2.72s; }
+      .inst5 .diag    { animation-delay: -2.54s; }
+
+      .inst6 .square1 { animation-delay: -1.70s; }
+      .inst6 .square2 { animation-delay: -1.52s; }
+      .inst6 .diag    { animation-delay: -1.34s; }
+
+      .inst7 .square1 { animation-delay: -3.40s; }
+      .inst7 .square2 { animation-delay: -3.22s; }
+      .inst7 .diag    { animation-delay: -3.04s; }
+
+      .inst8 .square1 { animation-delay: -0.60s; }
+      .inst8 .square2 { animation-delay: -0.42s; }
+      .inst8 .diag    { animation-delay: -0.24s; }
+
+      .inst9 .square1 { animation-delay: -2.00s; }
+      .inst9 .square2 { animation-delay: -1.82s; }
+      .inst9 .diag    { animation-delay: -1.64s; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .shape { animation: none; stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- Scattered marks (same geometry, tuned opacities for light backgrounds) -->
+  <g class="inst1 o18" transform="translate(90 80) scale(0.9) rotate(-8 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst2 o14" transform="translate(420 60) scale(1.2) rotate(10 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst3 o16" transform="translate(860 120) scale(0.85) rotate(-4 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst4 o12" transform="translate(180 360) scale(1.35) rotate(14 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst5 o16" transform="translate(610 340) scale(1.0) rotate(-12 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst6 o10" transform="translate(980 420) scale(1.25) rotate(6 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst7 o12" transform="translate(70 610) scale(0.95) rotate(3 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst8 o20" transform="translate(520 600) scale(1.15) rotate(-6 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+  <g class="inst9 o11" transform="translate(910 640) scale(0.9) rotate(12 100 100)">
+    <rect class="shape square1" x="30" y="30" width="90" height="90" pathLength="100"/>
+    <rect class="shape square2" x="80" y="80" width="90" height="90" pathLength="100"/>
+    <line class="shape diag" x1="30" y1="30" x2="170" y2="170" pathLength="100"/>
+  </g>
+
+</svg>
+

@@ -124,13 +124,20 @@ class PostRenderingService {
    */
   async loadPostModules(
     postId: string,
-    options: { includeReviewFields?: boolean } = {}
+    options: { includeReviewFields?: boolean; mode?: 'source' | 'review' | 'ai-review' } = {}
   ): Promise<ModuleRenderData[]> {
-    const { includeReviewFields = false } = options
+    const { includeReviewFields = false, mode = 'source' } = options
+
+    const effectiveOrder =
+      mode === 'ai-review'
+        ? 'COALESCE(post_modules.ai_review_order_index, post_modules.review_order_index, post_modules.order_index)'
+        : mode === 'review'
+          ? 'COALESCE(post_modules.review_order_index, post_modules.order_index)'
+          : 'post_modules.order_index'
 
     const rows = await PostModule.query()
       .where('postId', postId)
-      .orderBy('orderIndex', 'asc')
+      .orderBy(db.raw(effectiveOrder), 'asc')
       .preload('moduleInstance')
 
     return rows.map((row) => {
@@ -580,6 +587,21 @@ class PostRenderingService {
       }
     })
 
+    // Final Sort: If in review mode and we have a draft snapshot, respect the snapshot order.
+    // This is a safety net in case the database-level ordering didn't match the snapshot
+    // (e.g. if the snapshot was manually edited or has staged changes not yet in PM columns).
+    if (wantReview && Array.isArray((reviewDraft as any)?.modules)) {
+      const draftModules = (reviewDraft as any).modules
+      renderedModules.sort((a, b) => {
+        const idxA = draftModules.findIndex((dm: any) => dm.id === a.id || dm.postModuleId === a.id)
+        const idxB = draftModules.findIndex((dm: any) => dm.id === b.id || dm.postModuleId === b.id)
+        if (idxA >= 0 && idxB >= 0) return idxA - idxB
+        if (idxA >= 0) return -1
+        if (idxB >= 0) return 1
+        return (a as any).orderIndex - (b as any).orderIndex
+      })
+    }
+
     return { modules: renderedModules, resolvedMedia }
   }
 
@@ -977,8 +999,16 @@ class PostRenderingService {
       customFields,
     }
 
-    // Load modules
-    const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
+    // Determine the active mode for database ordering
+    const activeMode = wantReview
+      ? (draftMode === 'ai-review' ? 'ai-review' : (draftMode === 'review' ? 'review' : (reviewDraft ? 'review' : 'ai-review')))
+      : 'source'
+
+    // Load modules with mode-aware ordering
+    const modulesRaw = await this.loadPostModules(post.id, { 
+      includeReviewFields: true,
+      mode: activeMode as any
+    })
 
     // Pre-calculate available modes from ALL modules (before filtering)
     const hasReviewModuleContent = modulesRaw.some(

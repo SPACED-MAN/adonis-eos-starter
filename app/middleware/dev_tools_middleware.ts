@@ -42,9 +42,11 @@ export default class DevToolsMiddleware {
         : query.duration
 
       // SOC2/Security: never collect query bindings in production (often contains PII/secrets).
+      // Also truncate very long SQL strings to keep session size manageable.
+      const sql = String(query.sql || '')
       const safeQuery = {
-        sql: query.sql,
-        bindings: app.inProduction ? undefined : query.bindings,
+        sql: sql.length > 1000 ? sql.substring(0, 1000) + '... [truncated]' : sql,
+        bindings: app.inProduction ? undefined : (JSON.stringify(query.bindings || []).length > 500 ? '[Large Bindings]' : query.bindings),
         duration: durationMs,
         timestamp: new Date().toISOString(),
       }
@@ -136,7 +138,14 @@ export default class DevToolsMiddleware {
 
       // Store in session for the next request's UI if admin
       if (isAdmin) {
-        session.put('devToolsLastMetrics', devToolsData)
+        // SOC2/Security & Performance: Limit the number of queries stored in session
+        // to prevent "ERR_RESPONSE_HEADERS_TOO_BIG" errors if the session driver is 'cookie'.
+        const MAX_QUERIES = 30
+        const devToolsDataCapped = {
+          ...devToolsData,
+          queries: devToolsData.queries.slice(0, MAX_QUERIES),
+        }
+        session.put('devToolsLastMetrics', devToolsDataCapped)
       }
     }
   }

@@ -73,9 +73,8 @@ export function ThemeToggle() {
             <button
               type="button"
               onClick={() => mode === 'dark' && toggle()}
-              className={`flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
-                mode === 'light' ? 'text-standout-high' : 'text-neutral-low'
-              } hover:bg-backdrop-high/5`}
+              className={`flex h-11 w-7 items-center justify-center rounded-md transition-colors ${mode === 'light' ? 'text-standout-high' : 'text-neutral-low'
+                } hover:bg-backdrop-high/5`}
               aria-label="Switch to light mode"
             >
               <FontAwesomeIcon icon={['fas', 'sun']} className="text-sm" />
@@ -91,9 +90,8 @@ export function ThemeToggle() {
             <button
               type="button"
               onClick={() => mode === 'light' && toggle()}
-              className={`flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
-                mode === 'dark' ? 'text-standout-high' : 'text-neutral-low'
-              } hover:bg-backdrop-high/5`}
+              className={`flex h-11 w-7 items-center justify-center rounded-md transition-colors ${mode === 'dark' ? 'text-standout-high' : 'text-neutral-low'
+                } hover:bg-backdrop-high/5`}
               aria-label="Switch to dark mode"
             >
               <FontAwesomeIcon icon={['fas', 'moon']} className="text-sm" />

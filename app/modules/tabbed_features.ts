@@ -90,7 +90,15 @@ export default class TabbedFeaturesModule extends BaseModule {
           options: [
             { label: 'Top', value: 'top' },
             { label: 'Left', value: 'left' },
-            { label: 'Right', value: 'right' },
+          ],
+        },
+        {
+          slug: 'content_layout',
+          type: 'select',
+          label: 'Content Layout',
+          options: [
+            { label: 'Columns', value: 'columns' },
+            { label: 'Stacked', value: 'stacked' },
           ],
         },
         mediaFitField,
@@ -139,6 +147,7 @@ export default class TabbedFeaturesModule extends BaseModule {
           },
         ],
         layout: 'top',
+        content_layout: 'columns',
         objectFit: 'contain',
         theme: 'transparent',
       },

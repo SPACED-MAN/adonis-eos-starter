@@ -77,7 +77,7 @@ type InlineEditorContextValue = {
   post?: any
   translations?: any[]
   isSaving: boolean
-  getValue: (moduleId: string, path: string, fallback: any) => any
+  reorderModules: (newModules: ModuleSeed[]) => void
   addModule: (payload: {
     type: string
     name?: string
@@ -92,28 +92,29 @@ type InlineEditorContextValue = {
 const InlineEditorContext = createContext<InlineEditorContextValue>({
   enabled: false,
   canEdit: false,
-  toggle: () => {},
+  toggle: () => { },
   postId: undefined,
   mode: 'source',
-  setMode: () => {},
+  setMode: () => { },
   getValue: (_m, _p, f) => f,
   getModeValue: (_m, _p, _mode, f) => f,
-  setValue: () => {},
+  setValue: () => { },
   isGlobalModule: () => false,
   dirtyModules: new Set(),
-  saveAll: async () => {},
+  isDirty: false,
+  saveAll: async () => { },
   showDiffs: false,
-  toggleShowDiffs: () => {},
+  toggleShowDiffs: () => { },
   abVariations: [],
   modules: [],
   post: undefined,
   translations: undefined,
   isSaving: false,
-  reorderModules: () => {},
-  addModule: () => {},
-  removeModule: () => {},
-  updateModuleLabel: () => {},
-  duplicateModule: () => {},
+  reorderModules: () => { },
+  addModule: () => { },
+  removeModule: () => { },
+  updateModuleLabel: () => { },
+  duplicateModule: () => { },
 })
 
 type ModuleSeed = {
@@ -129,9 +130,10 @@ type ModuleSeed = {
   sourceOverrides?: Record<string, any>
   reviewProps?: Record<string, any>
   aiReviewProps?: Record<string, any>
-  overrides?: Record<string, any>
-  reviewOverrides?: Record<string, any>
-  aiReviewOverrides?: Record<string, any>
+  overrides?: Record<string, any> | null
+  reviewOverrides?: Record<string, any> | null
+  aiReviewOverrides?: Record<string, any> | null
+  reviewAdded?: boolean
   aiReviewAdded?: boolean
 }
 
@@ -232,9 +234,9 @@ export function InlineEditorProvider({
     // Comparing sorted IDs tells us if the MEMBERSHIP changed, ignoring order.
     const currentMembership = [...localModules].map(m => m.id).sort().join(',')
     const newMembership = [...modules].map(m => m.id).sort().join(',')
-    
+
     const membershipChanged = currentMembership !== newMembership
-    
+
     if (membershipChanged || !isStructuralDirty) {
       setLocalModules(modules)
       setIsStructuralDirty(false)
@@ -839,7 +841,7 @@ export function InlineEditorProvider({
   const saveAll = useCallback(
     async (targetMode?: Mode) => {
       if (!enabled || !canEdit) return
-      
+
       const hasStructuralChanges = isStructuralDirty || pendingNewModules.length > 0 || pendingRemoved.size > 0
       if (dirtyModules.size === 0 && !hasStructuralChanges) return
 
@@ -848,9 +850,9 @@ export function InlineEditorProvider({
       const xsrf =
         typeof document !== 'undefined'
           ? (() => {
-              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-              return m ? decodeURIComponent(m[1]) : undefined
-            })()
+            const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+            return m ? decodeURIComponent(m[1]) : undefined
+          })()
           : undefined
 
       const apiMode = saveMode === 'source' ? 'publish' : (saveMode as any)
@@ -957,7 +959,7 @@ export function InlineEditorProvider({
               value.id &&
               value.url &&
               (value.mimeType || value.metadata)
-            
+
             finalValue = isMediaObject ? value.id : safeJsonClone(value)
           } catch (e) {
             console.error('Failed to JSON-clone inline value, skipping:', { path, value }, e)
@@ -1019,7 +1021,7 @@ export function InlineEditorProvider({
       bypassUnsavedChanges(true)
 
       // Quick fix: refresh the page so server-side rendered content (meta tags, etc.) reflects the update
-      router.reload()
+      router.reload({ preserveScroll: true } as any)
     },
     [
       canEdit,
@@ -1172,6 +1174,7 @@ export function InlineEditorProvider({
       modules: localModules,
       post,
       translations,
+      isSaving,
       reorderModules,
       addModule,
       removeModule,
@@ -1198,6 +1201,7 @@ export function InlineEditorProvider({
       localModules,
       post,
       translations,
+      isSaving,
       reorderModules,
       addModule,
       removeModule,
@@ -1288,7 +1292,7 @@ export function useInlineField(moduleId: string | undefined, path: string, fallb
   const value = moduleId ? ctx.getValue(moduleId, path, fallback) : fallback
   const label = options.label || path
   const type = options.type || 'text'
-  
+
   return {
     value,
     enabled: ctx.enabled,
@@ -1333,9 +1337,11 @@ function publishInlineBridge(state: {
     globalSlug?: string | null
   }) => void
   removeModule: (moduleId: string) => void
+  updateModuleLabel: (moduleId: string, label: string | null) => void
+  duplicateModule: (moduleId: string) => void
 }) {
   if (typeof window === 'undefined') return
-  ;(window as any).__inlineBridge = state
+    ; (window as any).__inlineBridge = state
   const evt = new CustomEvent('inline:state', { detail: state })
   window.dispatchEvent(evt)
 }

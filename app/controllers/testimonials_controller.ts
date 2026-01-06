@@ -47,10 +47,11 @@ export default class TestimonialsController {
       query.whereIn('id', ids)
     }
 
+    const total = await query.clone().count('* as total').first().then((r) => Number(r?.$extras.total || 0))
     const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredImage')
 
     if (rows.length === 0) {
-      return response.ok({ data: [] })
+      return response.ok({ data: [], meta: { total: 0 } })
     }
 
     // Load testimonial custom fields (author_name, author_title, quote)
@@ -125,6 +126,12 @@ export default class TestimonialsController {
       }
     })
 
-    return response.ok({ data: items })
+    return response.ok({
+      data: items,
+      meta: {
+        total,
+        limit,
+      },
+    })
   }
 }

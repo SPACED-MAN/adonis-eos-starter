@@ -13,27 +13,37 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { AgentModal, type Agent } from './AgentModal'
 import { useHasPermission } from '~/utils/permissions'
 
-export function GlobalAgentButton() {
+export function GlobalAgentButton({
+  variant = 'floating',
+  permissions: manualPermissions,
+}: {
+  variant?: 'floating' | 'ghost'
+  permissions?: string[]
+}) {
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const hasGlobalPermission = useHasPermission('agents.global')
+
+  const hasPermissionHook = useHasPermission('agents.global')
+  const hasGlobalPermission = manualPermissions
+    ? manualPermissions.includes('agents.global')
+    : hasPermissionHook
 
   // Load global-scoped agents
   useEffect(() => {
     if (!hasGlobalPermission) return
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-        if (alive) setAgents(list)
-      } catch {
-        if (alive) setAgents([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setAgents(list)
+        } catch {
+          if (alive) setAgents([])
+        }
+      })()
     return () => {
       alive = false
     }
@@ -48,12 +58,21 @@ export function GlobalAgentButton() {
     setPopoverOpen(false)
   }
 
-  const trigger = (
+  const isFloating = variant === 'floating'
+
+  const trigger = isFloating ? (
     <button
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-high hover:scale-105 active:scale-95 transition-all duration-200"
+      className="fixed bottom-0 right-0 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-high hover:scale-105 active:scale-95 transition-all duration-200"
       aria-label="AI Assistant"
     >
       <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xl" />
+    </button>
+  ) : (
+    <button
+      className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium transition-all"
+      aria-label="AI Assistant"
+    >
+      <FontAwesomeIcon icon={faWandMagicSparkles} className="text-standout-high" />
     </button>
   )
 
@@ -65,7 +84,7 @@ export function GlobalAgentButton() {
             <TooltipTrigger asChild>
               <div onClick={() => handleAgentClick(agents[0])}>{trigger}</div>
             </TooltipTrigger>
-            <TooltipContent side="left">
+            <TooltipContent side={isFloating ? 'left' : 'top'}>
               <p>AI Assistant ({agents[0].name})</p>
             </TooltipContent>
           </Tooltip>
@@ -75,7 +94,7 @@ export function GlobalAgentButton() {
               <TooltipTrigger asChild>
                 <PopoverTrigger asChild>{trigger}</PopoverTrigger>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side={isFloating ? 'left' : 'top'}>
                 <p>AI Assistants</p>
               </TooltipContent>
             </Tooltip>
@@ -131,8 +150,8 @@ export function GlobalAgentButton() {
           }}
           scope="global"
           onSuccess={() => {
-            setModalOpen(false)
-            setSelectedAgent(null)
+            // We don't close the modal immediately so the user can see the agent's response
+            // and the generated media in the transcript.
           }}
         />
       )}

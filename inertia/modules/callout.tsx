@@ -174,11 +174,8 @@ export default function Callout(props: CalloutProps) {
 
       {showProse && (
         <div
-          className={`prose max-w-none ${styles.proseInvert} ${subtextColor} ${
-            variant === 'centered'
-              ? 'text-center [&_ul]:inline-block [&_ol]:inline-block [&_ul]:text-left [&_ol]:text-left [&_li]:text-left'
-              : ''
-          }`}
+          className={`prose max-w-none ${styles.proseInvert} ${subtextColor} ${variant === 'centered' ? 'text-center' : ''
+            }`}
           {...proseProps}
           dangerouslySetInnerHTML={{ __html: htmlProse }}
         />

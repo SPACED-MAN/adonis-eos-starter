@@ -583,6 +583,7 @@ export function InlineOverlay() {
                   getValue={getValue}
                   setValue={setValue}
                   setMediaTarget={setMediaTarget}
+                  modules={modules}
                 />
               </div>
             </div>
@@ -609,6 +610,7 @@ type DialogContentProps = {
   getValue: (moduleId: string, path: string, fallback: any) => any
   setValue: (moduleId: string, path: string, value: any) => void
   setMediaTarget: (target: { moduleId: string; path: string } | null) => void
+  modules: any[]
 }
 
 // Helper to format camelCase path to Title Case with spaces
@@ -622,7 +624,14 @@ function formatPathLabel(path: string): string {
     .trim()
 }
 
-function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }: DialogContentProps) {
+function FieldDialogContent({
+  pop,
+  onClose,
+  getValue,
+  setValue,
+  setMediaTarget,
+  modules,
+}: DialogContentProps) {
   const { moduleId, path, type, options, multi, fields } = pop
 
   // For 'background' type, we don't have a single value, we manage multiple
@@ -1081,6 +1090,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }
                           label={field.label}
                           value={fieldValue}
                           onChange={(val) => updateField(field.name, val)}
+                          modules={modules}
                         />
                       </div>
                     )

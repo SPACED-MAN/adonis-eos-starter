@@ -8,6 +8,7 @@ import type {
 import mcpClientService from '#services/mcp_client_service'
 import reactionExecutorService from '#services/reaction_executor_service'
 import agentDesignContextService from '#services/agent_design_context_service'
+import env from '#start/env'
 
 /**
  * Agent Executor Service
@@ -34,9 +35,10 @@ class AgentExecutor {
     }
 
     const startTime = Date.now()
+    const isDebug = env.get('AI_AGENT_DEBUG') === true
     try {
       // 1. Build initial messages
-      const messages = await this.buildMessages(agent, context, payload)
+      const messages = await this.buildMessages(agent, context, payload, isDebug)
 
       // 2. Get AI provider configuration
       const aiConfig = await this.getAIConfig(agent.llmConfig)
@@ -50,7 +52,7 @@ class AgentExecutor {
       let finalContent = aiResult.content
 
       // Track usage and model info
-      const executionMeta = {
+      const executionMeta: any = {
         model: aiResult.metadata?.model || aiConfig.model,
         provider: aiConfig.provider,
         totalTurns: 1,
@@ -60,6 +62,26 @@ class AgentExecutor {
           completionTokens: aiResult.usage?.completionTokens || 0,
           totalTokens: aiResult.usage?.totalTokens || 0,
         },
+      }
+
+      if (isDebug) {
+        executionMeta.debug = {
+          ingestion: {
+            systemPrompt: messages.find((m) => m.role === 'system')?.content,
+            conversation: messages
+              .filter((m) => m.role !== 'system')
+              .map((m) => ({
+                role: m.role,
+                content: m.content,
+              })),
+            currentPayload: payload,
+          },
+          configuration: {
+            provider: aiConfig.provider,
+            model: aiConfig.model,
+            options: completionOptions,
+          },
+        }
       }
 
       // 5. Handle multi-turn tool execution if MCP is enabled
@@ -99,6 +121,8 @@ class AgentExecutor {
               summary: parsed.summary || null,
               toolCalls: parsed.tool_calls,
               toolResults: toolResults,
+              determination: isDebug ? parsed.determination || parsed.reasoning || 'No explicit reasoning provided in tool turn.' : undefined,
+              rawResponse: isDebug ? aiResult.content : undefined,
             })
 
             // Check if any tool was create_post_ai_review or create_translation_ai_review
@@ -233,8 +257,13 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
 
       // Extract summary
       let summary = parsedResult.summary || null
+      const determination = isDebug ? parsedResult.determination || parsedResult.reasoning || null : null
       if (summary) {
         delete parsedResult.summary
+      }
+      if (isDebug && determination) {
+        delete parsedResult.determination
+        delete parsedResult.reasoning
       }
 
       executionMeta.durationMs = Date.now() - startTime
@@ -245,6 +274,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         data: parsedResult,
         rawResponse: finalContent,
         summary: summary || this.extractNaturalSummary(finalContent, parsedResult),
+        determination,
         lastCreatedPostId,
         executionMeta,
         transcript,
@@ -399,7 +429,8 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
   private async buildMessages(
     agent: AgentDefinition,
     context: AgentExecutionContext,
-    payload: any
+    payload: any,
+    isDebug: boolean = false
   ): Promise<AIMessage[]> {
     const messages: AIMessage[] = []
 
@@ -480,12 +511,21 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
       }
 
       // Add format instructions to ensure proper JSON response
+      const debugInstructions = isDebug
+        ? '\n\nDEBUG MODE ENABLED: Please include a "determination" field in your JSON responses explaining your reasoning, what you gathered from context/tools, and why you are taking the next steps.'
+        : ''
+
+      const historyInstructions = context.history && context.history.length > 0
+        ? '\n\nNOTE: Conversation history is provided above. Use it to understand previous requests and refine your behavior if the user is asking for corrections or improvements.'
+        : ''
+
       const formatInstructions = `
 
-IMPORTANT: You must respond with a JSON object. If you need to use tools, include a "tool_calls" array. If you are providing a final response, include a "summary".
+IMPORTANT: You must respond with a JSON object. If you need to use tools, include a "tool_calls" array. If you are providing a final response, include a "summary".${debugInstructions}${historyInstructions}
 
 Format for tool calls:
 {
+  "determination": "...",
   "tool_calls": [
     { "tool": "tool_name", "params": { "key": "value", "mode": "{{targetMode}}" } }
   ]
@@ -493,6 +533,7 @@ Format for tool calls:
 
 Format for final response:
 {
+  "determination": "...",
   "summary": "A brief natural language description of what you've done",
   "post": { "title": "..." },
   "modules": [ { "type": "...", "props": { "..." } } ]
@@ -520,8 +561,18 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
       })
     }
 
+    // Add conversation history if available
+    if (context.history && context.history.length > 0) {
+      for (const item of context.history) {
+        messages.push({
+          role: item.role as any,
+          content: item.content,
+        })
+      }
+    }
+
     // User message with context
-    const userMessage = await this.buildUserMessage(agent, context, payload)
+    const userMessage = await this.buildUserMessage(agent, context, payload, isDebug)
     messages.push({
       role: 'user',
       content: userMessage,
@@ -536,47 +587,70 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
   private async buildUserMessage(
     agent: AgentDefinition,
     context: AgentExecutionContext,
-    payload: any
+    payload: any,
+    isDebug: boolean = false
   ): Promise<string> {
     const parts: string[] = []
+
+    if (payload.openEndedContext) {
+      parts.push(`\n\nUSER INSTRUCTIONS:\n${payload.openEndedContext}`)
+      parts.push(
+        `\n\nPlease fulfill the USER INSTRUCTIONS using the context and tools provided below. Return ONLY a JSON object.`
+      )
+      parts.push(`\nRESPONSE FORMAT:`)
+      parts.push(`{`)
+      parts.push(`  "post": { "fieldName": "newValue" },`)
+      parts.push(`  "modules": [`)
+      parts.push(`    { "type": "hero", "props": { "title": "New title" } },`)
+      parts.push(`    { "type": "prose", "props": { "content": "New content" } }`)
+      parts.push(`    // Include ALL modules you want to update - one entry per module type`)
+      parts.push(`  ]`)
+      parts.push(`}`)
+      parts.push(
+        `\n\nCRITICAL: If the user asks to update "all modules" or "all copy", you MUST include entries for ALL module types shown above.`
+      )
+      parts.push(
+        `Do NOT include "orderIndex" unless you want to update only a specific instance of that type.`
+      )
+      parts.push(`Without "orderIndex", your changes will apply to ALL modules of that type.`)
+    }
+
+    // Add technical context below user instructions
+    parts.push('\n--- TECHNICAL CONTEXT ---')
+    parts.push(
+      'IMPORTANT: Use the following technical context to inform your tool calls, but PRIORITIZE the USER INSTRUCTIONS above for your creative decisions.'
+    )
 
     // Add scope-specific context
     switch (context.scope) {
       case 'dropdown':
-        parts.push('Manual execution requested by user.')
+        parts.push('Scope: Manual execution requested by user on an existing post.')
         break
       case 'global':
-        parts.push('Global execution - you can create new posts or work with general content.')
-        parts.push('If the user asks you to create a post, use the create_post_ai_review tool.')
-        break
-      case 'post.publish':
-        parts.push('Post has been published.')
-        break
-      case 'post.review.save':
-        parts.push('Post has been saved for review.')
-        break
-      case 'post.create-translation':
-        parts.push('A new translation has been created for this post.')
-        parts.push(`Target locale: ${context.data?.targetLocale || 'unknown'}`)
-        parts.push(
-          'Your task is to translate all content into the target locale. Use tool calls to update the fields and modules of this translation post.'
-        )
+        parts.push('Scope: Global execution (System-wide).')
+        parts.push('- You are NOT currently editing a specific post.')
+        parts.push('- Focus on media generation or creating NEW posts.')
+        parts.push('- Use "list_post_types" first if you need to create a post to see what is available.')
+        parts.push('- Do NOT assume you are creating a "blog post" unless explicitly asked for that type.')
         break
       case 'field':
-        parts.push(`Field-level execution for: ${context.data?.fieldKey || 'unknown'}`)
+        parts.push(`Scope: Per-field AI assistance for: ${context.data?.fieldKey || 'unknown'}`)
+        parts.push('- Your primary goal is to provide a value for this specific field.')
         break
       default:
-        parts.push(`Execution triggered by scope: ${context.scope}`)
+        parts.push(`Scope: ${context.scope}`)
     }
+
+    parts.push('\nNOTE ON HISTORY: If you see previous tool failures or "restrictions" in the conversation history, IGNORE THEM. The system has been updated and tools are now available. Try again if the user is asking for the same thing.')
 
     // Add payload context
     if (payload) {
-      if (payload.post) {
+      if (payload.post && context.scope !== 'global') {
         parts.push(`\nTarget Post ID: ${payload.post.id}`)
-        parts.push(`\nCurrent post data:\n${JSON.stringify(payload.post, null, 2)}`)
+        parts.push(`Current post data:\n${JSON.stringify(payload.post, null, 2)}`)
       }
-      if (payload.modules) {
-        parts.push(`\n\nCurrent modules (${payload.modules.length} total):`)
+      if (payload.modules && context.scope !== 'global') {
+        parts.push(`\nCurrent modules (${payload.modules.length} total):`)
         // Show all modules with their type, orderIndex, and key props
         payload.modules.forEach((m: any, idx: number) => {
           const moduleInfo: any = {
@@ -591,7 +665,7 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
           parts.push(JSON.stringify(moduleInfo.props, null, 2))
         })
         parts.push(
-          `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
+          `\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
         )
         parts.push(
           `CRITICAL: NEVER leave module copy fields with their default "Lorem Ipsum" values. Always replace them with high-quality, relevant content.`
@@ -603,30 +677,9 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
         )
         if (hasProse) {
           parts.push(
-            `\n\nNOTICE: This post contains "Prose" modules. When writing copy for these modules, ensure you provide a substantial amount of content (multiple paragraphs, headings, etc.) to meet user expectations for high-quality, detailed copy.`
+            `\nNOTICE: This post contains "Prose" modules. When writing copy for these modules, ensure you provide a substantial amount of content (multiple paragraphs, headings, etc.) to meet user expectations for high-quality, detailed copy.`
           )
         }
-      }
-      if (payload.openEndedContext) {
-        parts.push(`\n\nUser instructions: ${payload.openEndedContext}`)
-        parts.push(
-          `\n\nPlease make the requested changes and return ONLY a JSON object with the format:`
-        )
-        parts.push(`{`)
-        parts.push(`  "post": { "fieldName": "newValue" },`)
-        parts.push(`  "modules": [`)
-        parts.push(`    { "type": "hero", "props": { "title": "New title" } },`)
-        parts.push(`    { "type": "prose", "props": { "content": "New content" } }`)
-        parts.push(`    // Include ALL modules you want to update - one entry per module type`)
-        parts.push(`  ]`)
-        parts.push(`}`)
-        parts.push(
-          `\n\nCRITICAL: If the user asks to update "all modules" or "all copy", you MUST include entries for ALL module types shown above.`
-        )
-        parts.push(
-          `Do NOT include "orderIndex" unless you want to update only a specific instance of that type.`
-        )
-        parts.push(`Without "orderIndex", your changes will apply to ALL modules of that type.`)
       }
       if (payload.context) {
         parts.push(`\nAdditional context:\n${JSON.stringify(payload.context, null, 2)}`)

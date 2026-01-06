@@ -1,3 +1,22 @@
+// @ts-ignore
+import Prism from './prism_init.js'
+// @ts-ignore
+import 'prismjs/components/prism-json.js'
+// @ts-ignore
+import 'prismjs/components/prism-bash.js'
+// @ts-ignore
+import 'prismjs/components/prism-javascript.js'
+// @ts-ignore
+import 'prismjs/components/prism-typescript.js'
+// @ts-ignore
+import 'prismjs/components/prism-css.js'
+// @ts-ignore
+import 'prismjs/components/prism-markdown.js'
+// @ts-ignore
+import 'prismjs/components/prism-sql.js'
+// @ts-ignore
+import 'prismjs/components/prism-python.js'
+
 /**
  * Lexical SSR Renderer
  *
@@ -111,8 +130,15 @@ function renderNode(node: LexicalNode, isInsideCode = false): string {
     }
 
     case 'listitem': {
+      const checked = (node as any).checked
+      const isTask = checked !== undefined
       const content = renderChildren(node as ElementNode, isInsideCode)
       if (isInsideCode) return content
+
+      if (isTask) {
+        const checkbox = `<input type="checkbox" disabled${checked ? ' checked' : ''} class="mr-2 h-4 w-4 rounded border-line-low bg-backdrop-low text-standout-high focus:ring-standout-high" />`
+        return `<li class="flex items-center list-none -ml-6">${checkbox}<span>${content}</span></li>`
+      }
       return `<li>${content}</li>`
     }
 
@@ -140,10 +166,39 @@ function renderNode(node: LexicalNode, isInsideCode = false): string {
       // Code block handler
       const children = (node as any).children || []
       const codeContent = children.map((c: any) => renderNode(c, true)).join('')
-      const language = (node as any).language || 'text'
-      return `<pre><code class="language-${escapeHtml(language)}">${escapeHtml(
-        codeContent
-      )}</code></pre>`
+
+      // Smart default: if no language is specified, check if it looks like a shell/config snippet
+      let language = (node as any).language
+      if (!language) {
+        const trimmed = codeContent.trim()
+        if (trimmed.startsWith('#') || trimmed.startsWith('$ ')) {
+          language = 'bash'
+        } else {
+          language = 'javascript'
+        }
+      }
+
+      if (isInsideCode) return codeContent
+
+      // Syntax highlighting with Prism
+      let highlightedCode = escapeHtml(codeContent)
+      try {
+        const prismLang = Prism.languages[language]
+        if (prismLang) {
+          highlightedCode = Prism.highlight(codeContent, prismLang, language)
+        }
+      } catch (e) {
+        // Fallback to escaped content
+      }
+
+      return `<div class="code-block-wrapper my-6">
+          ${(node as any).language ? `<div class="bg-[#161b22] px-4 py-2 text-xs font-mono text-[#8b949e] border border-[#30363d] border-b-0 rounded-t-lg tracking-widest uppercase flex justify-between items-center leading-none">
+            <span>${escapeHtml((node as any).language)}</span>
+          </div>` : ''}
+          <pre class="${(node as any).language ? 'my-0! rounded-t-none!' : ''}"><code class="language-${escapeHtml(
+        language
+      )}">${highlightedCode}</code></pre>
+        </div>`
     }
 
     case 'linebreak':
@@ -151,6 +206,31 @@ function renderNode(node: LexicalNode, isInsideCode = false): string {
 
     case 'horizontalrule':
       return isInsideCode ? '' : '<hr>'
+
+    case 'table': {
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return `<div class="my-8 overflow-x-auto border border-line-low rounded-lg shadow-sm">
+          <table class="w-full text-left border-collapse border-spacing-0 min-w-[600px]">
+            <tbody class="divide-y divide-line-low">
+              ${content}
+            </tbody>
+          </table>
+        </div>`
+    }
+
+    case 'tablerow': {
+      return `<tr>${renderChildren(node as ElementNode, isInsideCode)}</tr>`
+    }
+
+    case 'tablecell': {
+      const isHeader = (node as any).header === true || (node as any).tag === 'th'
+      const tag = isHeader ? 'th' : 'td'
+      const align = (node as any).align
+      const alignClass = align ? ` text-${align}` : ''
+      const classes = `${isHeader ? 'bg-backdrop-medium font-bold' : 'bg-backdrop-low/30'} px-4 py-4 text-sm text-neutral-high border-r border-line-low last:border-0${alignClass}`
+      return `<${tag} class="${classes}">${renderChildren(node as ElementNode, isInsideCode)}</${tag}>`
+    }
 
     default:
       // Unknown node type, render children if present

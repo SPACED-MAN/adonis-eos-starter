@@ -119,7 +119,7 @@ export default function MediaIndex() {
   const [selectAll, setSelectAll] = useState<boolean>(false)
   const [bulkKey, setBulkKey] = useState<number>(0)
   const [bulkActionToConfirm, setBulkActionToConfirm] = useState<
-    'optimize' | 'generate-missing' | 'regenerate' | 'delete' | null
+    'optimize' | 'generate-missing' | 'regenerate' | 'delete' | 'force-delete' | null
   >(null)
   const [bulkCategoriesOpen, setBulkCategoriesOpen] = useState<boolean>(false)
   const [bulkCats, setBulkCats] = useState<string[]>([])
@@ -278,6 +278,16 @@ export default function MediaIndex() {
   useEffect(() => {
     load()
   }, [sortBy, sortOrder, selectedCategory])
+
+  useEffect(() => {
+    const handleMediaCreated = () => {
+      load()
+    }
+    window.addEventListener('media:created', handleMediaCreated)
+    return () => {
+      window.removeEventListener('media:created', handleMediaCreated)
+    }
+  }, [])
 
   // Refresh a single media item from the API (used after per-item operations)
   async function refreshMediaItem(id: string) {
@@ -458,7 +468,7 @@ export default function MediaIndex() {
     await load()
   }
 
-  async function applyBulkDelete() {
+  async function applyBulkDelete(force = false) {
     if (selectedIds.size === 0) return
     const ids = Array.from(selectedIds)
     await toast.promise(
@@ -470,11 +480,15 @@ export default function MediaIndex() {
           ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ ids, force }),
       }).then(async (r) => {
+        const j = await r.json().catch(() => ({}))
         if (!r.ok) {
-          const j = await r.json().catch(() => ({}))
           throw new Error(j?.error || 'Bulk delete failed')
+        }
+        if (j.data?.errors?.length > 0) {
+          const firstError = j.data.errors[0]
+          throw new Error(`Partial success. ${j.data.deleted} deleted, ${j.data.skipped} skipped. First error: ${firstError}`)
         }
       }),
       { loading: 'Deleting…', success: 'Deleted', error: (e) => String(e.message || e) }
@@ -990,7 +1004,13 @@ export default function MediaIndex() {
               <Select
                 key={bulkKey}
                 onValueChange={(
-                  val: 'optimize' | 'generate-missing' | 'regenerate' | 'delete' | 'categories'
+                  val:
+                    | 'optimize'
+                    | 'generate-missing'
+                    | 'regenerate'
+                    | 'delete'
+                    | 'force-delete'
+                    | 'categories'
                 ) => {
                   if (val === 'categories') {
                     openBulkCategories()
@@ -1006,7 +1026,14 @@ export default function MediaIndex() {
                   <SelectItem value="optimize">Optimize (WebP)</SelectItem>
                   <SelectItem value="generate-missing">Generate missing variations</SelectItem>
                   <SelectItem value="regenerate">Regenerate all variations</SelectItem>
-                  {isAdmin && <SelectItem value="delete">Delete</SelectItem>}
+                  {isAdmin && (
+                    <>
+                      <SelectItem value="delete">Delete</SelectItem>
+                      <SelectItem value="force-delete" className="text-red-600 focus:text-red-600">
+                        Force Delete
+                      </SelectItem>
+                    </>
+                  )}
                   <SelectItem value="categories">Edit Category…</SelectItem>
                 </SelectContent>
               </Select>
@@ -1223,6 +1250,9 @@ export default function MediaIndex() {
                                         if (res.ok) {
                                           toast.success('Deleted')
                                           await load()
+                                        } else if (res.status === 409) {
+                                          const data = await res.json()
+                                          toast.error(data.error || 'Media is in use and cannot be deleted')
                                         } else {
                                           toast.error('Delete failed')
                                         }
@@ -1405,6 +1435,9 @@ export default function MediaIndex() {
                                               if (res.ok) {
                                                 toast.success('Deleted')
                                                 await load()
+                                              } else if (res.status === 409) {
+                                                const data = await res.json()
+                                                toast.error(data.error || 'Media is in use and cannot be deleted')
                                               } else {
                                                 toast.error('Delete failed')
                                               }
@@ -1442,6 +1475,7 @@ export default function MediaIndex() {
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {bulkActionToConfirm === 'delete' && 'Delete selected media?'}
+                {bulkActionToConfirm === 'force-delete' && 'Force Delete selected media?'}
                 {bulkActionToConfirm === 'optimize' && 'Optimize selected media?'}
                 {bulkActionToConfirm === 'generate-missing' && 'Generate missing variations?'}
                 {bulkActionToConfirm === 'regenerate' && 'Regenerate all variations?'}
@@ -1449,6 +1483,8 @@ export default function MediaIndex() {
               <AlertDialogDescription>
                 {bulkActionToConfirm === 'delete' &&
                   'This will permanently delete the originals and all variants. This action cannot be undone.'}
+                {bulkActionToConfirm === 'force-delete' &&
+                  'WARNING: This will permanently delete the selected media even if they are currently attached to posts. This may result in broken images on your site.'}
                 {bulkActionToConfirm === 'optimize' &&
                   'This will generate WebP versions for the selected images and their variants to improve performance.'}
                 {bulkActionToConfirm === 'generate-missing' &&
@@ -1466,7 +1502,9 @@ export default function MediaIndex() {
                   const action = bulkActionToConfirm
                   setBulkActionToConfirm(null)
                   if (action === 'delete') {
-                    await applyBulkDelete()
+                    await applyBulkDelete(false)
+                  } else if (action === 'force-delete') {
+                    await applyBulkDelete(true)
                   } else if (action === 'optimize') {
                     await applyBulk('optimize')
                   } else if (action === 'generate-missing') {
@@ -1475,9 +1513,15 @@ export default function MediaIndex() {
                     await applyBulkRegenerate()
                   }
                 }}
-                className={bulkActionToConfirm === 'delete' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
+                className={
+                  bulkActionToConfirm === 'delete' || bulkActionToConfirm === 'force-delete'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : ''
+                }
               >
-                {bulkActionToConfirm === 'delete' ? 'Delete' : 'Continue'}
+                {bulkActionToConfirm === 'delete' || bulkActionToConfirm === 'force-delete'
+                  ? 'Delete'
+                  : 'Continue'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -1597,6 +1641,45 @@ export default function MediaIndex() {
                     </a>
                   </div>
                 </div>
+
+                {!isMediaVideo(viewing) && !isEditingText && (
+                  <div className="flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
+                    <button
+                      className={`px-4 py-1.5 text-[10px] font-bold rounded-lg transition-all ${editTheme === 'light'
+                        ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                        : 'text-neutral-medium hover:text-neutral-high'
+                        }`}
+                      onClick={() => {
+                        setEditTheme('light')
+                        setSelectedVariantName('original')
+                      }}
+                    >
+                      Light Mode
+                    </button>
+                    <button
+                      className={`px-4 py-1.5 text-[10px] font-bold rounded-lg transition-all ${editTheme === 'dark'
+                        ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                        : 'text-neutral-medium hover:text-neutral-high'
+                        }`}
+                      onClick={() => {
+                        setEditTheme('dark')
+                        const meta = (viewing as any)?.metadata || {}
+                        if (meta.darkSourceUrl) {
+                          setSelectedVariantName('original')
+                        } else {
+                          const variants: any[] = Array.isArray(meta.variants) ? meta.variants : []
+                          const firstDark = variants.find((v) =>
+                            String(v.name || '').endsWith('-dark')
+                          )
+                          setSelectedVariantName(firstDark?.name || 'original')
+                        }
+                      }}
+                    >
+                      Dark Mode
+                    </button>
+                  </div>
+                )}
+
                 <button
                   className="w-10 h-10 flex items-center justify-center rounded-full text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium transition-all"
                   onClick={() => {
@@ -1647,296 +1730,257 @@ export default function MediaIndex() {
                     </div>
                   ) : (
                     <>
-                      {!isMediaVideo(viewing) && (
-                    <div className="mb-6 flex items-center justify-center w-full">
-                      <div className="inline-flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
-                        <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'light'
-                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                            : 'text-neutral-medium hover:text-neutral-high'
-                            }`}
-                          onClick={() => {
-                            setEditTheme('light')
-                            setSelectedVariantName('original')
-                          }}
-                        >
-                          Light Mode
-                        </button>
-                        <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'dark'
-                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                            : 'text-neutral-medium hover:text-neutral-high'
-                            }`}
-                          onClick={() => {
-                            setEditTheme('dark')
-                            const variants: any[] = Array.isArray(
-                              (viewing as any)?.metadata?.variants
-                            )
-                              ? (viewing as any).metadata.variants
-                              : []
-                            const firstDark = variants.find((v) =>
-                              String(v.name || '').endsWith('-dark')
-                            )
-                            setSelectedVariantName(firstDark?.name || 'original')
-                          }}
-                        >
-                          Dark Mode
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative group max-w-full flex items-center justify-center">
-                    <div
-                      className="relative flex items-center justify-center border border-line-low shadow-2xl rounded-xl overflow-hidden bg-black/10 min-w-[200px] min-h-[200px]"
-                      onMouseDown={onCropMouseDown}
-                      onMouseMove={onCropMouseMove}
-                      onMouseUp={onCropMouseUp}
-                      onClick={onFocalClick}
-                    >
-                      <MediaRenderer
-                        ref={imgRef}
-                        url={getEditDisplayUrl(viewing, editTheme)}
-                        mimeType={viewing.mimeType}
-                        alt={getMediaLabel(viewing)}
-                        className="max-w-full h-auto max-h-[55vh] block"
-                        controls={isMediaVideo(viewing)}
-                        autoPlay={false}
-                        playMode={editPlayMode}
-                        objectFit="contain"
-                      />
-                      {cropping && cropSel && (
+                      <div className="relative group max-w-full flex items-center justify-center">
                         <div
-                          className="absolute border-2 border-standout-high bg-standout-high/10 ring-1 ring-white/50"
-                          style={{
-                            left: `${cropSel.x}px`,
-                            top: `${cropSel.y}px`,
-                            width: `${cropSel.w}px`,
-                            height: `${cropSel.h}px`,
-                          }}
-                        />
-                      )}
-                      {focalMode && focalDot && (
-                        <div
-                          className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-md pointer-events-none"
-                          style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}
+                          className="relative flex items-center justify-center border border-line-low shadow-2xl rounded-xl overflow-hidden bg-black/10 min-w-[200px] min-h-[200px]"
+                          onMouseDown={onCropMouseDown}
+                          onMouseMove={onCropMouseMove}
+                          onMouseUp={onCropMouseUp}
+                          onClick={onFocalClick}
                         >
-                          <div className="w-6 h-6 rounded-full bg-standout-high border-2 border-white shadow-lg animate-pulse" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {!isMediaVideo(viewing) && (
-                    <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1">
-                          Variation Preview
-                        </span>
-                        <select
-                          className="text-xs border border-line-medium bg-backdrop-low text-neutral-high px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all min-w-[160px] shadow-sm"
-                          value={selectedVariantName}
-                          onChange={(e) => setSelectedVariantName(e.target.value)}
-                        >
-                          <option value="original">
-                            {editTheme === 'dark' ? 'Original (Dark)' : 'Original (Light)'}
-                          </option>
-                          {(viewing as any).metadata?.variants
-                            ?.filter((v: any) =>
-                              editTheme === 'dark'
-                                ? String(v.name || '').endsWith('-dark')
-                                : !String(v.name || '').endsWith('-dark')
-                            )
-                            .map((v: any) => (
-                              <option key={v.name} value={v.name}>
-                                {getVariantLabel(v)}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1 invisible">
-                          Tools
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {!focalMode &&
-                            !cropping &&
-                            selectedVariantName === 'original' &&
-                            (() => {
-                              const mime = (viewing?.mimeType || '').toLowerCase()
-                              const isSvg =
-                                mime === 'image/svg+xml' ||
-                                (viewing?.url || '').toLowerCase().endsWith('.svg')
-                              if (isSvg) return null
-                              return (
-                                <button
-                                  className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
-                                  onClick={() => setCropping(true)}
-                                >
-                                  <FontAwesomeIcon icon={faCrop} size="sm" />
-                                  Crop Image
-                                </button>
-                              )
-                            })()}
-                          {cropping && (
-                            <>
-                              <button
-                                className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
-                                onClick={() => {
-                                  setCropping(false)
-                                  setCropSel(null)
-                                }}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
-                                onClick={applyCrop}
-                              >
-                                Apply Crop
-                              </button>
-                            </>
+                          <MediaRenderer
+                            ref={imgRef}
+                            url={getEditDisplayUrl(viewing, editTheme)}
+                            mimeType={viewing.mimeType}
+                            alt={getMediaLabel(viewing)}
+                            className="max-w-full h-auto max-h-[55vh] block"
+                            controls={isMediaVideo(viewing)}
+                            autoPlay={false}
+                            playMode={editPlayMode}
+                            objectFit="contain"
+                          />
+                          {cropping && cropSel && (
+                            <div
+                              className="absolute border-2 border-standout-high bg-standout-high/10 ring-1 ring-white/50"
+                              style={{
+                                left: `${cropSel.x}px`,
+                                top: `${cropSel.y}px`,
+                                width: `${cropSel.w}px`,
+                                height: `${cropSel.h}px`,
+                              }}
+                            />
                           )}
-                          {!cropping &&
-                            !focalMode &&
-                            selectedVariantName === 'original' &&
-                            (() => {
-                              const mime = (viewing?.mimeType || '').toLowerCase()
-                              const isSvg =
-                                mime === 'image/svg+xml' ||
-                                (viewing?.url || '').toLowerCase().endsWith('.svg')
-                              if (isSvg) return null
-                              return (
+                          {focalMode && focalDot && (
+                            <div
+                              className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-md pointer-events-none"
+                              style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}
+                            >
+                              <div className="w-6 h-6 rounded-full bg-standout-high border-2 border-white shadow-lg animate-pulse" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isMediaVideo(viewing) && (
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1">
+                              Variation Preview
+                            </span>
+                            <select
+                              className="text-xs border border-line-medium bg-backdrop-low text-neutral-high px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all min-w-[160px] shadow-sm"
+                              value={selectedVariantName}
+                              onChange={(e) => setSelectedVariantName(e.target.value)}
+                            >
+                              <option value="original">
+                                {editTheme === 'dark' ? 'Original (Dark)' : 'Original (Light)'}
+                              </option>
+                              {(viewing as any).metadata?.variants
+                                ?.filter((v: any) =>
+                                  editTheme === 'dark'
+                                    ? String(v.name || '').endsWith('-dark')
+                                    : !String(v.name || '').endsWith('-dark')
+                                )
+                                .map((v: any) => (
+                                  <option key={v.name} value={v.name}>
+                                    {getVariantLabel(v)}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1 invisible">
+                              Tools
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {!focalMode &&
+                                !cropping &&
+                                selectedVariantName === 'original' &&
+                                (() => {
+                                  const mime = (viewing?.mimeType || '').toLowerCase()
+                                  const isSvg =
+                                    mime === 'image/svg+xml' ||
+                                    (viewing?.url || '').toLowerCase().endsWith('.svg')
+                                  if (isSvg) return null
+                                  return (
+                                    <button
+                                      className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
+                                      onClick={() => setCropping(true)}
+                                    >
+                                      <FontAwesomeIcon icon={faCrop} size="sm" />
+                                      Crop Image
+                                    </button>
+                                  )
+                                })()}
+                              {cropping && (
                                 <>
                                   <button
-                                    className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
-                                    onClick={() => setFocalMode(true)}
+                                    className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
+                                    onClick={() => {
+                                      setCropping(false)
+                                      setCropSel(null)
+                                    }}
                                   >
-                                    <FontAwesomeIcon icon={faCrosshairs} size="sm" />
-                                    Focal Point
+                                    Cancel
                                   </button>
-                                  {(() => {
-                                    const status = getVariantStatus(viewing)
-                                    const allVariantsExist =
-                                      status.hasAllLight && status.hasAllDark && status.hasDarkBase
-                                    const buttonLabel = allVariantsExist
-                                      ? 'Regenerate All'
-                                      : 'Generate Variations'
-                                    const isRegenerateMode = allVariantsExist
-
-                                    return (
-                                      <button
-                                        className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all shadow-sm bg-backdrop-low/50"
-                                        onClick={async () => {
-                                          if (!viewing) return
-                                          const targetId = viewing.id
-                                          try {
-                                            if (!status.hasAllLight || isRegenerateMode) {
-                                              await toast.promise(
-                                                fetch(
-                                                  `/api/media/${encodeURIComponent(targetId)}/variants`,
-                                                  {
-                                                    method: 'POST',
-                                                    headers: {
-                                                      'Accept': 'application/json',
-                                                      'Content-Type': 'application/json',
-                                                      ...(xsrfFromCookie
-                                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                                        : {}),
-                                                    },
-                                                    credentials: 'same-origin',
-                                                    body: JSON.stringify({ theme: 'light' }),
-                                                  }
-                                                ).then((r) => {
-                                                  if (!r.ok)
-                                                    throw new Error('Light variants failed')
-                                                  return r
-                                                }),
-                                                {
-                                                  loading: 'Generating light variants…',
-                                                  success: 'Light variants generated',
-                                                  error: (e) => String(e.message || e),
-                                                }
-                                              )
-                                            }
-                                            if (
-                                              !status.hasAllDark ||
-                                              !status.hasDarkBase ||
-                                              isRegenerateMode
-                                            ) {
-                                              await toast.promise(
-                                                fetch(
-                                                  `/api/media/${encodeURIComponent(targetId)}/variants`,
-                                                  {
-                                                    method: 'POST',
-                                                    headers: {
-                                                      'Accept': 'application/json',
-                                                      'Content-Type': 'application/json',
-                                                      ...(xsrfFromCookie
-                                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                                        : {}),
-                                                    },
-                                                    credentials: 'same-origin',
-                                                    body: JSON.stringify({ theme: 'dark' }),
-                                                  }
-                                                ).then((r) => {
-                                                  if (!r.ok) throw new Error('Dark variants failed')
-                                                  return r
-                                                }),
-                                                {
-                                                  loading: 'Generating dark variants…',
-                                                  success: 'Dark variants generated',
-                                                  error: (e) => String(e.message || e),
-                                                }
-                                              )
-                                            }
-                                            await refreshMediaItem(targetId)
-                                            setDarkPreviewVersion((v) => v + 1)
-                                            if (!isRegenerateMode) {
-                                              setEditTheme('dark')
-                                              setSelectedVariantName('original')
-                                            }
-                                          } catch (err) {
-                                            toast.error(String(err.message || err))
-                                          }
-                                        }}
-                                      >
-                                        {buttonLabel}
-                                      </button>
-                                    )
-                                  })()}
+                                  <button
+                                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
+                                    onClick={applyCrop}
+                                  >
+                                    Apply Crop
+                                  </button>
                                 </>
-                              )
-                            })()}
-                          {focalMode && (
-                            <>
-                              <button
-                                className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
-                                onClick={() => {
-                                  setFocalMode(false)
-                                  setFocalDot(null)
-                                }}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
-                                onClick={applyFocal}
-                              >
-                                Save Focal Point
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                              )}
+                              {!cropping &&
+                                !focalMode &&
+                                selectedVariantName === 'original' &&
+                                (() => {
+                                  const mime = (viewing?.mimeType || '').toLowerCase()
+                                  const isSvg =
+                                    mime === 'image/svg+xml' ||
+                                    (viewing?.url || '').toLowerCase().endsWith('.svg')
+                                  if (isSvg) return null
+                                  return (
+                                    <>
+                                      <button
+                                        className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
+                                        onClick={() => setFocalMode(true)}
+                                      >
+                                        <FontAwesomeIcon icon={faCrosshairs} size="sm" />
+                                        Focal Point
+                                      </button>
+                                      {(() => {
+                                        const status = getVariantStatus(viewing)
+                                        const allVariantsExist =
+                                          status.hasAllLight && status.hasAllDark && status.hasDarkBase
+                                        const buttonLabel = allVariantsExist
+                                          ? 'Regenerate All'
+                                          : 'Generate Variations'
+                                        const isRegenerateMode = allVariantsExist
 
-            {/* Right Panel: Metadata & Management */}
+                                        return (
+                                          <button
+                                            className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all shadow-sm bg-backdrop-low/50"
+                                            onClick={async () => {
+                                              if (!viewing) return
+                                              const targetId = viewing.id
+                                              try {
+                                                if (!status.hasAllLight || isRegenerateMode) {
+                                                  await toast.promise(
+                                                    fetch(
+                                                      `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                                      {
+                                                        method: 'POST',
+                                                        headers: {
+                                                          'Accept': 'application/json',
+                                                          'Content-Type': 'application/json',
+                                                          ...(xsrfFromCookie
+                                                            ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                            : {}),
+                                                        },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ theme: 'light' }),
+                                                      }
+                                                    ).then((r) => {
+                                                      if (!r.ok)
+                                                        throw new Error('Light variants failed')
+                                                      return r
+                                                    }),
+                                                    {
+                                                      loading: 'Generating light variants…',
+                                                      success: 'Light variants generated',
+                                                      error: (e) => String(e.message || e),
+                                                    }
+                                                  )
+                                                }
+                                                if (
+                                                  !status.hasAllDark ||
+                                                  !status.hasDarkBase ||
+                                                  isRegenerateMode
+                                                ) {
+                                                  await toast.promise(
+                                                    fetch(
+                                                      `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                                      {
+                                                        method: 'POST',
+                                                        headers: {
+                                                          'Accept': 'application/json',
+                                                          'Content-Type': 'application/json',
+                                                          ...(xsrfFromCookie
+                                                            ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                            : {}),
+                                                        },
+                                                        credentials: 'same-origin',
+                                                        body: JSON.stringify({ theme: 'dark' }),
+                                                      }
+                                                    ).then((r) => {
+                                                      if (!r.ok) throw new Error('Dark variants failed')
+                                                      return r
+                                                    }),
+                                                    {
+                                                      loading: 'Generating dark variants…',
+                                                      success: 'Dark variants generated',
+                                                      error: (e) => String(e.message || e),
+                                                    }
+                                                  )
+                                                }
+                                                await refreshMediaItem(targetId)
+                                                setDarkPreviewVersion((v) => v + 1)
+                                                if (!isRegenerateMode) {
+                                                  setEditTheme('dark')
+                                                  setSelectedVariantName('original')
+                                                }
+                                              } catch (err) {
+                                                toast.error(String(err.message || err))
+                                              }
+                                            }}
+                                          >
+                                            {buttonLabel}
+                                          </button>
+                                        )
+                                      })()}
+                                    </>
+                                  )
+                                })()}
+                              {focalMode && (
+                                <>
+                                  <button
+                                    className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
+                                    onClick={() => {
+                                      setFocalMode(false)
+                                      setFocalDot(null)
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
+                                    onClick={applyFocal}
+                                  >
+                                    Save Focal Point
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Right Panel: Metadata & Management */}
                 <div className="w-full max-w-[340px] flex flex-col border-l border-line-low bg-backdrop-low/50">
                   <div className="flex-1 overflow-auto p-6 space-y-8">
                     {/* General Section */}

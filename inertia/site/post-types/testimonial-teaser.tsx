@@ -16,7 +16,7 @@ export default function TestimonialTeaser({
   image,
 }: TestimonialTeaserProps) {
   return (
-    <figure className="flex flex-col justify-center items-center p-8 text-center bg-backdrop-medium border border-line-low md:p-10 lg:border-r-0 last:lg:border-r dark:border-none">
+    <figure className="flex flex-col justify-center items-center p-8 text-center bg-backdrop-medium border border-line-low md:p-10 lg:border-r-0 last:lg:border-r dark:border-none w-full h-full">
       <blockquote className="mx-auto mb-6 max-w-2xl text-neutral-high">
         {quote && <p className="my-4 text-sm md:text-base">"{quote}"</p>}
       </blockquote>

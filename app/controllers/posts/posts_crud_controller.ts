@@ -21,6 +21,7 @@ import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import roleRegistry from '#services/role_registry'
+import { generateProfileTitleFromCustomFields } from '#helpers/post_helpers'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
 import BasePostsController from './base_posts_controller.js'
 import {
@@ -182,10 +183,21 @@ export default class PostsCrudController extends BasePostsController {
         }
       }
 
+      let title = payload.title
+      const customFields = payload.customFields || request.input('customFields')
+
+      // Auto-sync profile title if needed
+      if (currentPost.type === 'profile' && Array.isArray(customFields)) {
+        const syncedTitle = generateProfileTitleFromCustomFields(customFields)
+        if (syncedTitle) {
+          title = syncedTitle
+        }
+      }
+
       await UpdatePost.handle({
         postId: id,
         slug: payload.slug,
-        title: payload.title,
+        title,
         status: payload.status,
         excerpt: payload.excerpt,
         parentId: payload.parentId || undefined,
@@ -214,7 +226,6 @@ export default class PostsCrudController extends BasePostsController {
       })
 
       // Update custom fields
-      const customFields = payload.customFields || request.input('customFields')
       if (Array.isArray(customFields)) {
         await UpsertPostCustomFields.handle({
           postId: id,

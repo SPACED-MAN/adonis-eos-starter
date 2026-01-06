@@ -290,6 +290,23 @@ export default class AgentsController {
       throw new Error('Agent missing configuration')
     }
 
+    // Fetch history for context awareness (last 5 turns)
+    const historyExecutions = await agentExecutionService.getHistory(id, {
+      agentId: agent.id,
+      limit: 5,
+    })
+
+    const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+    // Items are returned in desc order (newest first), so we reverse to build chronological conversation
+    for (const e of [...historyExecutions].reverse()) {
+      if (e.request) {
+        history.push({ role: 'user', content: e.request })
+      }
+      if (e.response?.rawResponse) {
+        history.push({ role: 'assistant', content: e.response.rawResponse })
+      }
+    }
+
     // Build execution context
     const executionContext: AgentExecutionContext = {
       agent,
@@ -302,6 +319,7 @@ export default class AgentsController {
         fieldType,
         ...ctx,
       },
+      history,
     }
 
     // Execute agent
@@ -314,10 +332,13 @@ export default class AgentsController {
     const suggestions = result.data || {}
     const rawResponse = (result as any).rawResponse
     const summary = (result as any).summary
+    const determination = (result as any).determination
     const lastCreatedPostId = (result as any).lastCreatedPostId
 
     // Extract generated mediaId from tool results (if image was generated)
     let generatedMediaId: string | undefined = undefined
+    let generatedMediaUrl: string | undefined = undefined
+    let generatedDarkUrl: string | undefined = undefined
     let imageGenerationFailed = false
     if (suggestions.toolResults && Array.isArray(suggestions.toolResults)) {
       const generateImageResult = suggestions.toolResults.find(
@@ -326,6 +347,8 @@ export default class AgentsController {
       if (generateImageResult) {
         if (generateImageResult.success && generateImageResult.result?.mediaId) {
           generatedMediaId = generateImageResult.result.mediaId
+          generatedMediaUrl = generateImageResult.result.url
+          generatedDarkUrl = generateImageResult.result.darkUrl
         } else {
           imageGenerationFailed = true
         }
@@ -544,7 +567,10 @@ export default class AgentsController {
     if (isRedirecting) responseData.redirectPostId = redirectPostId
     if (rawResponse) responseData.rawResponse = rawResponse
     if (summary) responseData.summary = summary
+    if (determination) responseData.determination = determination
     if (generatedMediaId) responseData.generatedMediaId = generatedMediaId
+    if (generatedMediaUrl) responseData.generatedMediaUrl = generatedMediaUrl
+    if (generatedDarkUrl) responseData.generatedDarkUrl = generatedDarkUrl
 
     // Save execution history
     try {
@@ -557,7 +583,11 @@ export default class AgentsController {
         response: {
           rawResponse,
           summary,
+          determination,
           applied,
+          generatedMediaId,
+          generatedMediaUrl,
+          generatedDarkUrl,
           executionMeta: (result as any).executionMeta,
           transcript: (result as any).transcript,
         },
@@ -641,6 +671,23 @@ export default class AgentsController {
         return response.badRequest({ error: 'Agent missing configuration' })
       }
 
+      // Fetch global history for context awareness (last 5 turns)
+      const historyExecutions = await agentExecutionService.getHistory(null, {
+        agentId: agent.id,
+        scope: 'global',
+        limit: 5,
+      })
+
+      const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+      for (const e of [...historyExecutions].reverse()) {
+        if (e.request) {
+          history.push({ role: 'user', content: e.request })
+        }
+        if (e.response?.rawResponse) {
+          history.push({ role: 'assistant', content: e.response.rawResponse })
+        }
+      }
+
       // Build execution context for global agent
       const executionContext: AgentExecutionContext = {
         agent,
@@ -650,6 +697,7 @@ export default class AgentsController {
           // Global agents don't have a post context yet
           // They might create one or work with general context
         },
+        history,
       }
 
       // Create a minimal payload for global agents
@@ -678,7 +726,23 @@ export default class AgentsController {
 
       const rawResponse = (result as any).rawResponse
       const summary = (result as any).summary
+      const determination = (result as any).determination
       const suggestions = result.data || {}
+
+      // Extract generated mediaId from tool results (if image was generated)
+      let generatedMediaId: string | undefined = undefined
+      let generatedMediaUrl: string | undefined = undefined
+      let generatedDarkUrl: string | undefined = undefined
+      if (suggestions.toolResults && Array.isArray(suggestions.toolResults)) {
+        const generateImageResult = suggestions.toolResults.find(
+          (r: any) => r.tool === 'generate_image' || r.tool_name === 'generate_image'
+        )
+        if (generateImageResult && generateImageResult.success && generateImageResult.result?.mediaId) {
+          generatedMediaId = generateImageResult.result.mediaId
+          generatedMediaUrl = generateImageResult.result.url
+          generatedDarkUrl = generateImageResult.result.darkUrl
+        }
+      }
 
       // For global agents, we might need to create a new post
       // For now, we'll return the response and let the frontend handle it
@@ -693,7 +757,11 @@ export default class AgentsController {
           response: {
             rawResponse,
             summary,
+            determination,
             suggestions,
+            generatedMediaId,
+            generatedMediaUrl,
+            generatedDarkUrl,
             executionMeta: (result as any).executionMeta,
             transcript: (result as any).transcript,
           },
@@ -716,8 +784,12 @@ export default class AgentsController {
       const responseData: any = {
         message: 'Agent executed successfully',
         summary: summary || 'Agent completed. Check the response for details.',
+        determination,
         rawResponse,
         suggestions,
+        generatedMediaId,
+        generatedMediaUrl,
+        generatedDarkUrl,
         executionMeta: (result as any).executionMeta,
         transcript: (result as any).transcript,
       }

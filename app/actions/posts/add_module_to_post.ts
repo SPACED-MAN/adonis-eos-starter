@@ -203,6 +203,8 @@ export default class AddModuleToPost {
           post_id: postId,
           module_id: moduleInstanceId,
           order_index: finalOrderIndex,
+          review_order_index: mode === 'review' ? finalOrderIndex : null,
+          ai_review_order_index: mode === 'ai-review' ? finalOrderIndex : null,
           // Only set Source label on publish-mode creation; review/ai-review labels live in draft snapshots.
           admin_label: mode === 'review' || mode === 'ai-review' ? null : adminLabel,
           overrides: mode === 'publish' ? overrides : null,

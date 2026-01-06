@@ -1,3 +1,22 @@
+// @ts-ignore
+import Prism from './prism_init'
+// @ts-ignore
+import 'prismjs/components/prism-json.js'
+// @ts-ignore
+import 'prismjs/components/prism-bash.js'
+// @ts-ignore
+import 'prismjs/components/prism-javascript.js'
+// @ts-ignore
+import 'prismjs/components/prism-typescript.js'
+// @ts-ignore
+import 'prismjs/components/prism-css.js'
+// @ts-ignore
+import 'prismjs/components/prism-markdown.js'
+// @ts-ignore
+import 'prismjs/components/prism-sql.js'
+// @ts-ignore
+import 'prismjs/components/prism-python.js'
+
 /**
  * Centralized Lexical JSON to HTML renderer for Inertia modules.
  */
@@ -99,14 +118,74 @@ export function renderLexicalToHtml(json: LexicalJSON | string | null | undefine
         // Code block - escape HTML to prevent rendering as actual HTML
         // We pass true to renderNode to get the raw text from children
         const codeContent = node.children?.map((c: any) => renderNode(c, true)).join('') || ''
-        const language = node.language || 'text'
-        return `<pre><code class="language-${escapeHtml(
-          language
-        )}">${escapeHtml(codeContent)}</code></pre>`
+
+        // Smart default: if no language is specified, check if it looks like a shell/config snippet
+        let language = node.language
+        if (!language) {
+          const trimmed = codeContent.trim()
+          if (trimmed.startsWith('#') || trimmed.startsWith('$ ')) {
+            language = 'bash'
+          } else {
+            language = 'javascript'
+          }
+        }
+
+        if (isInsideCode) return codeContent
+
+        // Syntax highlighting with Prism
+        let highlightedCode = escapeHtml(codeContent)
+        try {
+          const prismLang = Prism.languages[language]
+          if (prismLang) {
+            highlightedCode = Prism.highlight(codeContent, prismLang, language)
+          }
+        } catch (e) {
+          // Fallback to escaped content
+        }
+
+        return `<div class="code-block-wrapper my-6">
+          ${node.language
+            ? `<div class="bg-[#161b22] px-4 py-2 text-xs font-mono text-[#8b949e] border border-[#30363d] border-b-0 rounded-t-lg tracking-widest uppercase flex justify-between items-center leading-none">
+              <span>${escapeHtml(node.language)}</span>
+            </div>`
+            : ''
+          }
+          <pre class="${node.language ? 'my-0! rounded-t-none!' : ''}"><code class="language-${escapeHtml(
+            language
+          )}">${highlightedCode}</code></pre>
+        </div>`
       }
 
       case 'horizontalrule':
         return isInsideCode ? '' : '<hr />'
+
+      case 'table': {
+        const tContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        return isInsideCode
+          ? tContent
+          : `<div class="my-8 overflow-x-auto border border-line-low rounded-lg shadow-sm">
+              <table class="w-full text-left border-collapse border-spacing-0 min-w-[600px]">
+                <tbody class="divide-y divide-line-low">
+                  ${tContent}
+                </tbody>
+              </table>
+            </div>`
+      }
+
+      case 'tablerow': {
+        const trContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        return isInsideCode ? trContent : `<tr>${trContent}</tr>`
+      }
+
+      case 'tablecell': {
+        const isHeader = node.header === true || node.tag === 'th'
+        const tag = isHeader ? 'th' : 'td'
+        const align = node.align
+        const alignClass = align ? ` text-${align}` : ''
+        const classes = `${isHeader ? 'bg-backdrop-medium font-bold' : 'bg-backdrop-low/30'} px-4 py-4 text-sm text-neutral-high border-r border-line-low last:border-0${alignClass}`
+        const cellContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        return isInsideCode ? cellContent : `<${tag} class="${classes}">${cellContent}</${tag}>`
+      }
 
       case 'linebreak':
         return isInsideCode ? '\n' : '<br />'

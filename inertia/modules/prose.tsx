@@ -35,7 +35,7 @@ export default function Prose({
   title: initialTitle,
   content: initialContent,
   // Default to full width so prose fills whatever container it's placed in.
-  maxWidth: initialMaxWidth = 'max-w-none',
+  maxWidth: initialMaxWidth = 'max-w-5xl',
   fontSize: initialFontSize = 'text-base',
   theme: initialTheme = 'transparent',
   textColor: initialTextColor = 'text-neutral-high',
@@ -85,7 +85,7 @@ export default function Prose({
 
   const innerContent = (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div className={`w-full ${maxWidth}`}>
+      <div className={`w-full mx-auto ${maxWidth}`}>
         {showTitle && title && (
           <h2
             className={`text-3xl font-extrabold tracking-tight mb-8 ${textColor} ${textAlign === 'center'
@@ -101,10 +101,10 @@ export default function Prose({
         )}
         {showContent && (
           <div
-            className={`prose max-w-none ${styles.proseInvert} ${fontSize} ${textColor} ${textAlign === 'center'
-              ? 'text-center [&_ul]:inline-block [&_ol]:inline-block [&_ul]:text-left [&_ol]:text-left [&_li]:text-left'
+            className={`prose ${styles.proseInvert} ${fontSize} ${textColor} ${textAlign === 'center'
+              ? 'text-center'
               : textAlign === 'right'
-                ? 'text-right list-inside'
+                ? 'text-right'
                 : textAlign === 'justify'
                   ? 'text-justify'
                   : 'text-left'

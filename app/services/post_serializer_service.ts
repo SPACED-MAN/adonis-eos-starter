@@ -5,6 +5,7 @@ import Post from '#models/post'
 import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
+import { generateProfileTitleFromCustomFields } from '#helpers/post_helpers'
 import db from '@adonisjs/lucid/services/db'
 import { coerceJsonObject } from '../helpers/jsonb.js'
 
@@ -80,10 +81,17 @@ export default class PostSerializerService {
       query.where('post_modules.ai_review_deleted', false)
     }
 
+    const effectiveOrder =
+      mode === 'ai-review'
+        ? 'COALESCE(post_modules.ai_review_order_index, post_modules.review_order_index, post_modules.order_index)'
+        : mode === 'review'
+          ? 'COALESCE(post_modules.review_order_index, post_modules.order_index)'
+          : 'post_modules.order_index'
+
     const moduleRows = await query
       .select(
         'post_modules.id as postModuleId',
-        'post_modules.order_index as orderIndex',
+        db.raw(`${effectiveOrder} as orderIndex`),
         'post_modules.overrides',
         'post_modules.locked',
         'post_modules.admin_label',
@@ -95,7 +103,7 @@ export default class PostSerializerService {
         'module_instances.ai_review_props',
         'module_instances.global_slug as globalSlug'
       )
-      .orderBy('post_modules.order_index', 'asc')
+      .orderBy(db.raw(effectiveOrder), 'asc')
 
     // Family translations list
     const baseId = (post as any).translationOfId || post.id
@@ -374,6 +382,14 @@ export default class PostSerializerService {
               : {}),
           }
         }
+      }
+    }
+
+    // Final pass for Profile title sync (if title is hidden, it might be stale)
+    if (post.type === 'profile') {
+      const syncedTitle = generateProfileTitleFromCustomFields(customFields)
+      if (syncedTitle) {
+        postFields.title = syncedTitle
       }
     }
 

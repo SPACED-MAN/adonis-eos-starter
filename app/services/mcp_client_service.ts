@@ -139,7 +139,7 @@ class MCPClientService {
       {
         name: 'generate_image',
         description:
-          'Generate an image using DALL-E (OpenAI) and add it to the media library. Returns media ID and URL. Requires AI_PROVIDER_OPENAI_API_KEY. Only use this if the user explicitly asks to generate/create a new image, or if no suitable existing image is found via search_media.',
+          'Generate an image using AI and add it to the media library. Params: { prompt, alt_text, description, theme, variationOf }. "theme" can be "light" (default) or "dark". If "theme" is "dark", you MUST provide "variationOf" with the media ID of the light version to create a single media item with both versions.',
       },
       {
         name: 'check_media_integrity',
@@ -410,11 +410,15 @@ class MCPClientService {
           moduleEdits,
         } = params
 
+        if (!type || !slug || !title) {
+          throw new Error('create_post_ai_review requires "type", "slug", and "title"')
+        }
+
         // Resolve module group ID if name provided
         let resolvedModuleGroupId: string | null = null
         if (moduleGroupName) {
-          const db = (await import('@adonisjs/lucid/services/db')).default
-          const row = await db
+          const dbImport = (await import('@adonisjs/lucid/services/db')).default
+          const row = await dbImport
             .from('module_groups')
             .where({ post_type: type, name: moduleGroupName })
             .first()
@@ -1451,7 +1455,7 @@ class MCPClientService {
       }
 
       case 'generate_image': {
-        const { prompt, alt_text, description, model, size, quality } = params
+        const { prompt, alt_text, description, model, size, quality, theme = 'light', variationOf } = params
 
         if (!prompt || typeof prompt !== 'string') {
           throw new Error('generate_image requires a "prompt" parameter (string)')
@@ -1560,7 +1564,7 @@ class MCPClientService {
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
         await fs.mkdir(uploadsDir, { recursive: true })
 
-        const filename = `${crypto.randomUUID()}${ext}`
+        const filename = `${crypto.randomUUID()}${theme === 'dark' ? '-dark' : ''}${ext}`
         const destPath = path.join(uploadsDir, filename)
         await fs.writeFile(destPath, imageBuffer)
 
@@ -1573,6 +1577,52 @@ class MCPClientService {
           /* ignore publish errors; local file remains */
         }
 
+        if (theme === 'dark' && variationOf) {
+          // Update existing media asset
+          const parentMedia = await db.from('media_assets').where('id', variationOf).first()
+          if (!parentMedia) throw new Error(`Media asset to vary not found: ${variationOf}`)
+
+          // Generate dark variants
+          let metadata = parentMedia.metadata || {}
+          try {
+            const darkVariants = await mediaService.generateVariants(
+              destPath,
+              url,
+              null,
+              null,
+              null,
+              'dark'
+            )
+            metadata = {
+              ...metadata,
+              darkSourceUrl: url,
+              variants: [...(metadata.variants || []), ...darkVariants],
+            }
+          } catch {
+            // ignore variant generation errors
+          }
+
+          await db.from('media_assets').where('id', variationOf).update({
+            metadata: metadata as any,
+            updated_at: new Date(),
+          })
+
+          return {
+            success: true,
+            mediaId: variationOf,
+            url, // RETURN THE NEWLY GENERATED (DARK) URL HERE
+            darkUrl: url, // UI Compatibility
+            altText: parentMedia.alt_text,
+            description: parentMedia.description,
+            generatedMediaUrls: {
+              light: parentMedia.url,
+              dark: url,
+            },
+            message: 'Dark version added to existing media asset',
+          }
+        }
+
+        // Standard new media creation
         // Generate variants for the image
         let metadata: any = null
         try {
@@ -1631,15 +1681,16 @@ class MCPClientService {
           // ignore activity log errors
         }
 
-        const result = {
+        return {
           success: true,
           mediaId,
-          url,
           altText: alt_text || prompt.slice(0, 200),
           description: description || null,
+          url,
+          generatedMediaUrls: {
+            light: url
+          }
         }
-
-        return result
       }
 
       case 'generate_video': {

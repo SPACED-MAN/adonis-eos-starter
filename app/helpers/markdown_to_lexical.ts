@@ -161,6 +161,83 @@ function tokenToLexicalNode(token: any): any {
         version: 1,
       }
 
+    case 'image':
+      return {
+        type: 'lexical-media',
+        url: token.href,
+        alt: token.text || '',
+        version: 1,
+      }
+
+    case 'table':
+      const headerRow = {
+        type: 'tablerow',
+        version: 1,
+        children: token.header.map((cell: any, i: number) => ({
+          type: 'tablecell',
+          header: true,
+          align: token.align[i],
+          version: 1,
+          children: [
+            {
+              type: 'paragraph',
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+              children: inlineTokensToLexical(cell.tokens || []),
+            },
+          ],
+        })),
+      }
+
+      const rows = token.rows.map((row: any) => ({
+        type: 'tablerow',
+        version: 1,
+        children: row.map((cell: any, i: number) => ({
+          type: 'tablecell',
+          header: false,
+          align: token.align[i],
+          version: 1,
+          children: [
+            {
+              type: 'paragraph',
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+              children: inlineTokensToLexical(cell.tokens || []),
+            },
+          ],
+        })),
+      }))
+
+      return {
+        type: 'table',
+        version: 1,
+        children: [headerRow, ...rows],
+      }
+
+    case 'html':
+      return {
+        type: 'paragraph',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: [
+          {
+            type: 'text',
+            text: token.text,
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            version: 1,
+          },
+        ],
+      }
+
     case 'space':
     case 'text': {
       const raw = String(token.text || '').trim()
@@ -223,7 +300,7 @@ function listItemToLexical(item: any): any {
     format: '',
     indent: 0,
     version: 1,
-    checked: undefined,
+    checked: item.task ? (item.checked ? true : false) : undefined,
     value: 1,
     children,
   }
@@ -261,6 +338,15 @@ function inlineTokensToLexical(tokens: any[]): any[] {
         const children = inlineTokensToLexical(token.tokens || [])
         for (const child of children) {
           if (child.type === 'text') child.format = (child.format || 0) | 2
+          out.push(child)
+        }
+        break
+      }
+
+      case 'del': {
+        const children = inlineTokensToLexical(token.tokens || [])
+        for (const child of children) {
+          if (child.type === 'text') child.format = (child.format || 0) | 4
           out.push(child)
         }
         break

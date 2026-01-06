@@ -216,7 +216,13 @@ export function FeedbackPanel({
               onClick={() => {
                 if (onSelect) onSelect(f.id)
                 if (f.context && onJumpToSpot) {
-                  onJumpToSpot(f.context, f.id)
+                  let ctx = f.context
+                  if (typeof ctx === 'string') {
+                    try {
+                      ctx = JSON.parse(ctx)
+                    } catch (e) {}
+                  }
+                  onJumpToSpot(ctx, f.id)
                 }
               }}
               className={`p-3 rounded-xl border transition-all duration-500 ${f.status === 'resolved' ? 'bg-backdrop-medium/20 border-line-low opacity-60' : 'bg-backdrop-low border-line-medium'} space-y-2 ${f.context ? 'cursor-pointer hover:border-standout-high/50 group' : ''}`}

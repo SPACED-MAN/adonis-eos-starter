@@ -7,6 +7,7 @@ import ApplyPostTaxonomyAssignments from '#actions/posts/apply_post_taxonomy_ass
 import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import moduleRegistry from '#services/module_registry'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
+import { generateProfileTitleFromCustomFields } from '#helpers/post_helpers'
 
 export type SnapshotApplyMode = 'source' | 'review' | 'ai-review'
 
@@ -249,22 +250,33 @@ export default class PostSnapshotService {
         .update({ [propsCol]: null, updated_at: new Date() })
     }
 
-    // 2. Clear overrides and flags in post_modules
-    await trx
-      .from('post_modules')
-      .where('post_id', postId)
-      .update({
-        [overridesCol]: null,
-        [addedCol]: false,
-        [deletedCol]: false,
-        updated_at: new Date(),
-      })
+    // 2. Clear overrides, flags and staged order in post_modules
+    const pmUpdate: any = {
+      [overridesCol]: null,
+      [addedCol]: false,
+      [deletedCol]: false,
+      updated_at: new Date(),
+    }
+    if (mode === 'review') pmUpdate.review_order_index = null
+    if (mode === 'ai-review') pmUpdate.ai_review_order_index = null
+
+    await trx.from('post_modules').where('post_id', postId).update(pmUpdate)
   }
 
   /**
    * Create a CanonicalPost from an editor/agent payload.
    */
   static fromPayload(payload: any): CanonicalPost {
+    let title = payload.title
+
+    // Auto-sync profile title if needed
+    if (payload.type === 'profile' && Array.isArray(payload.customFields)) {
+      const syncedTitle = generateProfileTitleFromCustomFields(payload.customFields)
+      if (syncedTitle) {
+        title = syncedTitle
+      }
+    }
+
     return {
       metadata: {
         version: '2.0.0',
@@ -274,7 +286,7 @@ export default class PostSnapshotService {
         type: payload.type,
         locale: payload.locale,
         slug: payload.slug,
-        title: payload.title,
+        title,
         status: payload.status,
         excerpt: payload.excerpt,
         metaTitle: payload.metaTitle,
@@ -567,7 +579,12 @@ export default class PostSnapshotService {
           }
         }
         if (m.postModuleId && uuidRegex.test(m.postModuleId)) {
-          const pmUpdate: any = { admin_label: m.adminLabel ?? null, updated_at: new Date() }
+          const orderCol = mode === 'review' ? 'review_order_index' : 'ai_review_order_index'
+          const pmUpdate: any = {
+            admin_label: m.adminLabel ?? null,
+            [orderCol]: m.orderIndex,
+            updated_at: new Date(),
+          }
           if (m.scope === 'global') {
             pmUpdate[overridesCol] = m.overrides
           }

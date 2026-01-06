@@ -35,6 +35,12 @@ export default class PostModule extends BaseModel {
   @column({ columnName: 'order_index' })
   declare orderIndex: number
 
+  @column({ columnName: 'review_order_index' })
+  declare reviewOrderIndex: number | null
+
+  @column({ columnName: 'ai_review_order_index' })
+  declare aiReviewOrderIndex: number | null
+
   @column({ columnName: 'admin_label' })
   declare adminLabel: string | null
 

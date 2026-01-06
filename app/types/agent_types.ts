@@ -430,4 +430,12 @@ export interface AgentExecutionContext {
    * Additional context data
    */
   data?: Record<string, any>
+
+  /**
+   * Execution history for conversational awareness (optional)
+   */
+  history?: Array<{
+    role: 'user' | 'assistant'
+    content: string
+  }>
 }

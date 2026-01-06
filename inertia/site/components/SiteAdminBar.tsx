@@ -15,6 +15,7 @@ import { DevTools } from '../../admin/components/DevTools'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
 import { ModuleOutlinePanel } from '~/components/ModuleOutlinePanel'
+import { GlobalAgentButton } from '../../admin/components/agents/GlobalAgentButton'
 import {
   Sheet,
   SheetContent,
@@ -149,15 +150,20 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   const devToolsData = (props as any)?.devTools
 
   const isAdmin = !!(currentUser && currentUser.role === 'admin')
+  const permissions = (props as any)?.permissions || []
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; selector: string } | null>(
-    null
-  )
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    selector: string
+    xPercent?: number
+    yPercent?: number
+  } | null>(null)
   const [feedbacks, setFeedbacks] = useState<any[]>([])
 
   const fetchFeedbacks = useCallback(async () => {
@@ -199,6 +205,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
       const fieldEl = target.closest('[data-inline-path]') as HTMLElement
 
       let selector = ''
+      let rect: DOMRect | null = null
+
       if (fieldEl) {
         const moduleId = moduleEl?.dataset.inlineModule
         const path = fieldEl.dataset.inlinePath
@@ -209,9 +217,11 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
         } else {
           selector = `[data-inline-module="${moduleId}"] [data-inline-path="${path}"]`
         }
+        rect = fieldEl.getBoundingClientRect()
       } else if (moduleEl) {
         const moduleId = moduleEl.dataset.inlineModule
         selector = `[data-inline-module="${moduleId}"]`
+        rect = moduleEl.getBoundingClientRect()
       } else {
         selector = target.tagName.toLowerCase()
         if (target.id) {
@@ -224,12 +234,18 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             .join('')
           selector += classes
         }
+        rect = target.getBoundingClientRect()
       }
+
+      const xPercent = rect ? ((e.clientX - rect.left) / rect.width) * 100 : 50
+      const yPercent = rect ? ((e.clientY - rect.top) / rect.height) * 100 : 50
 
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
         selector,
+        xPercent,
+        yPercent,
       })
     }
 
@@ -491,10 +507,11 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             <button
               aria-label="Admin tools"
               onClick={() => setOpen((v) => !v)}
-              className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium"
+              className={`px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium ${permissions.includes('agents.global') ? 'border-r border-line-medium' : ''}`}
             >
               <FontAwesomeIcon icon={faWrench} />
             </button>
+            <GlobalAgentButton variant="ghost" permissions={permissions} />
           </div>
         </div>
         {inline.enabled && inline.canEdit && (isSaveEnabled || isSaving) && (
@@ -629,7 +646,15 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           <FeedbackPanel
             postId={post?.id}
             mode={inline.mode === 'source' ? 'approved' : inline.mode}
-            initialContext={contextMenu ? { selector: contextMenu.selector } : null}
+            initialContext={
+              contextMenu
+                ? {
+                  selector: contextMenu.selector,
+                  xPercent: contextMenu.xPercent,
+                  yPercent: contextMenu.yPercent,
+                }
+                : null
+            }
             highlightId={selectedFeedbackId}
             onSelect={(id) => setSelectedFeedbackId(id)}
             onClose={() => {
@@ -638,8 +663,14 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               setSelectedFeedbackId(null)
             }}
             onJumpToSpot={(ctx, fbId) => {
-              if (ctx.selector) {
-                const el = document.querySelector(ctx.selector)
+              let targetCtx = ctx
+              if (typeof targetCtx === 'string') {
+                try {
+                  targetCtx = JSON.parse(targetCtx)
+                } catch (e) {}
+              }
+              if (targetCtx.selector) {
+                const el = document.querySelector(targetCtx.selector)
                 if (el) {
                   el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                   el.classList.add('ring-2', 'ring-standout-high', 'ring-offset-2')

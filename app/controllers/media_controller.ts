@@ -15,6 +15,7 @@ import renameMediaAction from '#actions/media/rename_media_action'
 import deleteMediaAction from '#actions/media/delete_media_action'
 import optimizeMediaAction from '#actions/media/optimize_media_action'
 import { mediaQueryValidator, mediaUploadValidator, updateMediaValidator } from '#validators/media'
+import mediaUsageService from '#services/media_usage_service'
 
 export default class MediaController {
   /**
@@ -176,16 +177,19 @@ export default class MediaController {
   /**
    * DELETE /api/media/:id
    */
-  async destroy({ params, response, auth }: HttpContext) {
+  async destroy({ params, request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.delete')) {
       return response.forbidden({ error: 'Admin only' })
     }
 
+    const force = request.input('force') === true
+
     try {
       await deleteMediaAction.handle({
         id: params.id,
         userId: auth.user?.id || null,
+        force,
       })
       return response.noContent()
     } catch (error: any) {
@@ -211,11 +215,15 @@ export default class MediaController {
    * GET /api/media/:id/where-used
    * Returns a list of post/module references containing this media URL
    */
-  async whereUsed({ response }: HttpContext) {
-    // This functionality is now primarily used within DeleteMediaAction.
-    // If needed as a standalone endpoint, we can refactor it into a service.
+  async whereUsed({ params, response }: HttpContext) {
+    const { id } = params
+    const row = await db.from('media_assets').where('id', id).first()
+    if (!row) return response.notFound({ error: 'Media not found' })
+
+    const usage = await mediaUsageService.getUsage(id, row.url)
+
     return response.ok({
-      data: { inModules: [], inOverrides: [], inPosts: [], inSettings: false, inCodebase: [] },
+      data: usage,
     })
   }
 
@@ -926,7 +934,7 @@ export default class MediaController {
       return response.forbidden({ error: 'Admin only' })
     }
 
-    const { ids } = request.only(['ids'])
+    const { ids, force } = request.only(['ids', 'force'])
     if (!Array.isArray(ids)) return response.badRequest({ error: 'ids must be an array' })
 
     let deleted = 0
@@ -935,7 +943,11 @@ export default class MediaController {
 
     for (const id of ids) {
       try {
-        await deleteMediaAction.handle({ id, userId: auth.user?.id || null })
+        await deleteMediaAction.handle({
+          id,
+          userId: auth.user?.id || null,
+          force: force === true,
+        })
         deleted++
       } catch (error: any) {
         skipped++

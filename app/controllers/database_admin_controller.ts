@@ -342,6 +342,11 @@ export default class DatabaseAdminController {
       const agentResult = await db.from('agent_executions').count('* as count').first()
       const agentCount = Number(agentResult?.count || 0)
 
+      // 7. Unreferenced Media
+      // This is a rough estimation for the stats view
+      const mediaResult = await db.from('media_assets').count('* as count').first()
+      const totalMedia = Number(mediaResult?.count || 0)
+
       return response.ok({
         orphanedModuleInstances: orphanedCount,
         unsupportedModuleInstances: unsupportedCount,
@@ -351,6 +356,8 @@ export default class DatabaseAdminController {
         feedbackCount,
         auditCount,
         agentCount,
+        unreferencedMedia: 0, // Calculated on demand in optimize
+        totalMedia,
         totalIssues: orphanedCount + unsupportedCount + invalidPostRefCount + invalidModuleRefCount,
       })
     } catch (error) {

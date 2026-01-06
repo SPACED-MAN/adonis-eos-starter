@@ -12,7 +12,9 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
+import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
+import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import { ButtonNode, $createButtonNode, ButtonVariant } from './lexical/ButtonNode'
 import { MediaNode, $createMediaNode } from './lexical/MediaNode'
 import {
@@ -24,6 +26,7 @@ import {
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from '@lexical/list'
+import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBold,
@@ -40,6 +43,7 @@ import {
   faExternalLinkAlt,
   faImage,
   faChevronDown,
+  faTable,
 } from '@fortawesome/free-solid-svg-icons'
 import { $createCodeNode } from '@lexical/code'
 import { $insertNodes, $createTextNode } from 'lexical'
@@ -256,6 +260,9 @@ export function LexicalEditor({
         HorizontalRuleNode,
         ButtonNode,
         MediaNode,
+        TableNode,
+        TableRowNode,
+        TableCellNode,
       ],
     }),
     [theme, editorKey]
@@ -276,6 +283,7 @@ export function LexicalEditor({
         <HistoryPlugin />
         <ListPlugin />
         <LinkPlugin />
+        <TablePlugin />
         <OnChangePlugin
           onChange={(state) => {
             try {
@@ -528,6 +536,13 @@ function Toolbar({
         title="Button"
         icon={faExternalLinkAlt}
         onClick={() => setIsButtonDialogOpen(true)}
+      />
+      <ToolbarButton
+        title="Table"
+        icon={faTable}
+        onClick={() =>
+          editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' })
+        }
       />
       <ToolbarButton
         title="Horizontal Rule"

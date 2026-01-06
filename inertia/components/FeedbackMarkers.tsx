@@ -48,10 +48,13 @@ export function FeedbackMarkers({
 
             // Only show if element is actually visible in the DOM
             if (rect.width > 0 || rect.height > 0) {
+              const xPercent = typeof context.xPercent === 'number' ? context.xPercent : 50
+              const yPercent = typeof context.yPercent === 'number' ? context.yPercent : 50
+
               nextMarkers.push({
                 id: f.id,
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2,
+                x: rect.left + (rect.width * xPercent) / 100,
+                y: rect.top + (rect.height * yPercent) / 100,
                 feedback: f,
               })
             }
@@ -90,7 +93,7 @@ export function FeedbackMarkers({
   return createPortal(
     <div
       id="feedback-markers-portal"
-      style={{ position: 'fixed', top: 0, left: 0, zIndex: 46, pointerEvents: 'none' }}
+      style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }}
     >
       <style>{`
         @keyframes feedback-pulse-ring {

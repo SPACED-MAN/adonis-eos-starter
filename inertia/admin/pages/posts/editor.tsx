@@ -88,6 +88,7 @@ import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
 import { useAdminPath } from '~/utils/adminPath'
 import { MediaThumb } from '../../components/media/MediaThumb'
+import { GlobalAgentButton } from '../../components/agents/GlobalAgentButton'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
@@ -1345,6 +1346,15 @@ export default function Editor({
   const [variationDeleteConfirmOpen, setVariationDeleteConfirmOpen] = useState(false)
   const [postDeleteConfirmOpen, setPostDeleteConfirmOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showFloatingActions, setShowFloatingActions] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFloatingActions(window.scrollY > 600)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
   const [lastUpdateKey, setLastUpdateKey] = useState(0)
   const [isCreatingTranslation, setIsCreatingTranslation] = useState(false)
   const [isCreatingVariation, setIsCreatingVariation] = useState(false)
@@ -1588,7 +1598,7 @@ export default function Editor({
         const currentUrl = new URL(window.location.href)
         currentUrl.searchParams.set('view', 'source')
         bypassUnsavedChanges(true)
-        router.visit(currentUrl.toString())
+        router.visit(currentUrl.toString(), { preserveScroll: true })
       } else {
         if ((res as any).type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
           console.error('Save got redirected', { status: res.status, type: (res as any).type })
@@ -1639,7 +1649,7 @@ export default function Editor({
         toast.info(data.message || 'No changes were found to promote.')
         // Force reload anyway to stay in sync with server state
         bypassUnsavedChanges(true)
-        router.reload()
+        router.reload({ preserveScroll: true })
       } else {
         toast.success(
           data?.message ||
@@ -1648,7 +1658,7 @@ export default function Editor({
             : 'Review promoted to Source')
         )
         bypassUnsavedChanges(true)
-        router.reload()
+        router.reload({ preserveScroll: true })
       }
       return
     }
@@ -2210,8 +2220,13 @@ export default function Editor({
   const [agentResponse, setAgentResponse] = useState<{
     rawResponse?: string
     summary?: string | null
+    determination?: string | null
     applied?: string[]
     message?: string
+    executionMeta?: {
+      debug?: any
+      [key: string]: any
+    }
   } | null>(null)
   const [agentHistory, setAgentHistory] = useState<
     Array<{
@@ -3168,6 +3183,7 @@ export default function Editor({
       />
       <AdminHeader
         title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}${post.abVariation && abVariations.length > 1 ? ` (Var ${post.abVariation})` : ''}`}
+        hideGlobalAgent={true}
       />
 
       {/* Main Content */}
@@ -3233,21 +3249,23 @@ export default function Editor({
                 )}
 
                 {/* Excerpt */}
-                <div>
-                  <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                    Excerpt
-                  </label>
-                  <Textarea
-                    className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl min-h-[100px]"
-                    value={data.excerpt}
-                    onChange={(e) => setData('excerpt', e.target.value)}
-                    rows={3}
-                    placeholder="Brief description (optional)"
-                  />
-                  {errors.excerpt && (
-                    <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.excerpt}</p>
-                  )}
-                </div>
+                {(uiConfig?.hideCoreFields || []).includes('excerpt') ? null : (
+                  <div>
+                    <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                      Excerpt
+                    </label>
+                    <Textarea
+                      className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl min-h-[100px]"
+                      value={data.excerpt}
+                      onChange={(e) => setData('excerpt', e.target.value)}
+                      rows={3}
+                      placeholder="Brief description (optional)"
+                    />
+                    {errors.excerpt && (
+                      <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.excerpt}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Featured Image (core) */}
                 {uiConfig?.featuredImage?.enabled && (
@@ -3686,124 +3704,132 @@ export default function Editor({
 
                 <div className="space-y-6">
                   {/* Slug */}
-                  <div>
-                    <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                      <div className="flex items-center justify-between">
-                        <span>Slug *</span>
-                        {post.abVariation && abVariations.length > 1 && (
-                          <span className="text-[9px] text-standout-high normal-case font-normal">
-                            Note: Variations share the primary post's public URL.
-                          </span>
-                        )}
-                      </div>
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        className="font-mono text-sm border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
-                        value={data.slug}
-                        onChange={(e) => {
-                          const v = String(e.target.value || '')
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, '-')
-                            .replace(/-+/g, '-')
-                          setData('slug', v)
-                          // If user clears slug, re-enable auto; otherwise consider it manually controlled
-                          setSlugAuto(v === '')
-                        }}
-                        onBlur={() => {
-                          // Normalize fully on blur
-                          const v = slugify(String(data.slug || ''))
-                          setData('slug', v)
-                        }}
-                        placeholder="post-slug"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <FontAwesomeIcon
-                          icon={faLink}
-                          className={`text-lg ${slugAuto ? 'text-standout-high' : 'text-neutral-low opacity-20'}`}
+                  {!(uiConfig?.hideCoreFields || []).includes('slug') && (
+                    <div>
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                        <div className="flex items-center justify-between">
+                          <span>Slug *</span>
+                          {post.abVariation && abVariations.length > 1 && (
+                            <span className="text-[9px] text-standout-high normal-case font-normal">
+                              Note: Variations share the primary post's public URL.
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          className="font-mono text-sm border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
+                          value={data.slug}
+                          onChange={(e) => {
+                            const v = String(e.target.value || '')
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]+/g, '-')
+                              .replace(/-+/g, '-')
+                            setData('slug', v)
+                            // If user clears slug, re-enable auto; otherwise consider it manually controlled
+                            setSlugAuto(v === '')
+                          }}
+                          onBlur={() => {
+                            // Normalize fully on blur
+                            const v = slugify(String(data.slug || ''))
+                            setData('slug', v)
+                          }}
+                          placeholder="post-slug"
                         />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <FontAwesomeIcon
+                            icon={faLink}
+                            className={`text-lg ${slugAuto ? 'text-standout-high' : 'text-neutral-low opacity-20'}`}
+                          />
+                        </div>
                       </div>
+                      {errors.slug && (
+                        <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>
+                      )}
+                      {pathPattern && (
+                        <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
+                          Preview: {buildPreviewPath(data.slug)}
+                        </p>
+                      )}
                     </div>
-                    {errors.slug && (
-                      <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>
-                    )}
-                    {pathPattern && (
-                      <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
-                        Preview: {buildPreviewPath(data.slug)}
-                      </p>
-                    )}
-                  </div>
+                  )}
 
                   <div className="grid grid-cols-1 gap-6">
-                    {/* Meta Title */}
-                    <div>
-                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                        Meta Title
-                      </label>
-                      <Input
-                        type="text"
-                        className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
-                        value={data.metaTitle}
-                        onChange={(e) => setData('metaTitle', e.target.value)}
-                        placeholder="Custom meta title (optional)"
-                      />
-                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
-                        Leave blank to use post title
-                      </p>
-                    </div>
+                    {!(uiConfig?.hideCoreFields || []).includes('meta') && (
+                      <>
+                        {/* Meta Title */}
+                        <div>
+                          <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                            Meta Title
+                          </label>
+                          <Input
+                            type="text"
+                            className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
+                            value={data.metaTitle}
+                            onChange={(e) => setData('metaTitle', e.target.value)}
+                            placeholder="Custom meta title (optional)"
+                          />
+                          <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
+                            Leave blank to use post title
+                          </p>
+                        </div>
 
-                    {/* Meta Description */}
-                    <div>
-                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                        Meta Description
-                      </label>
-                      <Textarea
-                        className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl"
-                        value={data.metaDescription}
-                        onChange={(e) => setData('metaDescription', e.target.value)}
-                        rows={3}
-                        placeholder="Custom meta description (optional)"
-                      />
-                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
-                        Recommended: 150-160 characters
-                      </p>
-                    </div>
+                        {/* Meta Description */}
+                        <div>
+                          <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                            Meta Description
+                          </label>
+                          <Textarea
+                            className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl"
+                            value={data.metaDescription}
+                            onChange={(e) => setData('metaDescription', e.target.value)}
+                            rows={3}
+                            placeholder="Custom meta description (optional)"
+                          />
+                          <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
+                            Recommended: 150-160 characters
+                          </p>
+                        </div>
+                      </>
+                    )}
 
                     {/* Robots Toggles */}
-                    <div className="pt-4 border-t border-line-low">
-                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-3 ml-1">
-                        Search Engine Visibility
-                      </label>
-                      <div className="flex gap-6 ml-1">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="noindex"
-                            checked={data.noindex}
-                            onCheckedChange={(val) => setData('noindex', !!val)}
-                          />
-                          <label
-                            htmlFor="noindex"
-                            className="text-xs font-medium text-neutral-medium cursor-pointer"
-                          >
-                            No Index (Prevent from appearing in search results)
-                          </label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="nofollow"
-                            checked={data.nofollow}
-                            onCheckedChange={(val) => setData('nofollow', !!val)}
-                          />
-                          <label
-                            htmlFor="nofollow"
-                            className="text-xs font-medium text-neutral-medium cursor-pointer"
-                          >
-                            No Follow (Prevent search engines from following links)
-                          </label>
+                    {!(uiConfig?.hideCoreFields || []).includes('seo') && (
+                      <div className="pt-4 border-t border-line-low">
+                        <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-3 ml-1">
+                          Search Engine Visibility
+                        </label>
+                        <div className="flex gap-6 ml-1">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="noindex"
+                              checked={data.noindex}
+                              onCheckedChange={(val) => setData('noindex', !!val)}
+                            />
+                            <label
+                              htmlFor="noindex"
+                              className="text-xs font-medium text-neutral-medium cursor-pointer"
+                            >
+                              No Index (Prevent from appearing in search results)
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="nofollow"
+                              checked={data.nofollow}
+                              onCheckedChange={(val) => setData('nofollow', !!val)}
+                            />
+                            <label
+                              htmlFor="nofollow"
+                              className="text-xs font-medium text-neutral-medium cursor-pointer"
+                            >
+                              No Follow (Prevent search engines from following links)
+                            </label>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Social Media Preview / Settings */}
                     <div className="pt-6 border-t border-line-low space-y-4">
@@ -3997,7 +4023,7 @@ export default function Editor({
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-8">
+          <div className="space-y-8 lg:top-8 self-start max-h-[calc(100vh-4rem)] pr-2">
             {/* Actions */}
             <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low">
               <h3 className="text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">
@@ -4550,6 +4576,11 @@ export default function Editor({
                                                 })()
                                                 : 'Changes applied.')}
                                           </div>
+                                          {item.response.determination && (
+                                            <div className="text-xs italic text-neutral-medium px-1 mt-1 border-l-2 border-primary/20">
+                                              {item.response.determination}
+                                            </div>
+                                          )}
                                           {item.response.applied &&
                                             item.response.applied.length > 0 && (
                                               <div className="text-xs text-neutral-medium">
@@ -4632,12 +4663,24 @@ export default function Editor({
                             )}
 
                             {/* Show AI's natural response */}
-                            {agentResponse.summary && (
-                              <div className="space-y-1">
-                                <div className="text-xs text-neutral-medium">AI Response:</div>
-                                <div className="bg-standout-light p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
-                                  {agentResponse.summary}
-                                </div>
+                            {(agentResponse.summary || (agentResponse as any).determination) && (
+                              <div className="space-y-2">
+                                {agentResponse.summary && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">AI Summary:</div>
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
+                                      {agentResponse.summary}
+                                    </div>
+                                  </div>
+                                )}
+                                {(agentResponse as any).determination && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">Reasoning & Determination:</div>
+                                    <div className="bg-backdrop-medium p-4 rounded-lg border border-line-medium text-sm italic text-neutral-high whitespace-pre-wrap wrap-break-word">
+                                      {(agentResponse as any).determination}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {/* Fallback: Try to extract summary from raw response if not provided */}
@@ -4679,6 +4722,17 @@ export default function Editor({
                                       <li key={i}>{field}</li>
                                     ))}
                                   </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {agentResponse.executionMeta?.debug && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-medium">Debug Information:</div>
+                                <div className="bg-backdrop-low p-3 rounded border border-line-low overflow-auto max-h-[200px]">
+                                  <pre className="text-[10px] text-neutral-medium">
+                                    {JSON.stringify(agentResponse.executionMeta.debug, null, 2)}
+                                  </pre>
                                 </div>
                               </div>
                             )}
@@ -4804,8 +4858,10 @@ export default function Editor({
                                       setAgentResponse({
                                         rawResponse: j.rawResponse,
                                         summary: j.summary || null,
+                                        determination: j.determination || null,
                                         applied: j.applied || [],
                                         message: j.message,
+                                        executionMeta: j.executionMeta,
                                       })
                                       toast.success('Assistant completed successfully')
 
@@ -5516,7 +5572,13 @@ export default function Editor({
                 highlightId={selectedFeedbackId}
                 onSelect={(id) => setSelectedFeedbackId(id)}
                 onJumpToSpot={(ctx, fbId) => {
-                  if (ctx.selector) {
+                  let targetCtx = ctx
+                  if (typeof targetCtx === 'string') {
+                    try {
+                      targetCtx = JSON.parse(targetCtx)
+                    } catch (e) { }
+                  }
+                  if (targetCtx.selector) {
                     const url = new URL(post.publicPath, window.location.origin)
                     url.searchParams.set('feedback_id', fbId)
                     // If we're in a specific variation or mode, pass that along
@@ -5837,6 +5899,129 @@ export default function Editor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floating Action Bar (Post Admin) */}
+      <div
+        className={`fixed bottom-4 right-4 z-50 transition-all duration-300 transform ${showFloatingActions ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0 pointer-events-none'
+          }`}
+      >
+        <div className="flex items-center gap-4 p-1 bg-backdrop-high/90 backdrop-blur-md border border-line-medium rounded-xl shadow-2xl">
+          {/* Version Toggle */}
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+            {hasSourceBaseline && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await flushAllModuleEdits()
+                  if (initialDataRef.current) {
+                    setData((prev) => ({ ...prev, ...initialDataRef.current }))
+                  }
+                  setViewMode('source')
+                  const url = new URL(window.location.href)
+                  url.searchParams.set('view', 'source')
+                  window.history.replaceState({}, '', url.toString())
+                }}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 transition-all ${viewMode === 'source'
+                  ? 'bg-standout-high text-on-high'
+                  : 'text-neutral-high hover:bg-backdrop-medium'
+                  }`}
+              >
+                Source
+              </button>
+            )}
+            {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await flushAllModuleEdits()
+                  if (reviewInitialRef.current) {
+                    setData((prev) => ({ ...prev, ...reviewInitialRef.current }))
+                  }
+                  setViewMode('review')
+                  const url = new URL(window.location.href)
+                  url.searchParams.set('view', 'review')
+                  window.history.replaceState({}, '', url.toString())
+                }}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 transition-all ${viewMode === 'review'
+                  ? 'bg-standout-high text-on-high'
+                  : 'text-neutral-high hover:bg-backdrop-medium'
+                  }`}
+              >
+                Review
+              </button>
+            )}
+            {hasAiReviewBaseline && canApproveAiReview && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await flushAllModuleEdits()
+                  if (aiReviewInitialRef.current) {
+                    setData((prev) => ({ ...prev, ...aiReviewInitialRef.current }))
+                  }
+                  setViewMode('ai-review')
+                  const url = new URL(window.location.href)
+                  url.searchParams.set('view', 'ai-review')
+                  window.history.replaceState({}, '', url.toString())
+                }}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 transition-all ${viewMode === 'ai-review'
+                  ? 'bg-standout-high text-on-high'
+                  : 'text-neutral-high hover:bg-backdrop-medium'
+                  }`}
+              >
+                AI Review
+              </button>
+            )}
+          </div>
+
+          {/* Action Button - Only show if dirty */}
+          {isDirty && (
+            <button
+              type="button"
+              className={`h-9 px-4 text-xs font-medium rounded-md border border-line-medium transition-all flex items-center gap-2 ${processing || isSaving
+                ? 'bg-backdrop-medium/50 text-neutral-low cursor-not-allowed'
+                : 'bg-standout-high text-on-high shadow-md hover:bg-standout-high/90 active:scale-95'
+                }`}
+              disabled={processing || isSaving || (viewMode === 'source' && saveTarget === 'review' && !canSaveForReview)}
+              onClick={async () => {
+                if (viewMode === 'source') {
+                  executeSave(saveTarget)
+                } else if (viewMode === 'review') {
+                  executeSave('review')
+                } else if (viewMode === 'ai-review') {
+                  executeSave('ai-review')
+                }
+              }}
+            >
+              {isSaving ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                  Saving...
+                </>
+              ) : viewMode === 'source' ? (
+                saveTarget === 'review' ? (
+                  'Save for Review'
+                ) : (
+                  'Save Changes'
+                )
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+          )}
+
+          {/* Global Wand Button */}
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+            <GlobalAgentButton variant="ghost" />
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`fixed bottom-4 right-4 z-50 transition-all duration-300 transform ${!showFloatingActions ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0 pointer-events-none'
+          }`}
+      >
+        <GlobalAgentButton variant="floating" />
+      </div>
     </div>
   )
 }

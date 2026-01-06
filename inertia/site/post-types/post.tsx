@@ -93,14 +93,10 @@ function LiveModuleList({ postId }: { postId: string }) {
             key={module.id}
             id={anchor}
             data-module-id={module.id}
-            {...(isInlineEnabled
-              ? {
-                  'data-inline-module': module.id,
-                  'data-inline-scope': module.scope || 'local',
-                  'data-inline-global-slug': module.globalSlug || undefined,
-                  'data-inline-global-label': module.globalLabel || undefined,
-                }
-              : {})}
+            data-inline-module={module.id}
+            data-inline-scope={module.scope || 'local'}
+            data-inline-global-slug={module.globalSlug || undefined}
+            data-inline-global-label={module.globalLabel || undefined}
           >
             <Component {...module.props} __postId={postId} __moduleId={module.id} />
           </div>

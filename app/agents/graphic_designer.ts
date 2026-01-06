@@ -39,8 +39,17 @@ const GraphicDesignerAgent: AgentDefinition = {
 1. GENERATE vs SEARCH:
    - If the user uses "generate" or "create" → Use the generate_image tool immediately.
    - If the user uses "add", "include", or "find" → Search the existing media library first using search_media.
-2. CONTEXTUAL SELECTION:
-   - Use the module's text content as the context for searching or generating media.`,
+
+2. LIGHT & DARK VERSIONS (CRITICAL):
+   - When generating both a light and dark version of the same design:
+     a) FIRST call generate_image with { "theme": "light", "prompt": "..." }.
+     b) SECOND call generate_image with { "theme": "dark", "variationOf": "GENERATED_IMAGE_ID_0", "prompt": "..." }.
+   - This ensures both versions are stored within a SINGLE media item in the library.
+
+3. CONTEXTUAL AWARENESS:
+   - If you are in a "global" scope (check Technical Context), focus on creating media assets or new posts.
+   - If you are in a "post" or "field" scope, you can update the specific post or field provided.
+   - Do NOT assume you are updating a post unless instructions or context explicitly indicate one exists.`,
       ['AGENT_CAPABILITIES', 'MEDIA_HANDLING']
     ),
 
@@ -54,6 +63,12 @@ const GraphicDesignerAgent: AgentDefinition = {
 
     // MCP Tool Access Control (RBAC)
     allowedMCPTools: [
+      'list_post_types',
+      'list_module_groups',
+      'list_modules',
+      'create_post_ai_review',
+      'add_module_to_post_ai_review',
+      'remove_post_module_ai_review',
       'list_media',
       'get_media',
       'search_media',

@@ -24,7 +24,8 @@ interface TabbedFeaturesProps {
   title?: string
   subtitle?: string
   tabs: TabItem[]
-  layout?: 'top' | 'left' | 'right'
+  layout?: 'top' | 'left'
+  content_layout?: 'columns' | 'stacked'
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   theme?: string
   backgroundImage?: any
@@ -38,6 +39,7 @@ export default function TabbedFeatures({
   subtitle: initialSubtitle,
   tabs: initialTabs = [],
   layout: initialLayout = 'top',
+  content_layout: initialContentLayout = 'columns',
   objectFit: initialObjectFit = 'contain',
   theme: initialTheme = 'transparent',
   backgroundImage: initialBackgroundImage,
@@ -49,6 +51,7 @@ export default function TabbedFeatures({
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
   const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
+  const content_layout = useInlineValue(__moduleId, 'content_layout', initialContentLayout) || 'columns'
   const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
@@ -60,10 +63,11 @@ export default function TabbedFeatures({
 
 	const [activeTab, setActiveTab] = useState(0)
 	const currentTab = tabs[activeTab] || tabs[0] || null
-	const isVertical = layout === 'left' || layout === 'right'
+	const isStacked = content_layout === 'stacked'
+	const isVertical = layout === 'left'
 
 	const header = (showTitle || showSubtitle) && (
-		<div className={`mb-12 ${layout === 'top' ? 'text-center max-w-3xl mx-auto' : 'text-left'}`}>
+		<div className={`${layout === 'top' ? 'mb-12 text-center max-w-3xl mx-auto' : 'text-left'}`}>
 			{showTitle && (
 				<h2 className={`text-3xl md:text-4xl font-extrabold tracking-tight mb-4 ${textColor}`} {...titleProps}>
 					{title}
@@ -79,7 +83,7 @@ export default function TabbedFeatures({
 
 	const tabList = (
 		<div
-			className={`flex ${isVertical ? 'flex-col space-y-4' : 'flex-row space-x-2 border-b border-line-low mb-12 overflow-hidden no-scrollbar'
+			className={`flex ${isVertical ? 'flex-col space-y-4' : 'flex-row justify-center space-x-2 border-b border-line-low mb-12 overflow-x-auto no-scrollbar'
 				}`}
 		>
 			{tabs.map((tab: TabItem, idx: number) => {
@@ -94,7 +98,7 @@ export default function TabbedFeatures({
 							} ${!isVertical ? 'min-w-[160px]' : 'w-full'}`}
 					>
 						<div className="flex items-center justify-between">
-							<span className={`font-bold ${isVertical ? 'text-lg' : 'text-sm'}`}>
+							<span className={`font-semibold ${isVertical ? 'text-base' : 'text-[13px]'}`}>
 								{tab.label || `Tab ${idx + 1}`}
 							</span>
 							{isVertical && (
@@ -122,6 +126,10 @@ export default function TabbedFeatures({
 		</div>
 	)
 
+	const hasImage = !!currentTab?.image
+	const hasProse = !!currentTab?.prose
+	const hasBoth = hasImage && hasProse
+
 	const contentSection = (
 		<div className="relative">
 			<AnimatePresence mode="wait">
@@ -131,38 +139,9 @@ export default function TabbedFeatures({
 					animate={{ opacity: 1, y: 0, scale: 1 }}
 					exit={{ opacity: 0, y: -20, scale: 0.98 }}
 					transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-					className="flex flex-col space-y-12"
+					className={`flex flex-col space-y-12 ${hasBoth && !isStacked ? 'lg:grid lg:grid-cols-12 lg:items-center lg:space-y-0 lg:gap-16' : ''}`}
 				>
-					{currentTab?.image && (
-						<div className="w-full">
-							<motion.div
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: 0.1, duration: 0.6 }}
-								className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border border-line-low bg-backdrop-high group"
-								data-inline-type="select"
-								data-inline-path="objectFit"
-								data-inline-label="Media Fit"
-								data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
-							>
-								<div
-									className="w-full h-full"
-									data-inline-type="media"
-									data-inline-path={`tabs[${activeTab}].image`}
-								>
-									<MediaRenderer
-										image={currentTab.image}
-										alt={currentTab.image.altText || currentTab.label}
-										objectFit={objectFit}
-										className="w-full h-full transition-transform duration-700 group-hover:scale-105"
-									/>
-								</div>
-								<div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
-							</motion.div>
-						</div>
-					)}
-
-					<div className="space-y-8">
+					<div className={`space-y-8 ${hasBoth && !isStacked ? 'lg:col-span-8 lg:order-1' : ''}`}>
 						{currentTab && (
 							<div className="space-y-6">
 								{currentTab.prose && (
@@ -178,6 +157,34 @@ export default function TabbedFeatures({
 							</div>
 						)}
 					</div>
+
+					{hasImage && (
+						<div className={`${hasBoth && !isStacked ? 'lg:col-span-4 lg:order-2' : 'w-full'}`}>
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.1, duration: 0.6 }}
+								className={`relative aspect-video overflow-hidden group ${isStacked ? 'max-w-5xl mx-auto' : ''}`}
+								data-inline-type="select"
+								data-inline-path="objectFit"
+								data-inline-label="Media Fit"
+								data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
+							>
+								<div
+									className="w-full h-full"
+									data-inline-type="media"
+									data-inline-path={`tabs[${activeTab}].image`}
+								>
+									<MediaRenderer
+										image={currentTab.image}
+										alt={currentTab.image?.altText || currentTab.label}
+										objectFit={objectFit}
+										className="w-full h-full transition-transform duration-700 group-hover:scale-105"
+									/>
+								</div>
+							</motion.div>
+						</div>
+					)}
 				</motion.div>
 			</AnimatePresence>
 		</div>
@@ -185,7 +192,7 @@ export default function TabbedFeatures({
 
 	return (
 		<section
-			className={`${styles.containerClasses} py-20 lg:py-32 overflow-hidden relative`}
+			className={`${styles.containerClasses} py-20 lg:py-32 relative`}
 			data-module="tabbed-features"
 			data-inline-type="background"
 			data-inline-path="theme"
@@ -208,24 +215,12 @@ export default function TabbedFeatures({
 
 				{layout === 'left' && (
 					<div className="grid gap-16 lg:grid-cols-[320px_1fr]">
-						<div className="space-y-8">
+						<div className="space-y-8 lg:sticky lg:top-32 lg:self-start">
 							{header}
 							{tabList}
 						</div>
 						<div className="min-h-[400px]">
 							{contentSection}
-						</div>
-					</div>
-				)}
-
-				{layout === 'right' && (
-					<div className="grid gap-16 lg:grid-cols-[1fr_320px]">
-						<div className="min-h-[400px]">
-							{contentSection}
-						</div>
-						<div className="space-y-8">
-							{header}
-							{tabList}
 						</div>
 					</div>
 				)}
