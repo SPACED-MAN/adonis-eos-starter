@@ -8,3 +8,4 @@ declare module 'prismjs/components/*' {
   export default content;
 }
 
+
