@@ -45,12 +45,12 @@
 
 .inline-diff-add {
   background-color: color-mix(in srgb, var(--color-amber-200) 70%, transparent);
-  border-radius: 2px;
+  border-radius: var(--radius-small);
 }
 
 .inline-diff-del {
   background-color: color-mix(in srgb, var(--color-red-200) 70%, transparent);
-  border-radius: 2px;
+  border-radius: var(--radius-small);
   text-decoration: line-through;
 }
 

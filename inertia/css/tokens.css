@@ -42,8 +42,11 @@
      2. Geometry & Token Mappings
      --------------------------------------------------------- */
 
-	/* Category: ShadCN / Component System Token Mappings */
-	--radius: 0.35rem;
+	/* Category: Geometry & Radius Control */
+	--radius-small: 0.125rem;
+	--radius-medium: 0.25rem;
+	--radius-large: 0.375rem;
+	--radius: var(--radius-medium);
 	--background: var(--color-backdrop-low);
 	--foreground: var(--color-neutral-high);
 	--card: var(--color-backdrop-low);

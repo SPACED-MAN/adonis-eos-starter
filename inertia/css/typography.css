@@ -133,7 +133,7 @@
     font-size: 0.875em !important;
     font-weight: 400 !important;
     padding: 0.125rem 0.25rem !important;
-    border-radius: 0.25rem !important;
+    border-radius: var(--radius-medium) !important;
 
     &::before,
     &::after {
@@ -146,7 +146,7 @@
     background-color: #161b22 !important;
     color: #e6edf3 !important;
     border: 1px solid #30363d !important;
-    border-radius: 0.5rem !important;
+    border-radius: var(--radius-large) !important;
     padding: 0 !important;
     overflow: hidden !important;
     margin: 1.5rem 0 !important;

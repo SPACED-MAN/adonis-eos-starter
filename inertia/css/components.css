@@ -8,10 +8,11 @@
      convention used by our component library (ShadCN / Radix).
   */
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: var(--radius-small);
+  --radius-md: var(--radius-medium);
+  --radius-lg: var(--radius-large);
+  --radius-xl: calc(var(--radius-large) + 0.125rem);
+  --radius-2xl: calc(var(--radius-large) + 0.25rem);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
