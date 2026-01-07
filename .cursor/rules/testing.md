@@ -254,7 +254,7 @@ response.assertRedirectsTo('/login')
 ```typescript
 const user = await User.create({
   email: 'test@example.com',
-  password: 'secret',
+  password: 'supersecret',
 })
 
 const response = await client.get('/api/protected').loginAs(user)

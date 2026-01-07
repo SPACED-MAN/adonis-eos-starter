@@ -35,14 +35,36 @@ ENV_PATH=/etc/secrets/.env node build/bin/server.js
 | `PORT` | The port your app will listen on (default `3333`). |
 | `DB_*` | Your production PostgreSQL credentials. |
 | `REDIS_HOST` | Required if using Redis for caching or sessions. |
+| `REDIS_PORT` | Port for your Redis instance (default `6379`). |
+| `REDIS_PASSWORD` | Optional password for Redis authentication. |
+| `STORAGE_DRIVER` | Set to `r2` for Cloudflare R2 or `s3` for Amazon S3. |
+| `R2_ACCOUNT_ID` | Your Cloudflare Account ID. |
+| `R2_ACCESS_KEY_ID` | R2 API Access Key ID. |
+| `R2_SECRET_ACCESS_KEY` | R2 API Secret Access Key. |
+| `R2_BUCKET` | The name of your R2 bucket. |
+| `R2_PUBLIC_BASE_URL` | The public URL of your R2 bucket. |
+| `SMTP_*` | Credentials for your email provider (for notifications). |
 
-## 3. Database Migrations
+## 3. Database & Initial Data
 
+### Migrations
 Run your migrations on the production server to set up the schema. The `--force` flag is required in production.
 
 ```bash
 node ace migration:run --force
 ```
+
+### Initial Data Seeding
+Adonis EOS follows a convention for first-time production launches using a `production-export.json` file. This is useful for seeding initial site settings, default roles, and basic pages.
+
+1. Place your exported site data at `database/seed_data/production-export.json`.
+2. Run the production seeder:
+
+```bash
+node ace db:seed --files production_import_seeder
+```
+
+> **Note:** The production seeder will automatically abort if it detects existing data in key tables (users, posts, etc.) to prevent accidental data loss.
 
 ### ⚠️ Safety: Disable Rollbacks
 Rolling back in production is dangerous. We recommend disabling it in `config/database.ts`:
@@ -59,14 +81,30 @@ Rolling back in production is dangerous. We recommend disabling it in `config/da
 }
 ```
 
-## 4. Persistent Storage
+## 4. Services
 
-Since Adonis EOS handles heavy media uploads, you **must** use persistent storage. Default local storage is ephemeral on many cloud platforms (Heroku, DigitalOcean Apps).
+### Redis
+Redis is strongly recommended for production environments. It is used for:
+- **Server-Side Rendering (SSR) Caching**: Drastically improves performance by caching rendered pages.
+- **Session Management**: Shared sessions across multiple application instances.
+- **Rate Limiting**: Accurate tracking of request rates.
 
-- **Recommended**: Use **Cloudflare R2** or **Amazon S3**. Set `STORAGE_DRIVER=r2` and provide your bucket credentials.
-- **Alternative**: Use a **Persistent Volume** if your host supports it (e.g., DigitalOcean Droplet + Block Storage) and set `STORAGE_LOCAL_ROOT` to that mount point.
+Ensure `REDIS_CACHE_ENABLED=true` is set in your environment variables to enable the caching layer.
 
-## 5. Process Management (PM2)
+### Persistent Storage
+Since Adonis EOS handles heavy media uploads, you **must** use persistent storage. Default local storage is ephemeral on many cloud platforms.
+
+- **Recommended**: Use **Cloudflare R2** (or S3-compatible). Set `STORAGE_DRIVER=r2` and provide your bucket credentials.
+- **Local Alternative**: Use a **Persistent Volume** if your host supports it and set `STORAGE_LOCAL_ROOT` to that mount point.
+
+## 5. Health Checks
+
+Adonis EOS includes a built-in health check endpoint for load balancers and uptime monitoring:
+
+- **Endpoint**: `/health`
+- **Response**: Returns a `200 OK` with JSON indicating status, uptime, and timestamp.
+
+## 6. Process Management (PM2)
 
 Use a process manager like **PM2** to keep your application running in the background and restart it if it crashes.
 

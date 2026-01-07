@@ -11,8 +11,13 @@ The fastest way to get started with Adonis EOS is to use our starter kit.
 npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
 cd my-cms-project
 
+# Setup PostgreSQL Database (Skip if already handled)
+# sudo -u postgres psql -c "CREATE USER adonis_eos WITH PASSWORD 'password';"
+# sudo -u postgres psql -c "CREATE DATABASE adonis_eos_db OWNER adonis_eos;"
+
 # Configure environment
 cp .env.example .env
+# Update DB_USER, DB_PASSWORD, and DB_DATABASE in .env to match the above
 
 # Generate APP_KEY (required)
 node ace generate:key
