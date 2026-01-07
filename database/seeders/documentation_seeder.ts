@@ -476,8 +476,7 @@ export default class extends BaseSeeder {
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
     postIdsBySlug: Record<string, string>,
-    currentFile: { file: string; path: string; dir: string },
-    baseSlugToDir?: Record<string, string>
+    currentFile: { file: string; path: string; dir: string }
   ): any {
     if (!lexicalContent || !lexicalContent.root) return lexicalContent
 
@@ -491,8 +490,7 @@ export default class extends BaseSeeder {
           slugToPath,
           allFiles,
           postIdsBySlug,
-          currentFile,
-          baseSlugToDir
+          currentFile
         )
         return {
           ...node,
@@ -530,8 +528,7 @@ export default class extends BaseSeeder {
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
     postIdsBySlug: Record<string, string>,
-    currentFile: { file: string; path: string; dir: string },
-    baseSlugToDir?: Record<string, string>
+    currentFile: { file: string; path: string; dir: string }
   ): string {
     // Skip external links, anchors, and mailto: links
     if (
@@ -1069,8 +1066,7 @@ export default class extends BaseSeeder {
               slugToPath,
               allFiles,
               postIdsBySlug,
-              fileInfo,
-              baseSlugToDir
+              fileInfo
             )
 
             // Update the module instance props (props are stored in module_instances, not post_modules)
@@ -1107,8 +1103,7 @@ export default class extends BaseSeeder {
             slugToPath,
             allFiles,
             postIdsBySlug,
-            { file: '00-index.md', path: docsIndexPath, dir: 'root' },
-            baseSlugToDir
+            { file: '00-index.md', path: docsIndexPath, dir: 'root' }
           )
 
           // Update the module instance props (props are stored in module_instances, not post_modules)

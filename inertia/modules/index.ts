@@ -13,8 +13,7 @@
  * `getRenderingMode()` – not by filename suffixes.
  */
 
-// Auto-discover all .tsx module files with eager loading for named exports
-const eagerModules = import.meta.glob<{ default: any }>('./*.tsx', { eager: true })
+import React, { lazy } from 'react'
 
 // Auto-discover all .tsx module files with lazy loading for dynamic imports
 const lazyModules = import.meta.glob('./*.tsx')
@@ -28,35 +27,27 @@ function toPascalCase(str: string): string {
     .join('')
 }
 
-// Build named exports dynamically
+// Build dynamic component map and exports
 const exports: Record<string, any> = {}
-
-for (const [path, module] of Object.entries(eagerModules)) {
-  // Extract filename: './hero-with-media.tsx' -> 'hero-with-media'
-  const fileName = path.replace(/^\.\//, '').replace(/\.tsx$/, '')
-
-  // Convert to PascalCase: 'hero-with-media' -> 'HeroWithMedia'
-  const exportName = toPascalCase(fileName)
-
-  // Add to exports
-  exports[exportName] = module.default
-}
-
-// Export all discovered modules dynamically
-// No need to manually list each module - they're auto-discovered!
-export default exports
-
-/**
- * Module component map for dynamic imports
- * Auto-generated from discovered modules
- */
-const componentMap: Record<string, () => Promise<any>> = {}
+const componentMap: Record<string, any> = {}
 
 for (const [path, loader] of Object.entries(lazyModules)) {
   // Extract filename: './hero-with-media.tsx' -> 'hero-with-media'
   const fileName = path.replace(/^\.\//, '').replace(/\.tsx$/, '')
-  componentMap[fileName] = loader as () => Promise<any>
+
+  // Create lazy component (only once!)
+  const lazyComponent = lazy(loader as any)
+
+  // Add to kebab-case map
+  componentMap[fileName] = lazyComponent
+
+  // Add to PascalCase exports: 'hero-with-media' -> 'HeroWithMedia'
+  const exportName = toPascalCase(fileName)
+  exports[exportName] = lazyComponent
 }
 
-export const MODULE_COMPONENTS = componentMap as Record<string, () => Promise<{ default: any }>>
+// Export all discovered modules dynamically as PascalCase
+export default exports
+
+export const MODULE_COMPONENTS = componentMap as Record<string, React.LazyExoticComponent<any>>
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

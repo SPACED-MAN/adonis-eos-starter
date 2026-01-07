@@ -33,16 +33,51 @@ export default defineConfig({
    */
   build: {
     rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('lexical')) {
+              return 'vendor-lexical'
+            }
+            if (id.includes('lucide-react') || id.includes('fortawesome')) {
+              return 'vendor-icons'
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion'
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts'
+            }
+            if (id.includes('@radix-ui')) {
+              return 'vendor-ui'
+            }
+            if (id.includes('@dnd-kit')) {
+              return 'vendor-dnd'
+            }
+            if (id.includes('prismjs') || id.includes('marked')) {
+              return 'vendor-utils'
+            }
+            return 'vendor'
+          }
+        },
+      },
       external: (id) => {
         // Exclude SSR-only Node.js dependencies from client bundle
         // These are only used in inertia/app/ssr.tsx and cannot run in browser
-        if (id.includes('@adonisjs/redis') || id === 'node:crypto' || id === 'crypto') {
+        if (
+          id.includes('@adonisjs/redis') ||
+          id === 'node:crypto' ||
+          id === 'crypto' ||
+          id === 'sharp' ||
+          id.includes('@aws-sdk')
+        ) {
           return true
         }
         // Allow react-dom/server - it's used in client code (InlineOverlay)
         return false
       },
     },
+    chunkSizeWarningLimit: 1500,
   },
 
   /**

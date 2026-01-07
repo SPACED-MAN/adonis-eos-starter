@@ -580,7 +580,7 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
     }
 
     // User message with context
-    const userMessage = await this.buildUserMessage(agent, context, payload, isDebug)
+    const userMessage = await this.buildUserMessage(agent, context, payload)
     messages.push({
       role: 'user',
       content: userMessage,
@@ -595,8 +595,7 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
   private async buildUserMessage(
     agent: AgentDefinition,
     context: AgentExecutionContext,
-    payload: any,
-    isDebug: boolean = false
+    payload: any
   ): Promise<string> {
     const parts: string[] = []
 

@@ -1,6 +1,5 @@
 import 'reflect-metadata'
 import { Ignitor } from '@adonisjs/core'
-import { fileURLToPath } from 'node:url'
 
 /**
  * Scan content for hardcoded internal URLs that should use post references.
@@ -11,143 +10,150 @@ import { fileURLToPath } from 'node:url'
 
 const appRoot = new URL('../', import.meta.url)
 
-new Ignitor(appRoot, { logger: true })
-  .tap((app) => {
-    app.booting(async () => {
-      await app.init()
-      await app.boot()
-    })
-  })
-  .run(async (app) => {
-    const db = await app.container.make('lucid.db')
-    console.log('🔍 Scanning for hardcoded internal URLs...\n')
+const importer = (filePath: string) => {
+  if (filePath.startsWith('./') || filePath.startsWith('../')) {
+    return import(new URL(filePath, appRoot).href)
+  }
+  return import(filePath)
+}
 
-    const issues: Array<{
-      location: string
-      postId: string
-      postTitle: string
-      postType: string
-      field: string
-      value: string
-      suggestion: string
-    }> = []
+const ignitor = new Ignitor(appRoot, { importer })
+const app = ignitor.createApp('console')
 
-    const internalPatterns = [
-      /^\/[^/]/,
-      /^https?:\/\/localhost/,
-      /^https?:\/\/127\.0\.0\.1/,
-    ]
+await app.init()
+await app.boot()
 
-    // Scan module instances
-    const modules = await db
-      .from('module_instances')
-      .select('id', 'type', 'props', 'scope', 'global_slug')
+const db = await app.container.make('lucid.db')
+console.log('🔍 Scanning for hardcoded internal URLs...\n')
 
-    for (const module of modules) {
-      const props = module.props || {}
-      const findings = scanObject(props, internalPatterns)
+const issues: Array<{
+  location: string
+  postId: string
+  postTitle: string
+  postType: string
+  field: string
+  value: string
+  suggestion: string
+}> = []
 
-      if (findings.length > 0) {
-        const postModules = await db
-          .from('post_modules')
-          .join('posts', 'post_modules.post_id', 'posts.id')
-          .where('post_modules.module_id', module.id)
-          .select('posts.id', 'posts.title', 'posts.type', 'posts.slug')
+const internalPatterns = [
+  /^\/[^/]/,
+  /^https?:\/\/localhost/,
+  /^https?:\/\/127\.0\.0\.1/,
+]
 
-        if (postModules.length > 0) {
-          for (const pm of postModules) {
-            for (const finding of findings) {
-              issues.push({
-                location: `Module: ${module.type}`,
-                postId: String(pm.id),
-                postTitle: pm.title || pm.slug,
-                postType: pm.type,
-                field: finding.path,
-                value: finding.value,
-                suggestion: finding.suggestion,
-              })
-            }
-          }
-        } else if (module.scope === 'global') {
-          for (const finding of findings) {
-            issues.push({
-              location: `Global Module: ${module.type} (${module.global_slug})`,
-              postId: 'N/A',
-              postTitle: 'N/A',
-              postType: 'N/A',
-              field: finding.path,
-              value: finding.value,
-              suggestion: finding.suggestion,
-            })
-          }
-        }
-      }
-    }
+// Scan module instances
+const modules = await db
+  .from('module_instances')
+  .select('id', 'type', 'props', 'scope', 'global_slug')
 
-    // Scan custom field values
-    const customFields = await db
-      .from('post_custom_field_values')
-      .join('posts', 'post_custom_field_values.post_id', 'posts.id')
-      .select(
-        'post_custom_field_values.field_slug',
-        'post_custom_field_values.value',
-        'posts.id as post_id',
-        'posts.title',
-        'posts.type',
-        'posts.slug'
-      )
+for (const module of modules) {
+  const props = module.props || {}
+  const findings = scanObject(props, internalPatterns)
 
-    for (const cf of customFields) {
-      const findings = scanObject(cf.value, internalPatterns)
-      if (findings.length > 0) {
+  if (findings.length > 0) {
+    const postModules = await db
+      .from('post_modules')
+      .join('posts', 'post_modules.post_id', 'posts.id')
+      .where('post_modules.module_id', module.id)
+      .select('posts.id', 'posts.title', 'posts.type', 'posts.slug')
+
+    if (postModules.length > 0) {
+      for (const pm of postModules) {
         for (const finding of findings) {
           issues.push({
-            location: `Custom Field: ${cf.field_slug}`,
-            postId: String(cf.post_id),
-            postTitle: cf.title || cf.slug,
-            postType: cf.type,
+            location: `Module: ${module.type}`,
+            postId: String(pm.id),
+            postTitle: pm.title || pm.slug,
+            postType: pm.type,
             field: finding.path,
             value: finding.value,
             suggestion: finding.suggestion,
           })
         }
       }
-    }
-
-    if (issues.length === 0) {
-      console.log('✅ No hardcoded internal URLs found!')
-      return
-    }
-
-    console.warn(`⚠️  Found ${issues.length} hardcoded internal URL(s):\n`)
-
-    const byPost = new Map<string, typeof issues>()
-    for (const issue of issues) {
-      const key = `${issue.postId}|${issue.postTitle}`
-      if (!byPost.has(key)) {
-        byPost.set(key, [])
-      }
-      byPost.get(key)!.push(issue)
-    }
-
-    for (const [, postIssues] of byPost.entries()) {
-      const first = postIssues[0]
-      console.log(`📄 ${first.postTitle} (${first.postType}) - ID: ${first.postId}`)
-
-      for (const issue of postIssues) {
-        console.log(`   ${issue.location}`)
-        console.log(`   Field: ${issue.field}`)
-        console.log(`   Value: ${issue.value}`)
-        console.log(`   ${issue.suggestion}`)
-        console.log('')
+    } else if (module.scope === 'global') {
+      for (const finding of findings) {
+        issues.push({
+          location: `Global Module: ${module.type} (${module.global_slug})`,
+          postId: 'N/A',
+          postTitle: 'N/A',
+          postType: 'N/A',
+          field: finding.path,
+          value: finding.value,
+          suggestion: finding.suggestion,
+        })
       }
     }
+  }
+}
 
-    console.warn(`\n⚠️  Total: ${issues.length} issue(s) across ${byPost.size} post(s)`)
-    console.log(
-      '\n💡 To fix these, edit the posts in the admin and switch to "Existing post" mode for internal links.\n'
-    )
-  })
+// Scan custom field values
+const customFields = await db
+  .from('post_custom_field_values')
+  .join('posts', 'post_custom_field_values.post_id', 'posts.id')
+  .select(
+    'post_custom_field_values.field_slug',
+    'post_custom_field_values.value',
+    'posts.id as post_id',
+    'posts.title',
+    'posts.type',
+    'posts.slug'
+  )
+
+for (const cf of customFields) {
+  const findings = scanObject(cf.value, internalPatterns)
+  if (findings.length > 0) {
+    for (const finding of findings) {
+      issues.push({
+        location: `Custom Field: ${cf.field_slug}`,
+        postId: String(cf.post_id),
+        postTitle: cf.title || cf.slug,
+        postType: cf.type,
+        field: finding.path,
+        value: finding.value,
+        suggestion: finding.suggestion,
+      })
+    }
+  }
+}
+
+if (issues.length === 0) {
+  console.log('✅ No hardcoded internal URLs found!')
+  await app.terminate()
+  process.exit(0)
+}
+
+console.warn(`⚠️  Found ${issues.length} hardcoded internal URL(s):\n`)
+
+const byPost = new Map<string, typeof issues>()
+for (const issue of issues) {
+  const key = `${issue.postId}|${issue.postTitle}`
+  if (!byPost.has(key)) {
+    byPost.set(key, [])
+  }
+  byPost.get(key)!.push(issue)
+}
+
+for (const [, postIssues] of byPost.entries()) {
+  const first = postIssues[0]
+  console.log(`📄 ${first.postTitle} (${first.postType}) - ID: ${first.postId}`)
+
+  for (const issue of postIssues) {
+    console.log(`   ${issue.location}`)
+    console.log(`   Field: ${issue.field}`)
+    console.log(`   Value: ${issue.value}`)
+    console.log(`   ${issue.suggestion}`)
+    console.log('')
+  }
+}
+
+console.warn(`\n⚠️  Total: ${issues.length} issue(s) across ${byPost.size} post(s)`)
+console.log(
+  '\n💡 To fix these, edit the posts in the admin and switch to "Existing post" mode for internal links.\n'
+)
+
+await app.terminate()
 
 function scanObject(
   obj: any,

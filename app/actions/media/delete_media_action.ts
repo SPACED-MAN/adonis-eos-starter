@@ -5,10 +5,6 @@ import storageService from '#services/storage_service'
 import mediaUsageService from '#services/media_usage_service'
 import logActivityAction from '#actions/log_activity_action'
 import dispatchWebhookAction from '#actions/dispatch_webhook_action'
-import { promisify } from 'node:util'
-import { exec } from 'node:child_process'
-
-const execAsync = promisify(exec)
 
 export interface DeleteMediaOptions {
   id: string
