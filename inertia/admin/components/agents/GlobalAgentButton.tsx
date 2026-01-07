@@ -62,7 +62,7 @@ export function GlobalAgentButton({
 
   const trigger = isFloating ? (
     <button
-      className="fixed bottom-0 right-0 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-high hover:scale-105 active:scale-95 transition-all duration-200"
+      className="fixed bottom-2 right-2 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-high hover:scale-105 active:scale-95 transition-all duration-200"
       aria-label="AI Assistant"
     >
       <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xl" />

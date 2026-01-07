@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { usePage } from '@inertiajs/react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, type Variants } from 'framer-motion'
-import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineEditor, useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import ProfileTeaser from '../site/post-types/profile-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
@@ -40,11 +41,15 @@ export default function ProfileList({
   __moduleId,
   _useReact,
 }: ProfileListProps) {
+  const page = usePage()
+  const currentUser = (page.props as any)?.currentUser
+  const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
   const [items, setItems] = useState<ProfileSummary[]>([])
   const [loading, setLoading] = useState(true)
   const { enabled } = useInlineEditor()
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const profiles = useInlineValue(__moduleId, 'profiles', initialProfiles)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
@@ -59,7 +64,9 @@ export default function ProfileList({
       ; (async () => {
         try {
           const params = new URLSearchParams()
-          params.set('status', 'published')
+          if (!enabled) {
+            params.set('status', 'published')
+          }
           params.set('limit', '50')
           const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
           if (ids.length > 0) {
@@ -122,26 +129,27 @@ export default function ProfileList({
 
   const headerContent = (
     <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-      {_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, y: -10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.0 }}
-          className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </h2>
-      )}
-      {subtitle &&
+      {showTitle &&
+        (_useReact ? (
+          <motion.h2
+            initial={{ opacity: 0, y: -10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0 }}
+            className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </h2>
+        ))}
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             initial={{ opacity: 0 }}
@@ -149,14 +157,14 @@ export default function ProfileList({
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
             className={`font-light ${subtextColor} lg:mb-4 sm:text-xl`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
             className={`font-light ${subtextColor} lg:mb-4 sm:text-xl`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </p>
@@ -232,7 +240,35 @@ export default function ProfileList({
   }
 
   if (items.length === 0) {
-    return null
+    if (!enabled && !isAuthenticated) return null
+
+    return (
+      <section
+        className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
+        data-module="profile-list"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
+      >
+        <SectionBackground
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {headerContent}
+          <div className="text-center py-12 border-2 border-dashed border-line-medium rounded-2xl bg-backdrop-medium/20">
+            <p className={`${subtextColor} opacity-60`}>
+              No profiles found.{' '}
+              {profiles?.length
+                ? 'Try selecting different profiles.'
+                : 'Publish some profile posts or select them in the editor.'}
+            </p>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (

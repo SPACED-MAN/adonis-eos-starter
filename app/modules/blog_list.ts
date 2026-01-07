@@ -4,11 +4,11 @@ import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE } from
 
 export default class BlogListModule extends BaseModule {
   /**
-   * Blog list can be hybrid to support staggered entry animations
-   * when interactivity is enabled.
+   * Blog list must be 'react' (hydrated) because it fetches its own data
+   * from /api/blogs in a useEffect hook.
    */
   getRenderingMode() {
-    return 'hybrid' as const
+    return 'react' as const
   }
 
   getConfig(): ModuleConfig {

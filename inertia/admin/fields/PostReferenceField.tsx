@@ -6,13 +6,19 @@ type Props = {
   config?: Record<string, any>
 }
 
-export default function PostReferenceField({ value, onChange, config }: Props) {
+export default function PostReferenceField({ value, onChange, config, ...rest }: any) {
+  // CustomFieldRenderer spreads config into props, so postType/multiple might be top-level
+  const effectiveConfig = {
+    ...(config || {}),
+    ...rest,
+  }
+
   return (
     <PostCustomPostReferenceField
-      label={config?.label || 'Select post'}
+      label={effectiveConfig.label || 'Select post'}
       value={value}
       onChange={onChange}
-      config={config}
+      config={effectiveConfig}
     />
   )
 }

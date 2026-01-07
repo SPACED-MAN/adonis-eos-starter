@@ -993,13 +993,20 @@ const PostReferenceFieldInternal = memo(
     ctx: EditorFieldCtx
     matchingAgents?: Agent[]
   }) => {
-    const allowedTypes: string[] = Array.isArray(field.postTypes)
-      ? field.postTypes
-      : field.postType
-        ? [String(field.postType)]
-        : []
+    const allowedTypes: string[] = (() => {
+      const c = field.config || {}
+      const rawTypes = c.postTypes || c.post_types || field.postTypes || field.post_types
+      if (Array.isArray(rawTypes)) return rawTypes
+      const rawType = c.postType || c.post_type || field.postType || field.post_type
+      if (rawType) return [String(rawType)]
+      return []
+    })()
 
-    const allowMultiple = field.allowMultiple !== false && field.multiple !== false
+    const allowMultiple =
+      field.config?.allowMultiple !== false &&
+      field.config?.multiple !== false &&
+      field.allowMultiple !== false &&
+      field.multiple !== false
 
     const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
     const initialVals = Array.isArray(value) ? value : value ? [String(value)] : []
@@ -1031,7 +1038,10 @@ const PostReferenceFieldInternal = memo(
             params.set('limit', '100')
             params.set('sortBy', 'updated_at')
             params.set('sortOrder', 'desc')
-            if (allowedTypes.length > 0) params.set('types', allowedTypes.join(','))
+
+            if (allowedTypes.length > 0) {
+              params.set('types', allowedTypes.join(','))
+            }
             const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
             const j = await r.json().catch(() => ({}))
             if (alive)
@@ -1559,6 +1569,8 @@ const FieldPrimitiveInternal = memo(
       const props: Record<string, any> = {
         value: valueToUse ?? null,
         onChange: handleChange,
+        config: cfg.config, // Ensure original config is passed
+        ...(cfg.config || {}), // Spread config for components expecting top-level props
         ...domSafeCfg,
       }
       if (type === 'link') {

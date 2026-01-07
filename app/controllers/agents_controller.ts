@@ -264,6 +264,9 @@ export default class AgentsController {
     const openEndedContext =
       typeof rawOpenEnded === 'string' && rawOpenEnded.trim() ? rawOpenEnded.trim() : undefined
 
+    // Check if we should reset history for this execution
+    const resetHistory = ctx.resetHistory === true || ctx.resetContext === true
+
     // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
     if (openEndedContext) {
       const enabled = agent.openEndedContext?.enabled === true
@@ -291,10 +294,12 @@ export default class AgentsController {
     }
 
     // Fetch history for context awareness (last 5 turns)
-    const historyExecutions = await agentExecutionService.getHistory(id, {
-      agentId: agent.id,
-      limit: 5,
-    })
+    const historyExecutions = resetHistory
+      ? []
+      : await agentExecutionService.getHistory(id, {
+          agentId: agent.id,
+          limit: 5,
+        })
 
     const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
     // Items are returned in desc order (newest first), so we reverse to build chronological conversation
@@ -646,6 +651,9 @@ export default class AgentsController {
       const openEndedContext =
         typeof openEnded === 'string' && openEnded.trim() ? openEnded.trim() : undefined
 
+      // Check if we should reset history for this execution
+      const resetHistory = requestContext.resetHistory === true || requestContext.resetContext === true
+
       // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
       if (openEndedContext) {
         const enabled = agent.openEndedContext?.enabled === true
@@ -672,11 +680,13 @@ export default class AgentsController {
       }
 
       // Fetch global history for context awareness (last 5 turns)
-      const historyExecutions = await agentExecutionService.getHistory(null, {
-        agentId: agent.id,
-        scope: 'global',
-        limit: 5,
-      })
+      const historyExecutions = resetHistory
+        ? []
+        : await agentExecutionService.getHistory(null, {
+            agentId: agent.id,
+            scope: 'global',
+            limit: 5,
+          })
 
       const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
       for (const e of [...historyExecutions].reverse()) {

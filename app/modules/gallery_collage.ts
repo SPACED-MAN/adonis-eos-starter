@@ -74,13 +74,6 @@ export default class GalleryCollageModule extends BaseModule {
                 ],
                 default: 'medium',
               },
-              {
-                slug: 'label',
-                type: 'text',
-                label: 'Caption',
-                translatable: true,
-                isLabel: true,
-              },
             ],
           },
         },

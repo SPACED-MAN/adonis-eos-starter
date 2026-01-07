@@ -19,8 +19,7 @@ export default class PostsListController extends BasePostsController {
    * List posts with optional search, filters, sorting, and pagination
    */
   async index({ request, response }: HttpContext) {
-    const q = String(request.input('q', '')).trim()
-    const type = String(request.input('type', '')).trim()
+    const q = String(request.input('q', request.input('search', ''))).trim()
     const idsParam = request.input('ids')
     let ids: string[] = []
     if (Array.isArray(idsParam)) {
@@ -79,17 +78,26 @@ export default class PostsListController extends BasePostsController {
     const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
     const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-    // Support multiple post types
-    const typesParam = request.input('types')
-    let types: string[] = []
-    if (Array.isArray(request.qs().type)) {
-      types = (request.qs().type as string[]).map((t) => String(t).trim()).filter(Boolean)
-    } else if (typeof typesParam === 'string' && typesParam.trim()) {
-      types = typesParam
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
+    // Normalize types into a single array
+    const rawType = request.input('type')
+    const rawPostType = request.input('postType')
+    const rawTypes = request.input('types')
+
+    let requestedTypes: string[] = []
+    const addToTypes = (val: any) => {
+      if (!val) return
+      if (Array.isArray(val)) {
+        val.forEach((v) => requestedTypes.push(String(v).trim()))
+      } else if (typeof val === 'string') {
+        val.split(',').forEach((v) => requestedTypes.push(v.trim()))
+      }
     }
+
+    addToTypes(rawType)
+    addToTypes(rawPostType)
+    addToTypes(rawTypes)
+
+    requestedTypes = Array.from(new Set(requestedTypes.filter(Boolean)))
 
     const parentId = String(request.input('parentId', '')).trim()
     const rootsOnly = String(request.input('roots', '')).trim()
@@ -155,24 +163,20 @@ export default class PostsListController extends BasePostsController {
       }
 
       // Type filtering
-      if (type) {
-        // If specific type requested, check if it fits permalink filter
-        if (permalinkEnabledTypes && !permalinkEnabledTypes.includes(type)) {
+      let effectiveTypes = requestedTypes
+      if (permalinkEnabledTypes) {
+        effectiveTypes =
+          requestedTypes.length > 0
+            ? requestedTypes.filter((t) => permalinkEnabledTypes!.includes(t))
+            : permalinkEnabledTypes
+
+        if (effectiveTypes.length === 0 && requestedTypes.length > 0) {
           return this.response.paginated(response, [], { total: 0, page, limit, sortBy, sortOrder })
         }
-        query.where('type', type)
-      } else if (types.length > 0) {
-        // If list of types requested, intersect with permalink filter
-        const effectiveTypes = permalinkEnabledTypes
-          ? types.filter((t) => permalinkEnabledTypes!.includes(t))
-          : types
-        if (effectiveTypes.length === 0) {
-          return this.response.paginated(response, [], { total: 0, page, limit, sortBy, sortOrder })
-        }
+      }
+
+      if (effectiveTypes.length > 0) {
         query.whereIn('type', effectiveTypes)
-      } else if (permalinkEnabledTypes) {
-        // No types requested, but permalink filter active: restrict to enabled types
-        query.whereIn('type', permalinkEnabledTypes)
       }
       if (statuses.length > 0) {
         query.whereIn('status', statuses)

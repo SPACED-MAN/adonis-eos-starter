@@ -516,7 +516,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         : ''
 
       const historyInstructions = context.history && context.history.length > 0
-        ? '\n\nNOTE: Conversation history is provided above. Use it to understand previous requests and refine your behavior if the user is asking for corrections or improvements.'
+        ? '\n\nNOTE: Conversation history is provided above. Treat each user request as the primary directive. If the current request represents a "new task" or a significant departure from previous turns, prioritize the new instructions and do not let previous context restrict the scope of the current request unless explicitly asked to do so.'
         : ''
 
       const formatInstructions = `
@@ -563,12 +563,20 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
 
     // Add conversation history if available
     if (context.history && context.history.length > 0) {
+      messages.push({
+        role: 'system',
+        content: '--- PREVIOUS CONVERSATION HISTORY (FOR CONTEXT ONLY) ---',
+      })
       for (const item of context.history) {
         messages.push({
           role: item.role as any,
           content: item.content,
         })
       }
+      messages.push({
+        role: 'system',
+        content: '--- END OF PREVIOUS HISTORY. THE FOLLOWING IS THE CURRENT REQUEST. ---',
+      })
     }
 
     // User message with context
@@ -593,9 +601,12 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
     const parts: string[] = []
 
     if (payload.openEndedContext) {
-      parts.push(`\n\nUSER INSTRUCTIONS:\n${payload.openEndedContext}`)
+      parts.push(`\n\n========================================================================`)
+      parts.push(`CURRENT USER INSTRUCTIONS (PRIORITY):`)
+      parts.push(`${payload.openEndedContext}`)
+      parts.push(`========================================================================\n`)
       parts.push(
-        `\n\nPlease fulfill the USER INSTRUCTIONS using the context and tools provided below. Return ONLY a JSON object.`
+        `Please fulfill the CURRENT USER INSTRUCTIONS above using the tools provided below. If these instructions represent a new task, ignore irrelevant previous conversation history.`
       )
       parts.push(`\nRESPONSE FORMAT:`)
       parts.push(`{`)

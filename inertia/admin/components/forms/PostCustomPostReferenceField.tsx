@@ -11,16 +11,21 @@ type Props = {
 }
 
 export default function PostCustomPostReferenceField({ label, value, onChange, config }: Props) {
-  // Normalize allowed types from config (support singular postType or plural postTypes)
-  const allowedTypes: string[] = Array.isArray((config as any)?.postTypes)
-    ? (config as any).postTypes
-    : (config as any)?.postType
-      ? [String((config as any).postType)]
-      : []
+  // Normalize allowed types from config (support singular postType/post_type or plural postTypes/post_types)
+  const allowedTypes: string[] = (() => {
+    const c = config || {}
+    const rawTypes = c.postTypes || c.post_types
+    if (Array.isArray(rawTypes)) return rawTypes
+    const rawType = c.postType || c.post_type
+    if (rawType) return [String(rawType)]
+    return []
+  })()
 
   // Normalize allowMultiple from config (support multiple or allowMultiple)
   const allowMultiple =
-    (config as any)?.allowMultiple !== false && (config as any)?.multiple !== false
+    (config as any)?.allowMultiple !== false &&
+    (config as any)?.multiple !== false &&
+    (config as any)?.allow_multiple !== false
 
   const initialVals: string[] = (() => {
     // If it's already an array, use it
@@ -67,6 +72,10 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
         params.set('sortOrder', 'desc')
         if (allowedTypes.length > 0) {
           params.set('types', allowedTypes.join(','))
+        }
+        if (query.trim()) {
+          params.set('q', query.trim())
+          params.set('search', query.trim())
         }
         const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))

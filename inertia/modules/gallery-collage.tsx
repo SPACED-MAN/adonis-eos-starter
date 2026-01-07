@@ -2,21 +2,15 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
+import type { MediaObject } from '../utils/useMediaUrl'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
 import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 import { FontAwesomeIcon } from '../site/lib/icons'
 
 interface CollageImage {
-	image: {
-		id: string
-		url: string
-		mimeType?: string
-		altText?: string
-		metadata?: any
-	} | null
+	image: MediaObject | null
 	size?: 'small' | 'medium' | 'large'
-	label?: string
 }
 
 interface GalleryCollageProps {
@@ -146,42 +140,45 @@ export default function GalleryCollage({
 					viewport={{ once: true, margin: '-50px' }}
 					variants={containerVariants}
 				>
-					{images.map((item: CollageImage, idx: number) => (
-						<motion.div
-							key={idx}
-							variants={itemVariants}
-							className={`relative group cursor-zoom-in transition-all duration-500 hover:scale-110 hover:z-30 flex items-center justify-center ${getSizeClasses(item.size)}`}
-							style={getScatterStyles(idx)}
-							onClick={() => setSelectedImageIdx(idx)}
-							data-inline-type="select"
-							data-inline-path="objectFit"
-							data-inline-label="Media Fit"
-							data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
-						>
-							<div className="relative flex items-center justify-center w-full h-full overflow-visible">
-								<div className="relative inline-block overflow-hidden rounded-lg shadow-2xl transition-shadow duration-500 group-hover:shadow-3xl">
-									{item.image && (
-										<MediaRenderer
-											image={item.image}
-											alt={item.image.altText || item.label || 'Collage Image'}
-											objectFit={objectFit}
-											className={`transition-all duration-700 ${objectFit === 'contain'
-												? 'max-w-full max-h-full w-auto h-auto block'
-												: 'w-full h-full object-cover block'
-												}`}
-										/>
-									)}
-									{item.label && (
-										<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6 pointer-events-none">
-											<p className="text-white font-medium text-sm md:text-base translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-												{item.label}
-											</p>
-										</div>
-									)}
+					{images.map((item: CollageImage, idx: number) => {
+						const media = item.image
+						const caption = media?.title || media?.caption
+						const hasCaption = !!caption?.trim()
+
+						return (
+							<motion.div
+								key={idx}
+								variants={itemVariants}
+								className={`relative group cursor-zoom-in transition-all duration-500 hover:scale-110 hover:z-30 flex items-center justify-center ${getSizeClasses(item.size)}`}
+								style={getScatterStyles(idx)}
+								onClick={() => setSelectedImageIdx(idx)}
+								data-inline-type="select"
+								data-inline-path="objectFit"
+								data-inline-label="Media Fit"
+								data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
+							>
+								<div className="relative flex items-center justify-center w-full h-full overflow-visible">
+									<div className="relative inline-block overflow-hidden rounded-lg shadow-2xl transition-shadow duration-500 group-hover:shadow-3xl">
+										{media && (
+											<MediaRenderer
+												image={media}
+												alt={media.altText || caption || 'Collage Image'}
+												objectFit="cover"
+												className="w-full h-full object-cover block transition-all duration-700"
+											/>
+										)}
+										{hasCaption && (
+											<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6 pointer-events-none">
+												<p className="text-white font-medium text-sm md:text-base translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+													{caption}
+												</p>
+											</div>
+										)}
+									</div>
 								</div>
-							</div>
-						</motion.div>
-					))}
+							</motion.div>
+						)
+					})}
 				</motion.div>
 			</div>
 
@@ -228,21 +225,43 @@ export default function GalleryCollage({
 							animate={{ scale: 1, opacity: 1 }}
 							exit={{ scale: 0.9, opacity: 0 }}
 							transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-							className="relative max-w-full max-h-full flex flex-col items-center"
+							className="relative max-w-7xl w-full max-h-full flex flex-col lg:flex-row items-center lg:items-center justify-center gap-8 lg:gap-16 px-4 md:px-12"
 							onClick={(e) => e.stopPropagation()}
 						>
-							{images[selectedImageIdx].image && (
-								<MediaRenderer
-									image={images[selectedImageIdx].image}
-									alt={images[selectedImageIdx].image?.altText || 'Enlarged view'}
-									className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-								/>
-							)}
-							{images[selectedImageIdx].label && (
-								<p className="mt-6 text-white text-lg font-light tracking-wide text-center">
-									{images[selectedImageIdx].label}
-								</p>
-							)}
+							{(() => {
+								const item = images[selectedImageIdx]
+								const media = item.image
+								const caption = media?.title || media?.caption
+								const description = media?.description
+
+								return (
+									<>
+										{(caption || description) && (
+											<div className="w-full lg:w-1/3 text-center lg:text-left order-2 lg:order-1 max-w-xl">
+												{caption && (
+													<h3 className="text-white text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight mb-4">
+														{caption}
+													</h3>
+												)}
+												{description && (
+													<p className="text-white/70 text-base md:text-lg lg:text-xl font-light leading-relaxed">
+														{description}
+													</p>
+												)}
+											</div>
+										)}
+										<div className="w-full lg:flex-1 flex justify-center items-center order-1 lg:order-2">
+											{media && (
+												<MediaRenderer
+													image={media}
+													alt={media.altText || caption || 'Enlarged view'}
+													className="max-w-full max-h-[60vh] md:max-h-[70vh] lg:max-h-[85vh] object-contain rounded-xl shadow-2xl"
+												/>
+											)}
+										</div>
+									</>
+								)
+							})()}
 						</motion.div>
 					</motion.div>
 				)}

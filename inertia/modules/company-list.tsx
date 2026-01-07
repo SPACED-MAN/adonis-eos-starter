@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { usePage } from '@inertiajs/react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useInlineEditor, useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
@@ -39,6 +40,10 @@ export default function CompanyList({
   __moduleId,
   _useReact,
 }: CompanyListProps) {
+  const page = usePage()
+  const currentUser = (page.props as any)?.currentUser
+  const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
   const [items, setItems] = useState<CompanySummary[]>([])
   const [loading, setLoading] = useState(true)
   const { enabled } = useInlineEditor()
@@ -58,7 +63,9 @@ export default function CompanyList({
       ; (async () => {
         try {
           const params = new URLSearchParams()
-          params.set('status', 'published')
+          if (!enabled) {
+            params.set('status', 'published')
+          }
           params.set('limit', '50')
           const ids = Array.isArray(companies) ? companies.filter(Boolean) : []
           if (ids.length > 0) {
@@ -244,7 +251,35 @@ export default function CompanyList({
   }
 
   if (items.length === 0) {
-    return null
+    if (!enabled && !isAuthenticated) return null
+
+    return (
+      <section
+        className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
+        data-module="company-list"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
+      >
+        <SectionBackground
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
+        <div className="container mx-auto px-4 lg:px-6 relative z-10">
+          {headerContent}
+          <div className="text-center py-12 border-2 border-dashed border-line-medium rounded-2xl bg-backdrop-medium/20">
+            <p className={`${subtextColor} opacity-60`}>
+              No companies found.{' '}
+              {companies?.length
+                ? 'Try selecting different companies.'
+                : 'Publish some company posts or select them in the editor.'}
+            </p>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (

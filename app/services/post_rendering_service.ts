@@ -1178,6 +1178,8 @@ class PostRenderingService {
           url: asset.url,
           mimeType: asset.mimeType,
           altText: asset.altText,
+          caption: asset.caption,
+          description: asset.description,
           metadata: asset.metadata || {},
           optimizedUrl: asset.optimizedUrl,
           // Explicitly expose dark mode properties if they exist in metadata

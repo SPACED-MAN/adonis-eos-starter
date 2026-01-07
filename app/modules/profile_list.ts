@@ -4,10 +4,11 @@ import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE } from
 
 export default class ProfileListModule extends BaseModule {
   /**
-   * Profile list supports hybrid rendering for staggered entrance animations.
+   * Profile list must be 'react' (hydrated) because it fetches its own data
+   * from /api/profiles in a useEffect hook.
    */
   getRenderingMode() {
-    return 'hybrid' as const
+    return 'react' as const
   }
 
   getConfig(): ModuleConfig {

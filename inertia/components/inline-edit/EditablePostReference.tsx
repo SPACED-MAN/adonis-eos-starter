@@ -70,7 +70,8 @@ export function EditablePostReference({
         params.set('status', 'published')
         params.set('limit', '50')
         if (postType) params.set('type', postType)
-        if (query.trim()) params.set('search', query.trim())
+        // Use 'q' as standard search param
+        if (query.trim()) params.set('q', query.trim())
         const res = await fetch(`/api/posts?${params.toString()}`, {
           credentials: 'same-origin',
           headers: { Accept: 'application/json' },
@@ -97,7 +98,7 @@ export function EditablePostReference({
     return () => {
       cancelled = true
     }
-  }, [open, query])
+  }, [open, query, postType])
 
   // fetch metadata for already-selected ids so badges show titles immediately
   useEffect(() => {
