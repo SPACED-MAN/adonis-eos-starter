@@ -94,16 +94,17 @@ export default class extends BaseSeeder {
 
     // Ensure AI agent account (for MCP operations)
     // This user is used by the MCP server via MCP_SYSTEM_USER_ID
-    const aiEmail = 'ai@example.com'
+    const aiEmail = 'ai@agents.local'
 
     let aiUser = await User.findBy('email', aiEmail)
 
     if (aiUser) {
-      aiUser.password = password
+      // For existing AI user, we don't necessarily need to change the password
+      // but we ensure the role is correct.
       aiUser.fullName = 'AI Agent'
         ; (aiUser as any).role = 'ai_agent'
       await aiUser.save()
-      console.log(`Updated existing AI agent user (ID: ${aiUser.id})`)
+      console.log(`Verified existing AI agent user (ID: ${aiUser.id})`)
       console.log(`→ Set MCP_SYSTEM_USER_ID=${aiUser.id} in your .env file (recommended)`)
     } else {
       // Try to create with explicit ID 5 for MCP_SYSTEM_USER_ID (fresh DB convenience)
@@ -114,7 +115,8 @@ export default class extends BaseSeeder {
         ; (newAi as any).id = 5
       }
       newAi.email = aiEmail
-      newAi.password = password
+      // Use a random password for system accounts to prevent backdoor login
+      newAi.password = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16)
       newAi.fullName = 'AI Agent'
         ; (newAi as any).role = 'ai_agent'
       await newAi.save()

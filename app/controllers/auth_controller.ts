@@ -21,6 +21,19 @@ export default class AuthController {
       // This is timing-attack safe as per AdonisJS docs
       const user = await User.verifyCredentials(uid, password)
 
+      // Prevent AI agent accounts from logging in via the web interface
+      if ((user as any).role === 'ai_agent' || (user as any).role === 'workflow') {
+        await activityLogService.log({
+          action: 'user.login_blocked',
+          userId: user.id,
+          ip: request.ip(),
+          userAgent: request.header('user-agent') || null,
+          metadata: { reason: 'System roles cannot login via web' },
+        })
+        session.flash('error', 'System accounts are not allowed to login via the web interface')
+        return response.redirect().back()
+      }
+
       // Login the user
       await auth.use('web').login(user)
 

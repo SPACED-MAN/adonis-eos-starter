@@ -164,7 +164,7 @@ async function resolveSystemUserId(): Promise<number | null> {
 
   // Fallback to a dedicated seeded AI user (or any user with ai_agent role)
   try {
-    const byEmail = await db.from('users').select('id').where('email', 'ai@example.com').first()
+    const byEmail = await db.from('users').select('id').where('email', 'ai@agents.local').first()
     if (byEmail?.id) {
       cachedSystemUserId = Number(byEmail.id)
       return cachedSystemUserId
@@ -770,7 +770,7 @@ function createServerInstance() {
         return errorResult(
           'Missing MCP_SYSTEM_USER_ID (and no AI system user found). Seed users or set MCP_SYSTEM_USER_ID to a valid users.id.',
           {
-            hint: 'Run `node ace db:seed --files database/seeders/user_seeder.ts` (creates ai@example.com) then set MCP_SYSTEM_USER_ID=<that id>.',
+            hint: 'Run `node ace db:seed --files database/seeders/user_seeder.ts` (creates a system ai_agent user) then set MCP_SYSTEM_USER_ID=<that id>.',
           }
         )
       }
