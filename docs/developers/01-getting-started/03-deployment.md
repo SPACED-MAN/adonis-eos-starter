@@ -39,6 +39,7 @@ ENV_PATH=/etc/secrets/.env node build/bin/server.js
 | `REDIS_PASSWORD` | Optional password for Redis authentication. |
 | `STORAGE_DRIVER` | Set to `r2` for Cloudflare R2 or `s3` for Amazon S3. |
 | `R2_ACCOUNT_ID` | Your Cloudflare Account ID. |
+| `R2_ENDPOINT` | The S3-compatible endpoint for R2 (e.g., `https://<id>.r2.cloudflarestorage.com`). |
 | `R2_ACCESS_KEY_ID` | R2 API Access Key ID. |
 | `R2_SECRET_ACCESS_KEY` | R2 API Secret Access Key. |
 | `R2_BUCKET` | The name of your R2 bucket. |
@@ -106,31 +107,33 @@ Adonis EOS includes a built-in health check endpoint for load balancers and upti
 
 ## 6. Process Management (PM2)
 
-Use a process manager like **PM2** to keep your application running in the background and restart it if it crashes.
-
-### Create `ecosystem.config.js`
-
-```javascript
-module.exports = {
-  apps: [{
-    name: 'adonis-eos',
-    script: './build/bin/server.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    autorestart: true,
-    env: {
-      NODE_ENV: 'production',
-    }
-  }]
-}
-```
+Use a process manager like **PM2** to keep your application running in the background and restart it if it crashes. A pre-configured `ecosystem.config.js` is included in the project root.
 
 ### Start your app
 ```bash
 pm2 start ecosystem.config.js
 ```
 
-## 6. Serving Static Assets
+## 7. Automated Deployment (GitHub Actions)
+
+Adonis EOS includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) for automated deployments to a VPS (like Hetzner, DigitalOcean, or Linode) upon pushing to the `main` branch.
+
+### Prerequisites
+1. **GitHub Secrets**: Add the following secrets to your repository:
+   - `HOST`: Your server's IP address.
+   - `USERNAME`: Your SSH username (e.g., `root`).
+   - `SSH_PRIVATE_KEY`: Your private SSH key.
+2. **Environment File**: Ensure a `.env` file exists on the server at `/var/www/adonis-eos/.env` (or your configured path).
+
+### Workflow Overview
+The workflow performs the following steps:
+- Checks out the code.
+- Installs dependencies and runs the build.
+- Syncs the `build` folder, `package.json`, and `ecosystem.config.js` to the server.
+- Runs production migrations.
+- Restarts the application via PM2.
+
+## 8. Serving Static Assets
 
 For the best performance, offload the task of serving static assets (images, CSS, JS) to a **Reverse Proxy** (Nginx) or a **CDN**.
 
