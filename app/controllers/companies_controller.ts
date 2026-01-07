@@ -49,7 +49,7 @@ export default class CompaniesController {
       .orderBy('title', sortOrder)
       .limit(limit)
       .preload('customFieldValues')
-      .preload('featuredImage')
+      .preload('featuredMedia')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -61,15 +61,15 @@ export default class CompaniesController {
 
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const featuredImage = p.featuredImage
+      const featuredMedia = p.featuredMedia
 
-      const image = featuredImage
+      const image = featuredMedia
         ? {
-            id: featuredImage.id,
-            url: featuredImage.url,
-            mimeType: featuredImage.mimeType,
-            altText: featuredImage.altText,
-            metadata: featuredImage.metadata,
+            id: featuredMedia.id,
+            url: featuredMedia.url,
+            mimeType: featuredMedia.mimeType,
+            altText: featuredMedia.altText,
+            metadata: featuredMedia.metadata,
           }
         : null
 

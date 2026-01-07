@@ -113,7 +113,7 @@ export default class CreateVariation {
         status: 'draft',
         locale: sourcePost.locale,
         translationOfId: translationOfId,
-        featuredImageId: sourcePost.featuredImageId,
+        featuredMediaId: sourcePost.featuredMediaId,
         metaTitle: sourcePost.metaTitle,
         metaDescription: sourcePost.metaDescription,
         canonicalUrl: sourcePost.canonicalUrl || null, // Variations should point to main post's canonical URL

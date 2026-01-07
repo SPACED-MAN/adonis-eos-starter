@@ -26,7 +26,7 @@ type UpdatePostParams = {
   socialImageId?: string | null
   noindex?: boolean
   nofollow?: boolean
-  featuredImageId?: string | null
+  featuredMediaId?: string | null
   taxonomyTermIds?: string[]
   scheduledAt?: string | null
 }
@@ -62,7 +62,7 @@ export default class UpdatePost {
       socialImageId,
       noindex,
       nofollow,
-      featuredImageId,
+      featuredMediaId,
       taxonomyTermIds,
       scheduledAt,
     }: UpdatePostParams,
@@ -186,9 +186,9 @@ export default class UpdatePost {
     }
     if (noindex !== undefined) post.noindex = noindex
     if (nofollow !== undefined) post.nofollow = nofollow
-    if (featuredImageId !== undefined) {
+    if (featuredMediaId !== undefined) {
       // Normalize: empty string => null
-      post.featuredImageId = featuredImageId === '' ? null : featuredImageId
+      post.featuredMediaId = featuredMediaId === '' ? null : featuredMediaId
     }
 
     // Handle timestamps and status-related side effects

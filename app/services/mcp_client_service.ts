@@ -88,12 +88,12 @@ class MCPClientService {
       {
         name: 'create_post_ai_review',
         description:
-          'Create a new post and stage into AI review. Params: { type, slug, title, excerpt, featuredImageId, contentMarkdown, locale, moduleGroupName, moduleEdits }. IMPORTANT: When writing content for "Prose" modules, provide a substantial amount of copy (multiple paragraphs, headings, and lists) to ensure a high-quality user experience.',
+          'Create a new post and stage into AI review. Params: { type, slug, title, excerpt, featuredMediaId, contentMarkdown, locale, moduleGroupName, moduleEdits }. IMPORTANT: When writing content for "Prose" modules, provide a substantial amount of copy (multiple paragraphs, headings, and lists) to ensure a high-quality user experience.',
       },
       {
         name: 'save_post_ai_review',
         description:
-          'Save AI edits for a post. Params: { postId, patch: { title, slug, excerpt, featuredImageId, metaTitle, metaDescription, socialTitle, socialDescription, socialImageId, noindex, nofollow, ... } }',
+          'Save AI edits for a post. Params: { postId, patch: { title, slug, excerpt, featuredMediaId, metaTitle, metaDescription, socialTitle, socialDescription, socialImageId, noindex, nofollow, ... } }',
       },
       {
         name: 'add_module_to_post_ai_review',
@@ -112,7 +112,7 @@ class MCPClientService {
       {
         name: 'create_translation_ai_review',
         description:
-          'Create a translation post for a base post and initialize AI Review content (optionally cloning module structure). Params: { postId, locale, slug, title, featuredImageId, ... }',
+          'Create a translation post for a base post and initialize AI Review content (optionally cloning module structure). Params: { postId, locale, slug, title, featuredMediaId, ... }',
       },
       {
         name: 'create_translations_ai_review_bulk',
@@ -403,7 +403,7 @@ class MCPClientService {
           slug,
           title,
           excerpt,
-          featuredImageId,
+          featuredMediaId,
           contentMarkdown,
           moduleGroupId,
           moduleGroupName,
@@ -488,7 +488,7 @@ class MCPClientService {
           title,
           status: 'draft',
           excerpt: excerpt ?? null,
-          featuredImageId: featuredImageId ?? null,
+          featuredMediaId: featuredMediaId ?? null,
           savedAt: new Date().toISOString(),
           savedBy,
         }
@@ -1038,7 +1038,7 @@ class MCPClientService {
           agentName,
           slug,
           title,
-          featuredImageId,
+          featuredMediaId,
         } = params
 
         if (!postId || !locale) {
@@ -1077,7 +1077,7 @@ class MCPClientService {
           canonicalUrl: source?.canonical_url ?? null,
           robotsJson: source?.robots_json ?? null,
           jsonldOverrides: source?.jsonld_overrides ?? null,
-          featuredImageId: source?.featured_image_id ?? null,
+          featuredMediaId: source?.featured_media_id ?? null,
         }
 
         const aiReviewDraft = {
@@ -1085,8 +1085,8 @@ class MCPClientService {
           slug: (translation as any).slug,
           title: (translation as any).title,
           status: (translation as any).status,
-          featuredImageId:
-            featuredImageId !== undefined ? (featuredImageId ?? null) : basePayload.featuredImageId,
+          featuredMediaId:
+            featuredMediaId !== undefined ? (featuredMediaId ?? null) : basePayload.featuredMediaId,
           savedAt: new Date().toISOString(),
           savedBy: agentLabel,
           translation: {
@@ -1982,7 +1982,7 @@ class MCPClientService {
         ])
 
         const fieldDiff: Record<string, any> = {}
-        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredImageId']
+        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredMediaId']
         postFields.forEach(field => {
           const bVal = (base.post as any)[field]
           const tVal = (target.post as any)[field]

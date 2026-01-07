@@ -64,7 +64,7 @@ export interface PostRenderData {
   nofollow: boolean
   status: string
   author: AuthorData | null
-  featuredImageId?: string | null
+  featuredMediaId?: string | null
   reviewDraft?: Record<string, unknown> | null
   aiReviewDraft?: Record<string, unknown> | null
 }
@@ -203,7 +203,7 @@ class PostRenderingService {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
       draftMode?: 'review' | 'ai-review' | 'auto'
-      featuredImageId?: string | null
+      featuredMediaId?: string | null
     } = {}
   ): Promise<{
     modules: Array<{
@@ -231,7 +231,7 @@ class PostRenderingService {
       wantReview = false,
       reviewDraft = null,
       draftMode = 'review',
-      featuredImageId = null,
+      featuredMediaId = null,
     } = options
 
     // Get removed module IDs from review draft
@@ -379,8 +379,8 @@ class PostRenderingService {
     const allMediaIds = new Set<string>()
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (featuredImageId && uuidRegex.test(featuredImageId)) {
-      allMediaIds.add(featuredImageId.toLowerCase())
+    if (featuredMediaId && uuidRegex.test(featuredMediaId)) {
+      allMediaIds.add(featuredMediaId.toLowerCase())
     }
 
     const extractPostIds = (obj: any) => {
@@ -451,9 +451,9 @@ class PostRenderingService {
         if (
           (pm.type === 'hero-with-media' || pm.type === 'HeroWithMedia') &&
           hasNoUsableImage &&
-          featuredImageId
+          featuredMediaId
         ) {
-          const fallbackAsset = resolvedMedia.get(featuredImageId.toLowerCase())
+          const fallbackAsset = resolvedMedia.get(featuredMediaId.toLowerCase())
           if (fallbackAsset) {
             return { ...props, image: fallbackAsset }
           }
@@ -731,10 +731,10 @@ class PostRenderingService {
       : post.socialDescription || description
     const socialImageId = useReview
       ? ((reviewDraft as any).socialImageId ??
-        (reviewDraft as any).featuredImageId ??
+        (reviewDraft as any).featuredMediaId ??
         post.socialImageId ??
-        post.featuredImageId)
-      : post.socialImageId || post.featuredImageId
+        post.featuredMediaId)
+      : post.socialImageId || post.featuredMediaId
 
     let socialImageUrl: string | undefined
     if (socialImageId) {
@@ -924,9 +924,9 @@ class PostRenderingService {
         : Boolean(post.nofollow),
       status: post.status,
       author: null, // To be filled by caller
-      featuredImageId: useReview
-        ? ((reviewDraft as any).featuredImageId ?? post.featuredImageId)
-        : post.featuredImageId,
+      featuredMediaId: useReview
+        ? ((reviewDraft as any).featuredMediaId ?? post.featuredMediaId)
+        : post.featuredMediaId,
       reviewDraft: this.hasMeaningfulContent(rd) ? rd : null,
       aiReviewDraft: this.hasMeaningfulContent(ard) ? ard : null,
     }
@@ -1033,7 +1033,7 @@ class PostRenderingService {
             ? (reviewDraft as any) || (aiReviewDraft as any)
             : (reviewDraft as any),
       draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
-      featuredImageId: postData.featuredImageId,
+      featuredMediaId: postData.featuredMediaId,
     })
 
     // Resolve tokens in post data (title, excerpt, meta fields)

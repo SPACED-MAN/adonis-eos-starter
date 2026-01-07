@@ -46,7 +46,7 @@ export default class RevisionService {
         'canonical_url as canonicalUrl',
         'robots_json as robotsJson',
         'jsonld_overrides as jsonldOverrides',
-        'featured_image_id as featuredImageId',
+        'featured_media_id as featuredMediaId',
         'review_draft as reviewDraft',
         'ai_review_draft as aiReviewDraft'
       )
@@ -97,27 +97,27 @@ export default class RevisionService {
       capturedAt: new Date().toISOString(),
       post: post
         ? {
-            id: post.id,
-            type: post.type,
-            locale: post.locale,
-            slug: post.slug,
-            title: post.title,
-            status: post.status,
-            excerpt: post.excerpt ?? null,
-            parentId: post.parentId ?? null,
-            orderIndex: post.orderIndex ?? 0,
-            metaTitle: post.metaTitle ?? null,
-            metaDescription: post.metaDescription ?? null,
-            canonicalUrl: post.canonicalUrl ?? null,
-            robotsJson: post.robotsJson ?? null,
-            jsonldOverrides: post.jsonldOverrides ?? null,
-            featuredImageId: post.featuredImageId ?? null,
-            customFields: (customFields || []).map((r: any) => ({
-              fieldSlug: String(r.fieldSlug),
-              value: r.value ?? null,
-            })),
-            taxonomyTermIds,
-          }
+          id: post.id,
+          type: post.type,
+          locale: post.locale,
+          slug: post.slug,
+          title: post.title,
+          status: post.status,
+          excerpt: post.excerpt ?? null,
+          parentId: post.parentId ?? null,
+          orderIndex: post.orderIndex ?? 0,
+          metaTitle: post.metaTitle ?? null,
+          metaDescription: post.metaDescription ?? null,
+          canonicalUrl: post.canonicalUrl ?? null,
+          robotsJson: post.robotsJson ?? null,
+          jsonldOverrides: post.jsonldOverrides ?? null,
+          featuredMediaId: post.featuredMediaId ?? null,
+          customFields: (customFields || []).map((r: any) => ({
+            fieldSlug: String(r.fieldSlug),
+            value: r.value ?? null,
+          })),
+          taxonomyTermIds,
+        }
         : null,
       drafts: {
         reviewDraft: post?.reviewDraft ?? null,

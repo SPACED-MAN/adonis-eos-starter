@@ -287,7 +287,7 @@ interface EditorProps {
     canonicalUrl: string | null
     robotsJson: Record<string, any> | null
     jsonldOverrides: Record<string, any> | null
-    featuredImageId: string | null
+    featuredMediaId: string | null
     createdAt: string
     updatedAt: string
     publicPath: string
@@ -338,7 +338,7 @@ interface EditorProps {
     permalinksEnabled?: boolean
     hasPermalinks?: boolean
     modulesEnabled?: boolean
-    featuredImage?: {
+    featuredMedia?: {
       enabled: boolean
       label?: string
     }
@@ -767,7 +767,7 @@ export default function Editor({
     nofollow: Boolean((post as any).nofollow),
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
-    featuredImageId: post.featuredImageId || '',
+    featuredMediaId: post.featuredMediaId || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
   } as any)
@@ -788,7 +788,7 @@ export default function Editor({
     nofollow: Boolean((post as any).nofollow),
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
-    featuredImageId: post.featuredImageId || '',
+    featuredMediaId: post.featuredMediaId || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
   } as any)
@@ -823,7 +823,7 @@ export default function Editor({
             : reviewDraft.jsonldOverrides
               ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
               : '',
-        featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        featuredMediaId: String(reviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
         customFields: Array.isArray(reviewDraft.customFields)
           ? reviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -868,7 +868,7 @@ export default function Editor({
             : aiReviewDraft.jsonldOverrides
               ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
               : '',
-        featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        featuredMediaId: String(aiReviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
         customFields: Array.isArray(aiReviewDraft.customFields)
           ? aiReviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -1141,7 +1141,7 @@ export default function Editor({
           return val.trim()
         }
       })(),
-      featuredImageId: String(d.featuredImageId || '').trim() || '',
+      featuredMediaId: String(d.featuredMediaId || '').trim() || '',
       customFields: Array.isArray(d.customFields)
         ? [...d.customFields]
           .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
@@ -1264,7 +1264,7 @@ export default function Editor({
       (post.excerpt && post.excerpt.trim() !== '') ||
       (post.metaTitle && post.metaTitle.trim() !== '') ||
       (post.metaDescription && post.metaDescription.trim() !== '') ||
-      post.featuredImageId ||
+      post.featuredMediaId ||
       (initialCustomFields &&
         initialCustomFields.some((f: any) => f.value !== null && f.value !== ''))
     )
@@ -1566,7 +1566,7 @@ export default function Editor({
         canonicalUrl,
         robotsJson: data.robotsJson?.trim() || null,
         jsonldOverrides: data.jsonldOverrides?.trim() || null,
-        featuredImageId: data.featuredImageId?.trim() || null,
+        featuredMediaId: data.featuredMediaId?.trim() || null,
         customFields: data.customFields,
         taxonomyTermIds: data.taxonomyTermIds,
       }
@@ -1919,7 +1919,7 @@ export default function Editor({
       canonicalUrl: post.canonicalUrl || '',
       robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
       jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
-      featuredImageId: post.featuredImageId || '',
+      featuredMediaId: post.featuredMediaId || '',
       customFields: initialCustomFieldsData,
       taxonomyTermIds: initialTaxonomyIds,
     }
@@ -1954,7 +1954,7 @@ export default function Editor({
             : reviewDraft.jsonldOverrides
               ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
               : '',
-        featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        featuredMediaId: String(reviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
         customFields: Array.isArray(reviewDraft.customFields)
           ? reviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -2000,7 +2000,7 @@ export default function Editor({
             : aiReviewDraft.jsonldOverrides
               ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
               : '',
-        featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        featuredMediaId: String(aiReviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
         customFields: Array.isArray(aiReviewDraft.customFields)
           ? aiReviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -2255,14 +2255,14 @@ export default function Editor({
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
   // Media picker for custom fields
   const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
-  // Field-scoped agents for Featured Image
-  const [featuredImageFieldAgents, setFeaturedImageFieldAgents] = useState<Agent[]>([])
+  // Field-scoped agents for Featured Media
+  const [featuredMediaFieldAgents, setFeaturedMediaFieldAgents] = useState<Agent[]>([])
   const [translationAgents, setTranslationAgents] = useState<Agent[]>([])
   const [publishAgents, setPublishAgents] = useState<Agent[]>([])
   const [reviewSaveAgents, setReviewSaveAgents] = useState<Agent[]>([])
   const [aiReviewSaveAgents, setAiReviewSaveAgents] = useState<Agent[]>([])
-  const [featuredImageAgentModalOpen, setFeaturedImageAgentModalOpen] = useState(false)
-  const [selectedFeaturedImageAgent, setSelectedFeaturedImageAgent] = useState<Agent | null>(null)
+  const [featuredMediaAgentModalOpen, setFeaturedMediaAgentModalOpen] = useState(false)
+  const [selectedFeaturedMediaAgent, setSelectedFeaturedMediaAgent] = useState<Agent | null>(null)
   // Debug removed
 
   useEffect(() => {
@@ -2350,20 +2350,20 @@ export default function Editor({
     }
   }, [])
 
-  // Load field-scoped agents for Featured Image (media field type)
+  // Load field-scoped agents for Featured Media (media field type)
   useEffect(() => {
     let alive = true
       ; (async () => {
         try {
           const res = await fetch(
-            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
+            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredMediaId`,
             { credentials: 'same-origin' }
           )
           const json = await res.json().catch(() => ({}))
           const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setFeaturedImageFieldAgents(agents)
+          if (alive) setFeaturedMediaFieldAgents(agents)
         } catch {
-          if (alive) setFeaturedImageFieldAgents([])
+          if (alive) setFeaturedMediaFieldAgents([])
         }
       })()
     return () => {
@@ -3267,25 +3267,25 @@ export default function Editor({
                   </div>
                 )}
 
-                {/* Featured Image (core) */}
-                {uiConfig?.featuredImage?.enabled && (
+                {/* Featured Media (core) */}
+                {uiConfig?.featuredMedia?.enabled && (
                   <div className="group max-w-70">
                     <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5">
                           <Star className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-                          <span>{uiConfig.featuredImage.label || 'Featured Media'}</span>
+                          <span>{uiConfig.featuredMedia.label || 'Featured Media'}</span>
                         </span>
-                        {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
+                        {featuredMediaFieldAgents.length > 0 && hasFieldPermission && (
                           <div className="flex items-center">
-                            {featuredImageFieldAgents.length === 1 ? (
+                            {featuredMediaFieldAgents.length === 1 ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                      setFeaturedImageAgentModalOpen(true)
+                                      setSelectedFeaturedMediaAgent(featuredMediaFieldAgents[0])
+                                      setFeaturedMediaAgentModalOpen(true)
                                     }}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
                                   >
@@ -3296,7 +3296,7 @@ export default function Editor({
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>AI Assistant: {featuredImageFieldAgents[0].name}</p>
+                                  <p>AI Assistant: {featuredMediaFieldAgents[0].name}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ) : (
@@ -3329,13 +3329,13 @@ export default function Editor({
                                     </h4>
                                   </div>
                                   <div className="space-y-0.5">
-                                    {featuredImageFieldAgents.map((agent) => (
+                                    {featuredMediaFieldAgents.map((agent) => (
                                       <button
                                         key={agent.id}
                                         type="button"
                                         onClick={() => {
-                                          setSelectedFeaturedImageAgent(agent)
-                                          setFeaturedImageAgentModalOpen(true)
+                                          setSelectedFeaturedMediaAgent(agent)
+                                          setFeaturedMediaAgentModalOpen(true)
                                         }}
                                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
                                       >
@@ -3360,36 +3360,36 @@ export default function Editor({
                     </label>
                     <div className="p-1 border border-line-medium rounded-2xl bg-backdrop-medium/20">
                       <MediaThumb
-                        mediaId={(data as any).featuredImageId || null}
+                        mediaId={(data as any).featuredMediaId || null}
                         layout="vertical"
                         size="w-full aspect-video"
-                        onChange={() => setOpenMediaForField('featuredImage')}
-                        onClear={() => setData('featuredImageId', '')}
+                        onChange={() => setOpenMediaForField('featuredMedia')}
+                        onClear={() => setData('featuredMediaId', '')}
                       />
                     </div>
                     {/* ... modal logic ... */}
                     <MediaPickerModal
-                      open={openMediaForField === 'featuredImage'}
-                      onOpenChange={(o) => setOpenMediaForField(o ? 'featuredImage' : null)}
-                      initialSelectedId={(data as any).featuredImageId || undefined}
+                      open={openMediaForField === 'featuredMedia'}
+                      onOpenChange={(o) => setOpenMediaForField(o ? 'featuredMedia' : null)}
+                      initialSelectedId={(data as any).featuredMediaId || undefined}
                       onSelect={(m) => {
-                        setData('featuredImageId', m.id)
+                        setData('featuredMediaId', m.id)
                         setOpenMediaForField(null)
                       }}
                     />
-                    {selectedFeaturedImageAgent && (
+                    {selectedFeaturedMediaAgent && (
                       <AgentModal
-                        open={featuredImageAgentModalOpen}
-                        onOpenChange={setFeaturedImageAgentModalOpen}
-                        agent={selectedFeaturedImageAgent}
+                        open={featuredMediaAgentModalOpen}
+                        onOpenChange={setFeaturedMediaAgentModalOpen}
+                        agent={selectedFeaturedMediaAgent}
                         contextId={post.id}
                         context={{
                           scope: 'field',
-                          fieldKey: 'post.featuredImageId',
+                          fieldKey: 'post.featuredMediaId',
                           fieldType: 'media',
                         }}
                         scope="field"
-                        fieldKey="post.featuredImageId"
+                        fieldKey="post.featuredMediaId"
                         fieldType="media"
                         viewMode={viewMode}
                         onSuccess={(resp) => {
@@ -3878,7 +3878,7 @@ export default function Editor({
                                 layout="vertical"
                                 onChange={() => setOpenMediaForField('socialImage')}
                                 onClear={() => setData('socialImageId', '')}
-                                fallbackMediaId={(data as any).featuredImageId || null}
+                                fallbackMediaId={(data as any).featuredMediaId || null}
                               />
                             </div>
                             <MediaPickerModal
@@ -3891,7 +3891,7 @@ export default function Editor({
                               }}
                             />
                             <p className="text-[10px] text-neutral-low italic ml-1">
-                              Recommended: 1200x630px. Defaults to Featured Image.
+                              Recommended: 1200x630px. Defaults to Featured Media.
                             </p>
                           </div>
                         </div>
@@ -3935,7 +3935,7 @@ export default function Editor({
                             <div className="aspect-[1.91/1] bg-backdrop-medium relative overflow-hidden">
                               <MediaThumb
                                 mediaId={(data as any).socialImageId || null}
-                                fallbackMediaId={(data as any).featuredImageId || null}
+                                fallbackMediaId={(data as any).featuredMediaId || null}
                                 className="w-full h-full border-none p-0 bg-transparent rounded-none"
                                 size="w-full h-full"
                                 hideActions

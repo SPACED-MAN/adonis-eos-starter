@@ -15,7 +15,7 @@ You have access to powerful tools to interact with the CMS. Use them strategical
 3. EDITING:
    - "get_post_context": MUST call this after creating or before editing to see current modules and their IDs.
    - "update_post_module_ai_review": Update content. Use "contentMarkdown" for all rich text fields.
-   - "save_post_ai_review": Update post-level fields like "title" or "featuredImageId".
+   - "save_post_ai_review": Update post-level fields like "title" or "featuredMediaId".
    - "add_module_to_post_ai_review": Add modules only if the SEEDED modules (those already in the post after creation) are insufficient. DO NOT add a module if one already exists for that purpose (e.g. don't add a new Hero if a Hero already exists).
    - "remove_post_module_ai_review": Delete modules if necessary.
 

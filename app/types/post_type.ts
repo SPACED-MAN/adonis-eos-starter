@@ -60,9 +60,9 @@ export interface PostTypeConfig {
   taxonomies?: string[]
 
   /**
-   * Featured image settings
+   * Featured media settings
    */
-  featuredImage?: {
+  featuredMedia?: {
     enabled: boolean
     label?: string
   }

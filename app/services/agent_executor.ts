@@ -226,7 +226,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
             'metaTitle',
             'metaDescription',
             'status',
-            'featuredImageId',
+            'featuredMediaId',
           ]
           const hasPostFields = postFields.some((field) => parsedResult[field] !== undefined)
           if (hasPostFields) {

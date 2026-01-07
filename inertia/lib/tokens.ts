@@ -170,6 +170,7 @@ export class TokenService {
       'metaTitle',
       'metaDescription',
       'canonicalUrl',
+      'featuredMediaId',
       'publishedAt',
       'updatedAt',
     ]

@@ -11,8 +11,8 @@ const profilePostType: PostTypeConfig = {
     { slug: 'last_name', label: 'Last name', type: 'text' },
     { slug: 'bio', label: 'Bio', type: 'textarea' },
   ],
-  // Use Featured Image as the profile image, with a friendly label
-  featuredImage: {
+  // Use Featured Media as the profile image, with a friendly label
+  featuredMedia: {
     enabled: true,
     label: 'Profile image',
   },

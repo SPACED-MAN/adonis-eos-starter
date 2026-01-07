@@ -109,7 +109,7 @@ Articles with publication dates, categories, and taxonomies
 2. Add modules for content
 3. Select taxonomies (categories/tags)
 4. Set publish date
-5. Add featured image
+5. Add featured media
 6. Publish or schedule
 
 #### Profiles
@@ -214,7 +214,7 @@ Use clear, descriptive slugs:
 Always fill in:
 
 - Meta description
-- Featured image
+- Featured media
 - Proper heading hierarchy
 
 See the [SEO & A/B Testing](../03-management/07-seo-and-ab-testing.md) for detailed best practices.

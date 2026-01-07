@@ -82,21 +82,21 @@ export default class PostsViewController extends BasePostsController {
       const currentDraftModules =
         activeViewMode === 'ai-review' ? ardModules : activeViewMode === 'review' ? rdModules : []
 
-      // Resolve featured image asset for fallback logic in modules
+      // Resolve featured media asset for fallback logic in modules
       // Respect the active view mode (draft vs published)
-      let activeFeaturedImageId = post.featuredImageId
+      let activeFeaturedMediaId = post.featuredMediaId
       const currentDraft =
         activeViewMode === 'ai-review' ? ard : activeViewMode === 'review' ? rd : null
 
-      if (currentDraft && (currentDraft as any).featuredImageId !== undefined) {
-        activeFeaturedImageId = (currentDraft as any).featuredImageId
+      if (currentDraft && (currentDraft as any).featuredMediaId !== undefined) {
+        activeFeaturedMediaId = (currentDraft as any).featuredMediaId
       }
 
-      let featuredImageAsset: any = null
-      if (activeFeaturedImageId) {
-        const asset = await db.from('media_assets').where('id', activeFeaturedImageId).first()
+      let featuredMediaAsset: any = null
+      if (activeFeaturedMediaId) {
+        const asset = await db.from('media_assets').where('id', activeFeaturedMediaId).first()
         if (asset) {
-          featuredImageAsset = {
+          featuredMediaAsset = {
             id: asset.id,
             url: asset.url,
             mimeType: asset.mime_type,
@@ -139,10 +139,10 @@ export default class PostsViewController extends BasePostsController {
               // Helper to merge defaults and resolve hero fallbacks
               const prepareProps = (p: any) => {
                 const merged = { ...defaultProps, ...coerceJsonObject(p) }
-                // Special fallback for hero-with-media using featured image
+                // Special fallback for hero-with-media using featured media
                 if (
                   (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
-                  featuredImageAsset
+                  featuredMediaAsset
                 ) {
                   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
                   if (
@@ -150,7 +150,7 @@ export default class PostsViewController extends BasePostsController {
                     merged.image === '' ||
                     (typeof merged.image === 'string' && uuidRegex.test(merged.image))
                   ) {
-                    merged.image = featuredImageAsset
+                    merged.image = featuredMediaAsset
                   }
                 }
                 return merged
@@ -520,8 +520,8 @@ export default class PostsViewController extends BasePostsController {
           canonicalUrl: post.canonicalUrl,
           robotsJson: post.robotsJson,
           jsonldOverrides: post.jsonldOverrides,
-          featuredImageId: (post as any).featuredImageId || (post as any).featured_image_id || null,
-          featuredImageAsset, // Pass the resolved asset object
+          featuredMediaId: (post as any).featuredMediaId || (post as any).featured_media_id || null,
+          featuredMediaAsset, // Pass the resolved asset object
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,

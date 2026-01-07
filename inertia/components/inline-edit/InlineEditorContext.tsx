@@ -1106,7 +1106,7 @@ export function InlineEditorProvider({
       (post?.excerpt && post.excerpt.trim() !== '') ||
       (post?.metaTitle && post.metaTitle.trim() !== '') ||
       (post?.metaDescription && post.metaDescription.trim() !== '') ||
-      post?.featuredImageId ||
+      post?.featuredMediaId ||
       (customFields &&
         (Array.isArray(customFields)
           ? customFields.some((f: any) => f.value !== null && f.value !== '')

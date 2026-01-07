@@ -26,8 +26,8 @@ const testimonialPostType: PostTypeConfig = {
   // No URL patterns since permalinks are disabled
   urlPatterns: [],
 
-  // Enable featured image for testimonials (used for author photo)
-  featuredImage: {
+  // Enable featured media for testimonials (used for author photo)
+  featuredMedia: {
     enabled: true,
     label: 'Author Photo',
   },

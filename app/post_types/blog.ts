@@ -14,10 +14,10 @@ const blogPostType: PostTypeConfig = {
   // Custom fields attached to this post type (definitions only; values are stored per post)
   fields: [],
 
-  // Featured image enabled
-  featuredImage: {
+  // Featured media enabled
+  featuredMedia: {
     enabled: true,
-    label: 'Featured Image',
+    label: 'Featured Media',
   },
 
   // Default module group metadata (synced on boot)

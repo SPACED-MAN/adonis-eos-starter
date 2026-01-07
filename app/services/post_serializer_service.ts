@@ -45,7 +45,7 @@ export type CanonicalPost = {
     socialImageId?: string | null
     noindex?: boolean
     nofollow?: boolean
-    featuredImageId?: string | null
+    featuredMediaId?: string | null
     customFields?: Array<{ slug: string; value: any }>
     taxonomyTermIds?: string[]
   }
@@ -192,7 +192,7 @@ export default class PostSerializerService {
       socialImageId: (post as any).socialImageId ?? (post as any).social_image_id ?? null,
       noindex: Boolean((post as any).noindex),
       nofollow: Boolean((post as any).nofollow),
-      featuredImageId: (post as any).featuredImageId ?? (post as any).featured_image_id ?? null,
+      featuredMediaId: (post as any).featuredMediaId ?? (post as any).featured_media_id ?? null,
     }
 
     if (mode === 'review') {
@@ -233,8 +233,8 @@ export default class PostSerializerService {
           ...(reviewDraft.nofollow !== undefined
             ? { nofollow: Boolean(reviewDraft.nofollow) }
             : {}),
-          ...(reviewDraft.featuredImageId !== undefined
-            ? { featuredImageId: reviewDraft.featuredImageId ?? null }
+          ...(reviewDraft.featuredMediaId !== undefined
+            ? { featuredMediaId: reviewDraft.featuredMediaId ?? null }
             : {}),
           ...(reviewDraft.taxonomyTermIds !== undefined
             ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
@@ -282,8 +282,8 @@ export default class PostSerializerService {
             ...(reviewDraft.nofollow !== undefined
               ? { nofollow: Boolean(reviewDraft.nofollow) }
               : {}),
-            ...(reviewDraft.featuredImageId !== undefined
-              ? { featuredImageId: reviewDraft.featuredImageId ?? null }
+            ...(reviewDraft.featuredMediaId !== undefined
+              ? { featuredMediaId: reviewDraft.featuredMediaId ?? null }
               : {}),
             ...(reviewDraft.taxonomyTermIds !== undefined
               ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
@@ -329,8 +329,8 @@ export default class PostSerializerService {
           ...(aiReviewDraft.nofollow !== undefined
             ? { nofollow: Boolean(aiReviewDraft.nofollow) }
             : {}),
-          ...(aiReviewDraft.featuredImageId !== undefined
-            ? { featuredImageId: aiReviewDraft.featuredImageId ?? null }
+          ...(aiReviewDraft.featuredMediaId !== undefined
+            ? { featuredMediaId: aiReviewDraft.featuredMediaId ?? null }
             : {}),
           ...(aiReviewDraft.taxonomyTermIds !== undefined
             ? { taxonomyTermIds: aiReviewDraft.taxonomyTermIds }
@@ -374,8 +374,8 @@ export default class PostSerializerService {
             ...(reviewDraft.nofollow !== undefined
               ? { nofollow: Boolean(reviewDraft.nofollow) }
               : {}),
-            ...(reviewDraft.featuredImageId !== undefined
-              ? { featuredImageId: reviewDraft.featuredImageId ?? null }
+            ...(reviewDraft.featuredMediaId !== undefined
+              ? { featuredMediaId: reviewDraft.featuredMediaId ?? null }
               : {}),
             ...(reviewDraft.taxonomyTermIds !== undefined
               ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
@@ -425,7 +425,7 @@ export default class PostSerializerService {
         socialImageId: postFields.socialImageId ?? null,
         noindex: Boolean(postFields.noindex),
         nofollow: Boolean(postFields.nofollow),
-        featuredImageId: postFields.featuredImageId ?? null,
+        featuredMediaId: postFields.featuredMediaId ?? null,
         customFields,
         taxonomyTermIds: postFields.taxonomyTermIds || taxonomyTermIds,
       } as any,

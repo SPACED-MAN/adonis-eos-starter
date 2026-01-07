@@ -46,8 +46,8 @@ const companyPostType: PostTypeConfig = {
     },
   ],
 
-  // Featured image enabled with custom label
-  featuredImage: {
+  // Featured media enabled with custom label
+  featuredMedia: {
     enabled: true,
     label: 'Logo',
   },

@@ -665,7 +665,7 @@ function createServerInstance() {
               canonicalUrl: post.canonical_url ?? null,
               robotsJson: post.robots_json ?? null,
               jsonldOverrides: post.jsonld_overrides ?? null,
-              featuredImageId: post.featured_image_id ?? null,
+              featuredMediaId: post.featured_media_id ?? null,
               reviewDraft: post.review_draft ?? null,
               aiReviewDraft: post.ai_review_draft ?? null,
             },
@@ -1023,7 +1023,7 @@ function createServerInstance() {
       patch: z
         .record(z.any())
         .describe(
-          'Partial post fields: slug/title/excerpt/metaTitle/metaDescription/canonicalUrl/robotsJson/jsonldOverrides/featuredImageId/customFields/...'
+          'Partial post fields: slug/title/excerpt/metaTitle/metaDescription/canonicalUrl/robotsJson/jsonldOverrides/featuredMediaId/customFields/...'
         ),
       agentId: z.string().optional(),
       agentName: z.string().optional(),
@@ -1047,7 +1047,7 @@ function createServerInstance() {
           canonicalUrl: post.canonical_url ?? null,
           robotsJson: post.robots_json ?? null,
           jsonldOverrides: post.jsonld_overrides ?? null,
-          featuredImageId: post.featured_image_id ?? null,
+          featuredMediaId: post.featured_media_id ?? null,
         }
 
         // Carry forward customFields from base draft or current DB values
@@ -1283,7 +1283,7 @@ function createServerInstance() {
           const schema = moduleRegistry.getSchema(String(row.type))
           const firstRichText = schema.fieldSchema.find((f: any) => f.type === 'richtext')
           const firstTextArea = schema.fieldSchema.find((f: any) => f.type === 'textarea')
-          
+
           if (firstRichText) {
             const lexical = markdownToLexical(md, { skipFirstH1: false })
             finalOverrides = {
@@ -1314,7 +1314,7 @@ function createServerInstance() {
             .where('pm.id', postModuleId)
             .select('mi.type')
             .first()
-          
+
           if (row && moduleRegistry.has(String(row.type))) {
             const schema = moduleRegistry.getSchema(String(row.type))
             processObject(finalOverrides, schema.fieldSchema)
@@ -1558,7 +1558,7 @@ function createServerInstance() {
           canonicalUrl: source?.canonical_url ?? null,
           robotsJson: source?.robots_json ?? null,
           jsonldOverrides: source?.jsonld_overrides ?? null,
-          featuredImageId: source?.featured_image_id ?? null,
+          featuredMediaId: source?.featured_media_id ?? null,
         }
 
         const aiReviewDraft = {
@@ -1718,7 +1718,7 @@ function createServerInstance() {
             canonicalUrl: source?.canonical_url ?? null,
             robotsJson: source?.robots_json ?? null,
             jsonldOverrides: source?.jsonld_overrides ?? null,
-            featuredImageId: source?.featured_image_id ?? null,
+            featuredMediaId: source?.featured_media_id ?? null,
           }
 
           const aiReviewDraft = {
@@ -1947,7 +1947,7 @@ function createServerInstance() {
         canonicalUrl: post.canonical_url ?? null,
         robotsJson: post.robots_json ?? null,
         jsonldOverrides: post.jsonld_overrides ?? null,
-        featuredImageId: post.featured_image_id ?? null,
+        featuredMediaId: post.featured_media_id ?? null,
         taxonomyTermIds: undefined,
       }
 
@@ -2515,7 +2515,7 @@ function createServerInstance() {
         // 3. Post Fields
         const inPosts = await db
           .from('posts')
-          .where('featured_image_id', id)
+          .where('featured_media_id', id)
           .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeUrl])
           .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeUrl])
           .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeId])
@@ -2629,7 +2629,7 @@ function createServerInstance() {
           canonicalUrl: post.canonical_url ?? null,
           robotsJson: post.robots_json ?? null,
           jsonldOverrides: post.jsonld_overrides ?? null,
-          featuredImageId: post.featured_image_id ?? null,
+          featuredMediaId: post.featured_media_id ?? null,
         }
 
         const merged = {
@@ -2932,7 +2932,7 @@ function createServerInstance() {
       try {
         // Try to find terminal files in the project's terminal folder
         const terminalDir = path.join(process.cwd(), '.cursor/projects', 'home-spaced-man-Dev-applications-adonis-eos', 'terminals')
-        
+
         // This is a bit speculative as the path might change, but it's based on the user's provided info.
         // If it fails, we'll try a more generic approach.
         let logContent = ''
@@ -2994,10 +2994,10 @@ function createServerInstance() {
           matchInfo: match,
           post: post
             ? {
-                id: post.id,
-                title: post.title,
-                status: post.status,
-              }
+              id: post.id,
+              title: post.title,
+              status: post.status,
+            }
             : null,
         })
       } catch (e: any) {
@@ -3047,8 +3047,8 @@ function createServerInstance() {
         ])
 
         const fieldDiff: Record<string, { base: any; target: any; changed: boolean }> = {}
-        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredImageId']
-        
+        const postFields = ['slug', 'title', 'excerpt', 'metaTitle', 'metaDescription', 'featuredMediaId']
+
         postFields.forEach(field => {
           const bVal = (base.post as any)[field]
           const tVal = (target.post as any)[field]

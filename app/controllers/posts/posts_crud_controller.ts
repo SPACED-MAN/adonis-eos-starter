@@ -212,12 +212,12 @@ export default class PostsCrudController extends BasePostsController {
         canonicalUrl: payload.canonicalUrl,
         robotsJson,
         jsonldOverrides,
-        // Featured image: support optional update when provided by the editor
-        featuredImageId:
-          payload.featuredImageId !== undefined
-            ? payload.featuredImageId === null || payload.featuredImageId === ''
+        // Featured media: support optional update when provided by the editor
+        featuredMediaId:
+          payload.featuredMediaId !== undefined
+            ? payload.featuredMediaId === null || payload.featuredMediaId === ''
               ? null
-              : payload.featuredImageId
+              : payload.featuredMediaId
             : undefined,
         taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
           ? ((payload as any).taxonomyTermIds as string[])

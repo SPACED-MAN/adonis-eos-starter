@@ -46,7 +46,7 @@ export default class ProfilesController {
       query.whereIn('id', ids)
     }
 
-    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredImage')
+    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredMedia')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -123,15 +123,15 @@ export default class ProfilesController {
       const name = [first, last].filter(Boolean).join(' ') || p.title || 'Profile'
       const role = extras?.role || null
       const bio = p.excerpt ?? null
-      const featuredImage = p.featuredImage
+      const featuredMedia = p.featuredMedia
 
-      const image = featuredImage
+      const image = featuredMedia
         ? {
-            id: featuredImage.id,
-            url: featuredImage.url,
-            mimeType: featuredImage.mimeType,
-            altText: featuredImage.altText,
-            metadata: featuredImage.metadata,
+            id: featuredMedia.id,
+            url: featuredMedia.url,
+            mimeType: featuredMedia.mimeType,
+            altText: featuredMedia.altText,
+            metadata: featuredMedia.metadata,
           }
         : null
 

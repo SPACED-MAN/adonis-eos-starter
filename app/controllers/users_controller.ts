@@ -338,9 +338,9 @@ export default class UsersController {
                 : String((val as any).value?.id || (val as any).value)
               : null
 
-          // Fallback to featured_image_id if custom field is not set
-          if (!mediaId && (row as any).featured_image_id) {
-            mediaId = (row as any).featured_image_id
+          // Fallback to featured_media_id if custom field is not set
+          if (!mediaId && (row as any).featured_media_id) {
+            mediaId = (row as any).featured_media_id
           }
 
           if (mediaId) {

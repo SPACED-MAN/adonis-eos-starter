@@ -368,7 +368,7 @@ export default class AgentsController {
       const suggestedValue = generatedMediaId || suggestions.value || suggestions.content || suggestions.text
 
       if (suggestedValue !== undefined) {
-        if (fieldKey === 'post.featuredImageId' || fieldKey.startsWith('post.')) {
+        if (fieldKey === 'post.featuredMediaId' || fieldKey.startsWith('post.')) {
           const k = fieldKey.startsWith('post.') ? fieldKey.slice(5) : fieldKey
           suggestedPost[k] = suggestedValue
         } else if (fieldKey.startsWith('module.')) {

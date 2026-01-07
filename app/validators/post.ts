@@ -91,8 +91,8 @@ export const updatePostValidator = vine.compile(
         'reject-ai-review',
       ])
       .optional(),
-    // Featured image (Media ID). Optional and nullable.
-    featuredImageId: vine.string().uuid().nullable().optional(),
+    // Featured media (Media ID). Optional and nullable.
+    featuredMediaId: vine.string().uuid().nullable().optional(),
     customFields: vine.array(vine.any()).optional(),
     taxonomyTermIds: vine.array(vine.string().uuid()).optional(),
     modules: vine.array(vine.any()).optional(),

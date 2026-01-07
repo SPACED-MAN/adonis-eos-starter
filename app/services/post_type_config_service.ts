@@ -22,7 +22,7 @@ class PostTypeConfigService {
       modulesEnabled: true,
       moduleGroupsEnabled: true,
       taxonomies: [],
-      featuredImage: { enabled: false, label: 'Featured Image' },
+      featuredMedia: { enabled: false, label: 'Featured Media' },
       abTesting: { enabled: false, strategy: 'cookie', variations: [] },
       seoDefaults: { noindex: false, nofollow: false, robotsJson: undefined },
     }
@@ -86,10 +86,10 @@ class PostTypeConfigService {
       modulesEnabled,
       moduleGroupsEnabled,
       taxonomies: Array.isArray(cfg.taxonomies) ? cfg.taxonomies : [],
-      featuredImage:
-        cfg.featuredImage && cfg.featuredImage.enabled
-          ? { enabled: true, label: cfg.featuredImage.label || 'Featured Image' }
-          : { enabled: false, label: 'Featured Image' },
+      featuredMedia:
+        cfg.featuredMedia && cfg.featuredMedia.enabled
+          ? { enabled: true, label: cfg.featuredMedia.label || 'Featured Media' }
+          : { enabled: false, label: 'Featured Media' },
       abTesting: cfg.abTesting
         ? {
             enabled: !!cfg.abTesting.enabled,

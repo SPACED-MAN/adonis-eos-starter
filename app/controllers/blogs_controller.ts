@@ -45,7 +45,7 @@ export default class BlogsController {
       query.whereIn('id', ids)
     }
 
-    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredImage')
+    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredMedia')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -57,7 +57,7 @@ export default class BlogsController {
 
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const featuredImage = p.featuredImage
+      const featuredMedia = p.featuredMedia
       const updatedAtRaw = (p as any).updatedAt ?? (p as any).updated_at ?? null
       let updatedAt: string | null = null
       if (updatedAtRaw instanceof Date) {
@@ -66,13 +66,13 @@ export default class BlogsController {
         updatedAt = updatedAtRaw
       }
 
-      const image = featuredImage
+      const image = featuredMedia
         ? {
-            id: featuredImage.id,
-            url: featuredImage.url,
-            mimeType: featuredImage.mimeType,
-            altText: featuredImage.altText,
-            metadata: featuredImage.metadata,
+            id: featuredMedia.id,
+            url: featuredMedia.url,
+            mimeType: featuredMedia.mimeType,
+            altText: featuredMedia.altText,
+            metadata: featuredMedia.metadata,
           }
         : null
 

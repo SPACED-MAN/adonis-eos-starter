@@ -52,9 +52,9 @@ You can control how search engines interact with individual pages:
 - **Follow**: Allow search engines to follow links on this page.
 - **Noindex/No-follow**: Use these for private pages, thank-you pages, or temporary drafts.
 
-### 4. Featured Images
+### 4. Featured Media
 
-Always set a **Featured Image** for your posts. This image is used when the page is shared on social media (Open Graph/Twitter).
+Always set a **Featured Media** for your posts. This media is used when the page is shared on social media (Open Graph/Twitter).
 
 ---
 

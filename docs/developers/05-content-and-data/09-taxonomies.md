@@ -31,7 +31,7 @@ Fields:
 
 ### Custom Fields for Terms
 
-You can define custom fields for taxonomy terms. This is useful for adding metadata like descriptions, featured images, or custom colors to categories.
+You can define custom fields for taxonomy terms. This is useful for adding metadata like descriptions, featured media, or custom colors to categories.
 
 ```ts
 import type { RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
@@ -50,8 +50,8 @@ const taxonomy: RegisteredTaxonomyConfig = {
       category: 'General',
     },
     {
-      slug: 'featured_image',
-      label: 'Featured Image',
+      slug: 'featured_media',
+      label: 'Featured Media',
       type: 'media',
       category: 'Display',
     },

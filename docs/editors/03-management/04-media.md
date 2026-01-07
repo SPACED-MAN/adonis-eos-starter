@@ -101,7 +101,7 @@ Specific image modules (Hero Banner, Gallery, etc.) have dedicated image selecto
 
 Some post types have custom image fields:
 
-- **Featured Image**: Main image for blog posts
+- **Featured Media**: Main media for blog posts
 - **Thumbnail**: Small preview image
 - **Background Image**: For hero sections
 

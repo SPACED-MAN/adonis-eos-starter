@@ -81,7 +81,7 @@ class MediaUsageService {
 
     const inPosts = await db
       .from('posts')
-      .where('featured_image_id', id)
+      .where('featured_media_id', id)
       .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeUrl])
       .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeUrl])
       .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeId])

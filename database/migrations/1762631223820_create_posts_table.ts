@@ -11,7 +11,7 @@ export default class extends BaseSchema {
       table.string('slug', 255).notNullable()
       table.string('title', 500).notNullable()
       table.text('excerpt').nullable()
-      table.uuid('featured_image_id').nullable()
+      table.uuid('featured_media_id').nullable()
 
       table
         .enum('status', [
@@ -93,7 +93,7 @@ export default class extends BaseSchema {
       table.index('module_group_id') // For module group queries
       table.index('user_id') // For user's posts queries
       table.index('author_id') // For author queries
-      table.index('featured_image_id') // For media queries
+      table.index('featured_media_id') // For media queries
       table.index(['parent_id'])
       table.index(['type', 'parent_id'])
       table.index(['type', 'parent_id', 'order_index'])

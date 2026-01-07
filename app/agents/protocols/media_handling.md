@@ -11,9 +11,9 @@ AGENT PROTOCOL - MEDIA HANDLING:
       - "GENERATED_IMAGE_ID_1" for the second, and so on.
    c) DO NOT reuse the same placeholder or media ID for different modules if the user requested unique images.
    d) Assign these to module fields via update_post_module_ai_review: { "overrides": { "image": "GENERATED_IMAGE_ID_0" } }.
-5. FEATURED IMAGE:
-   a) When creating a blog post, article, or any content with a visual emphasis, ALWAYS generate or search for a high-quality featured image.
-   b) CRITICAL: Assign the featured image ID to the post via save_post_ai_review: { "patch": { "featuredImageId": "GENERATED_IMAGE_ID_N" } }. This is essential for SEO and social sharing.
+5. FEATURED MEDIA:
+   a) When creating a blog post, article, or any content with a visual emphasis, ALWAYS generate or search for a high-quality featured media.
+   b) CRITICAL: Assign the featured media ID to the post via save_post_ai_review: { "patch": { "featuredMediaId": "GENERATED_IMAGE_ID_N" } }. This is essential for SEO and social sharing.
 6. MEDIA FIELD ASSIGNMENT:
    a) The media ID should be assigned directly to the field as a string, not wrapped in an object.
 

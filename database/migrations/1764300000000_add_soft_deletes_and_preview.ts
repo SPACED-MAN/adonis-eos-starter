@@ -11,18 +11,18 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 export default class extends BaseSchema {
   async up() {
     // Add soft delete to posts (already in main posts migration now)
-    // Add foreign key constraint for featured_image_id (must run after media_assets exists)
+    // Add foreign key constraint for featured_media_id (must run after media_assets exists)
     await this.schema.raw(`
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints 
-    WHERE constraint_name = 'posts_featured_image_id_foreign'
+    WHERE constraint_name = 'posts_featured_media_id_foreign'
     AND table_name = 'posts'
   ) THEN
     ALTER TABLE posts 
-    ADD CONSTRAINT posts_featured_image_id_foreign 
-    FOREIGN KEY (featured_image_id) 
+    ADD CONSTRAINT posts_featured_media_id_foreign 
+    FOREIGN KEY (featured_media_id) 
     REFERENCES media_assets(id) 
     ON DELETE SET NULL;
   END IF;
@@ -94,7 +94,7 @@ END $$;
 
     // Drop foreign key constraint
     await this.schema.raw(
-      'ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_featured_image_id_foreign'
+      'ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_featured_media_id_foreign'
     )
   }
 }

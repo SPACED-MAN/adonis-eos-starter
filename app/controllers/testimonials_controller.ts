@@ -48,7 +48,7 @@ export default class TestimonialsController {
     }
 
     const total = await query.clone().count('* as total').first().then((r) => Number(r?.$extras.total || 0))
-    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredImage')
+    const rows = await query.orderBy('updated_at', sortOrder).limit(limit).preload('featuredMedia')
 
     if (rows.length === 0) {
       return response.ok({ data: [], meta: { total: 0 } })
@@ -101,19 +101,19 @@ export default class TestimonialsController {
     const items = rows.map((p) => {
       const pid = String(p.id)
       const extras = byPostId.get(pid)
-      const featuredImage = p.featuredImage
+      const featuredMedia = p.featuredMedia
 
       const authorName = extras?.author_name || p.title || 'Testimonial'
       const authorTitle = extras?.author_title || null
       const quote = extras?.quote || null
 
-      const image = featuredImage
+      const image = featuredMedia
         ? {
-            id: featuredImage.id,
-            url: featuredImage.url,
-            mimeType: featuredImage.mimeType,
-            altText: featuredImage.altText,
-            metadata: featuredImage.metadata,
+            id: featuredMedia.id,
+            url: featuredMedia.url,
+            mimeType: featuredMedia.mimeType,
+            altText: featuredMedia.altText,
+            metadata: featuredMedia.metadata,
           }
         : null
 

@@ -38,8 +38,8 @@ export default class Post extends BaseModel {
   @column()
   declare excerpt: string | null
 
-  @column({ columnName: 'featured_image_id' })
-  declare featuredImageId: string | null
+  @column({ columnName: 'featured_media_id' })
+  declare featuredMediaId: string | null
 
   @column()
   declare status:
@@ -115,12 +115,12 @@ export default class Post extends BaseModel {
   declare authorId: number | null
 
   /**
-   * Relationship: Featured Image
+   * Relationship: Featured Media
    */
   @belongsTo(() => MediaAsset, {
-    foreignKey: 'featuredImageId',
+    foreignKey: 'featuredMediaId',
   })
-  declare featuredImage: BelongsTo<typeof MediaAsset>
+  declare featuredMedia: BelongsTo<typeof MediaAsset>
 
   /**
    * Relationship: Social Image

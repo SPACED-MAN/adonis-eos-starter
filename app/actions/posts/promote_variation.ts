@@ -27,7 +27,7 @@ export default class PromoteVariation {
         // We preserve mainPost's ID, slug, type, locale, and parentId
         mainPost.title = winner.title
         mainPost.excerpt = winner.excerpt
-        mainPost.featuredImageId = winner.featuredImageId
+        mainPost.featuredMediaId = winner.featuredMediaId
         mainPost.metaTitle = winner.metaTitle
         mainPost.metaDescription = winner.metaDescription
         mainPost.robotsJson = winner.robotsJson
