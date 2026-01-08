@@ -165,6 +165,8 @@ export default function DatabaseIndex() {
     agentCount: number
     unreferencedMedia: number
     totalMedia: number
+    integrityIssuesCount: number
+    maintenanceCount: number
     totalIssues: number
   } | null>(null)
   const [loadingOptimizeStats, setLoadingOptimizeStats] = useState(false)
@@ -406,6 +408,20 @@ export default function DatabaseIndex() {
   const canManageFeedback = useHasPermission('forms.view')
   const canManageAgents = useHasPermission('agents.view')
 
+  const isWorkSelected = useMemo(() => {
+    if (!optimizeStats) return false
+    return (
+      (optimizeOptions.cleanOrphanedModules && optimizeStats.orphanedModuleInstances > 0) ||
+      (optimizeOptions.cleanUnsupportedModules && optimizeStats.unsupportedModuleInstances > 0) ||
+      (optimizeOptions.cleanInvalidRefs &&
+        (optimizeStats.invalidPostReferences > 0 || optimizeStats.invalidModuleReferences > 0)) ||
+      (optimizeOptions.clearRenderCache && optimizeStats.staleRenderCache > 0) ||
+      (optimizeOptions.cleanFeedback && optimizeStats.feedbackCount > 0) ||
+      (optimizeOptions.cleanAuditLogs && optimizeStats.auditCount > 0) ||
+      (optimizeOptions.cleanAgentTranscripts && optimizeStats.agentCount > 0)
+    )
+  }, [optimizeOptions, optimizeStats])
+
   // Load export stats
   const loadExportStats = async () => {
     setLoadingStats(true)
@@ -602,8 +618,8 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('export')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'export'
-                  ? 'border-standout-high text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
               Export/Import
@@ -611,8 +627,8 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('optimize')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'optimize'
-                  ? 'border-standout-high text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
               Optimize
@@ -620,8 +636,8 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('search-replace')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'search-replace'
-                  ? 'border-standout-high text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
               Find and Replace
@@ -687,8 +703,8 @@ export default function DatabaseIndex() {
                         <label
                           key={type}
                           className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${isSelected
-                              ? 'border-standout-high bg-standout-high/10'
-                              : 'border-line-medium hover:border-line-high'
+                            ? 'border-standout-high bg-standout-high/10'
+                            : 'border-line-medium hover:border-line-high'
                             }`}
                         >
                           <input
@@ -983,8 +999,8 @@ export default function DatabaseIndex() {
                       <h3 className="font-semibold text-neutral-dark">Import Results</h3>
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded ${importResult.errors.length === 0
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-amber-100 text-amber-700'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
                           }`}
                       >
                         {importResult.errors.length === 0 ? 'Success' : 'Completed with warnings'}
@@ -1056,8 +1072,8 @@ export default function DatabaseIndex() {
                             <TableCell>
                               <span
                                 className={`px-2 py-1 text-xs font-semibold rounded ${row.status === 'skipped'
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-rose-100 text-rose-800'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-rose-100 text-rose-800'
                                   }`}
                               >
                                 {row.status === 'skipped' ? 'Skipped' : 'Error'}
@@ -1223,8 +1239,8 @@ export default function DatabaseIndex() {
                             <label
                               key={table.name}
                               className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition ${isSelected
-                                  ? 'border-standout-high bg-standout-high/10'
-                                  : 'border-line-low hover:border-line-medium bg-backdrop-low'
+                                ? 'border-standout-high bg-standout-high/10'
+                                : 'border-line-low hover:border-line-medium bg-backdrop-low'
                                 }`}
                             >
                               <input
@@ -1290,8 +1306,8 @@ export default function DatabaseIndex() {
                     }}
                     disabled={frRunning || !frSearch || frSelectedTables.length === 0}
                     className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${frDryRun
-                        ? 'bg-standout-high text-on-high hover:opacity-90'
-                        : 'bg-rose-600 text-white hover:bg-rose-700'
+                      ? 'bg-standout-high text-on-high hover:opacity-90'
+                      : 'bg-rose-600 text-white hover:bg-rose-700'
                       }`}
                   >
                     {frRunning ? (
@@ -1441,7 +1457,7 @@ export default function DatabaseIndex() {
                   </div>
                 ) : optimizeStats ? (
                   <>
-                    {optimizeStats.totalIssues > 0 ? (
+                    {optimizeStats.integrityIssuesCount > 0 ? (
                       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
                         <div className="flex items-start gap-2">
                           <FontAwesomeIcon
@@ -1449,10 +1465,10 @@ export default function DatabaseIndex() {
                             className="text-yellow-600 mt-1"
                           />
                           <div>
-                            <p className="font-semibold text-yellow-800 mb-1">Issues Found</p>
+                            <p className="font-semibold text-yellow-800 mb-1">Integrity Issues Found</p>
                             <p className="text-sm text-yellow-700">
-                              Your database has {optimizeStats.totalIssues} issue
-                              {optimizeStats.totalIssues !== 1 ? 's' : ''} that can be cleaned up.
+                              Your database has {optimizeStats.integrityIssuesCount} integrity issue
+                              {optimizeStats.integrityIssuesCount !== 1 ? 's' : ''} that should be cleaned up.
                             </p>
                           </div>
                         </div>
@@ -1462,9 +1478,23 @@ export default function DatabaseIndex() {
                         <div className="flex items-start gap-2">
                           <FontAwesomeIcon icon={faCheckCircle} className="text-green-600 mt-1" />
                           <div>
-                            <p className="font-semibold text-green-800 mb-1">Database is Clean</p>
+                            <p className="font-semibold text-green-800 mb-1">Database Integrity is Healthy</p>
                             <p className="text-sm text-green-700">
                               No orphaned data or invalid references found.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {optimizeStats.maintenanceCount > 0 && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                        <div className="flex items-start gap-2">
+                          <FontAwesomeIcon icon={faInfoCircle} className="text-blue-600 mt-1" />
+                          <div>
+                            <p className="font-semibold text-blue-800 mb-1">Maintenance Items Available</p>
+                            <p className="text-sm text-blue-700">
+                              There are {optimizeStats.maintenanceCount.toLocaleString()} maintenance items (logs, cache, transcripts) that can be cleared to free up space.
                             </p>
                           </div>
                         </div>
@@ -1814,12 +1844,7 @@ export default function DatabaseIndex() {
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={() => setConfirmOptimizeOpen(true)}
-                    disabled={
-                      !canOptimize ||
-                      optimizing ||
-                      !optimizeStats ||
-                      optimizeStats.totalIssues === 0
-                    }
+                    disabled={!canOptimize || optimizing || !optimizeStats || !isWorkSelected}
                     className="px-4 py-2 bg-standout-high text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {optimizing ? (

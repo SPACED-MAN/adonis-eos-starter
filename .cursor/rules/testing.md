@@ -253,7 +253,7 @@ response.assertRedirectsTo('/login')
 
 ```typescript
 const user = await User.create({
-  email: 'test@example.com',
+  email: 'user@example.com',
   password: 'supersecret',
 })
 

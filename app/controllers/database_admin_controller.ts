@@ -347,6 +347,10 @@ export default class DatabaseAdminController {
       const mediaResult = await db.from('media_assets').count('* as count').first()
       const totalMedia = Number(mediaResult?.count || 0)
 
+      const integrityIssuesCount =
+        orphanedCount + unsupportedCount + invalidPostRefCount + invalidModuleRefCount
+      const maintenanceCount = staleCacheCount + feedbackCount + auditCount + agentCount
+
       return response.ok({
         orphanedModuleInstances: orphanedCount,
         unsupportedModuleInstances: unsupportedCount,
@@ -358,7 +362,9 @@ export default class DatabaseAdminController {
         agentCount,
         unreferencedMedia: 0, // Calculated on demand in optimize
         totalMedia,
-        totalIssues: orphanedCount + unsupportedCount + invalidPostRefCount + invalidModuleRefCount,
+        integrityIssuesCount,
+        maintenanceCount,
+        totalIssues: integrityIssuesCount,
       })
     } catch (error) {
       return response.badRequest({ error: (error as Error).message })
