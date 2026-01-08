@@ -1492,7 +1492,7 @@ class MCPClientService {
 
         if (!apiKey) {
           const envKey = `AI_PROVIDER_${providerMedia.toUpperCase()}_API_KEY`
-          apiKey = (process.env[envKey] as string | undefined) || undefined
+          apiKey = env.get(envKey as any) || undefined
         }
 
         if (!apiKey) {
@@ -1730,7 +1730,7 @@ class MCPClientService {
 
         if (!apiKey) {
           const envKey = `AI_PROVIDER_${providerVideo.toUpperCase()}_API_KEY`
-          apiKey = (process.env[envKey] as string | undefined) || undefined
+          apiKey = env.get(envKey as any) || undefined
         }
 
         if (!apiKey) {

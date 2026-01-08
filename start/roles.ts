@@ -7,12 +7,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import app from '@adonisjs/core/services/app'
 import roleRegistry from '#services/role_registry'
 import type { RoleDefinition } from '#types/role_types'
 
 // Auto-register all roles found in app/roles/*
 try {
-  const dir = path.join(process.cwd(), 'app', 'roles')
+  const dir = app.makePath('app', 'roles')
   if (fs.existsSync(dir)) {
     const files = fs.readdirSync(dir).filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
     for (const file of files) {

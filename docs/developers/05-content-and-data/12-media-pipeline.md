@@ -75,6 +75,15 @@ The media pipeline supports local and S3-compatible (specifically Cloudflare R2)
 
 For detailed configuration instructions, see the [Deployment Guide: Persistent Storage](../01-getting-started/03-deployment.md#4-persistent-storage).
 
+### Migrating Storage Backends
+If you are switching from local storage to Cloudflare R2, you can use the built-in migration command to sync your existing assets and update database references:
+
+```bash
+node ace migrate:media:r2
+```
+
+See the [Deployment Guide](../01-getting-started/03-deployment.md#migrating-local-media-to-r2) for full details on the migration process.
+
 ## AI-Generated Media
 
 The media pipeline is integrated with AI agents for automated image generation:

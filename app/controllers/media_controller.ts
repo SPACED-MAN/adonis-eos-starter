@@ -25,7 +25,7 @@ export default class MediaController {
   async index({ request, response }: HttpContext) {
     const { limit, page, sortBy, sortOrder, category, q } =
       await request.validateUsing(mediaQueryValidator)
-    
+
     const effectiveLimit = limit || 20
     const effectivePage = page || 1
     const effectiveSortBy = sortBy || 'created_at'
@@ -170,7 +170,7 @@ export default class MediaController {
         entityId: id,
         metadata: { fields: Object.keys(update) },
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Updated' })
   }
 
@@ -341,7 +341,7 @@ export default class MediaController {
           entityId: id,
           metadata: { targetVariant },
         })
-      } catch { }
+      } catch {}
       return response.ok({ data: { variants: result.variants } })
     }
 
@@ -405,7 +405,7 @@ export default class MediaController {
           entityId: id,
           metadata: { cropRect: cropArgs },
         })
-      } catch { }
+      } catch {}
       return response.ok({ data: { variants: [...result.variants, cropped] } })
     }
 
@@ -440,7 +440,7 @@ export default class MediaController {
         entityId: id,
         metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
       })
-    } catch { }
+    } catch {}
     // Return the merged list and updated metadata so the client has all variants (light + dark)
     return response.ok({ data: { variants: metadata.variants, metadata } })
   }
@@ -499,8 +499,14 @@ export default class MediaController {
 
     // Re-publish to storage if needed
     try {
-      await storageService.publishFile(destPath, url, mime)
-    } catch { }
+      const storageUrl = await storageService.publishFile(destPath, url, mime)
+      if (storageUrl && storageUrl !== url) {
+        await db.from('media_assets').where('id', id).update({
+          url: storageUrl,
+          updated_at: new Date(),
+        })
+      }
+    } catch {}
 
     return response.ok({ message: 'Content updated', size: stats.size })
   }
@@ -603,11 +609,11 @@ export default class MediaController {
         const deleteFile = async (f: string) => {
           try {
             await fs.promises.unlink(path.join(dir, f))
-          } catch { }
+          } catch {}
           try {
             const url = path.posix.join(path.posix.dirname(existingPublicUrl), f)
             await storageService.deleteByUrl(url)
-          } catch { }
+          } catch {}
         }
 
         for (const f of files) {
@@ -682,6 +688,17 @@ export default class MediaController {
       }
     }
 
+    // Publish to storage if remote driver is active
+    let storageUrl = targetPublicUrl
+    try {
+      const resultUrl = await storageService.publishFile(targetAbsPath, targetPublicUrl, mime)
+      if (resultUrl) {
+        storageUrl = resultUrl
+      }
+    } catch {
+      /* ignore publish errors; local file remains */
+    }
+
     let metadata = (row.metadata || {}) as any
     const isSvg =
       mime.toLowerCase() === 'image/svg+xml' || targetPublicUrl.toLowerCase().endsWith('.svg')
@@ -693,7 +710,7 @@ export default class MediaController {
         if (theme === 'dark') {
           metadata = {
             ...metadata,
-            darkSourceUrl: targetPublicUrl,
+            darkSourceUrl: storageUrl,
           }
         }
       } else {
@@ -701,7 +718,7 @@ export default class MediaController {
           // Update darkSourceUrl to point to the newly uploaded dark base
           metadata = {
             ...metadata,
-            darkSourceUrl: targetPublicUrl,
+            darkSourceUrl: storageUrl,
           }
 
           // Update the row temporarily so the action can use it
@@ -720,7 +737,7 @@ export default class MediaController {
           const result = await generateMediaVariantsAction.execute({
             mediaRecord: {
               ...row,
-              url: targetPublicUrl,
+              url: storageUrl,
               metadata: { ...metadata, darkSourceUrl: metadata.darkSourceUrl },
             },
             theme: 'light',
@@ -741,7 +758,7 @@ export default class MediaController {
       updated_at: new Date(),
     }
     if (theme === 'light') {
-      updatePayload.url = targetPublicUrl
+      updatePayload.url = storageUrl
       updatePayload.original_filename = clientName
     }
 
@@ -757,7 +774,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Overridden' })
   }
 
@@ -871,7 +888,7 @@ export default class MediaController {
       ? request.input('ids').map((x: any) => String(x))
       : []
     if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
-    
+
     // This could also be moved to an action, but keeping it here for now as it's a bulk operation
     // similar to optimizeBulk.
     const rows = await db.from('media_assets').whereIn('id', ids)
@@ -921,7 +938,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { regenerated: success } })
   }
 
@@ -1010,7 +1027,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: updated, add: addArr, remove: removeArr },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { updated } })
   }
 }

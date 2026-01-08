@@ -126,6 +126,10 @@ export default defineConfig({
       pattern: 'public/**',
       reloadServer: false,
     },
+    {
+      pattern: 'database/seed_data/**/*',
+      reloadServer: false,
+    },
   ],
 
   assetsBundler: false,

@@ -7,7 +7,7 @@ import adonisjs from '@adonisjs/vite/client'
 export default defineConfig({
   plugins: [
     inertia({
-      ssr: { enabled: true, entrypoint: 'inertia/site/app.tsx' },
+      ssr: { enabled: true, entrypoint: 'inertia/app/ssr.tsx' },
     }),
     react(),
     adonisjs({
@@ -32,6 +32,7 @@ export default defineConfig({
    * react-dom/server is kept because InlineOverlay uses renderToStaticMarkup on client
    */
   build: {
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: (id) => {

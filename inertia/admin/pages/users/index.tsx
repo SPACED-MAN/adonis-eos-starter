@@ -253,21 +253,19 @@ export default function UsersIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('list')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'list'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'list'
                   ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               User List
             </button>
             <button
               onClick={() => setActiveTab('profiles')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'profiles'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'profiles'
                   ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Profiles
             </button>
@@ -332,11 +330,13 @@ export default function UsersIndex() {
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableRoles.map((r: any) => (
-                              <SelectItem key={r.name} value={r.name}>
-                                {r.label}
-                              </SelectItem>
-                            ))}
+                            {availableRoles
+                              .filter((r: any) => isSuperAdmin || r.name !== 'admin')
+                              .map((r: any) => (
+                                <SelectItem key={r.name} value={r.name}>
+                                  {r.label}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -421,148 +421,148 @@ export default function UsersIndex() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-2">
-                        {canModifyUser && (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={adminPath(`users/${u.id}/edit`)}
-                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                              >
-                                Edit
-                              </a>
-                              <button
-                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch(
-                                      `/api/users/${encodeURIComponent(u.id)}/profile`,
-                                      {
-                                        credentials: 'same-origin',
-                                      }
-                                    )
-                                    const j = await res.json().catch(() => ({}))
-                                    let pid: string | null = j?.id || null
-                                    if (!pid) {
-                                      const csrf = getXsrf()
-                                      const createRes = await fetch(
-                                        `/api/users/${encodeURIComponent(u.id)}/profile`,
-                                        {
-                                          method: 'POST',
-                                          headers: {
-                                            'Accept': 'application/json',
-                                            'Content-Type': 'application/json',
-                                            ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                          },
-                                          credentials: 'same-origin',
-                                        }
-                                      )
-                                      const cj = await createRes.json().catch(() => ({}))
-                                      if (!createRes.ok) {
-                                        toast.error(cj?.error || 'Failed to create profile')
-                                        return
-                                      }
-                                      pid = cj?.id || null
-                                    }
-                                    if (pid) {
-                                      bypassUnsavedChanges(true)
-                                      router.visit(adminPath(`posts/${pid}/edit`))
-                                    }
-                                  } catch {
-                                    toast.error('Failed to open profile')
-                                  }
-                                }}
-                              >
-                                Profile
-                              </button>
-                            </div>
-                            
-                            {pwdFor === u.id ? (
-                              <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                                <Input
-                                  type="password"
-                                  value={pwd}
-                                  onChange={(e) => setPwd(e.target.value)}
-                                  placeholder="New"
-                                  className="w-[100px] h-8 text-xs"
-                                />
-                                <button
-                                  className="px-2 py-1 text-[10px] border border-line-medium rounded bg-standout-high text-on-high"
-                                  disabled={!!saving[u.id]}
-                                  onClick={() => {
-                                    resetPassword(u.id, pwd)
-                                    setPwdFor(null)
-                                    setPwd('')
-                                  }}
+                          {canModifyUser && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={adminPath(`users/${u.id}/edit`)}
+                                  className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                                 >
-                                  Save
-                                </button>
+                                  Edit
+                                </a>
                                 <button
-                                  className="px-2 py-1 text-[10px] border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                                  onClick={() => {
-                                    setPwdFor(null)
-                                    setPwd('')
-                                  }}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                                onClick={() => setPwdFor(u.id)}
-                              >
-                                PW
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {canDeleteUser && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <button className="px-2 py-1 text-[10px] sm:text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
-                                Del
-                              </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. The account for {u.email} will be
-                                  permanently removed.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
+                                  className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
                                   onClick={async () => {
                                     try {
-                                      const csrf = getXsrf()
                                       const res = await fetch(
-                                        `/api/users/${encodeURIComponent(u.id)}`,
+                                        `/api/users/${encodeURIComponent(u.id)}/profile`,
                                         {
-                                          method: 'DELETE',
-                                          headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
                                           credentials: 'same-origin',
                                         }
                                       )
-                                      if (!res.ok) {
-                                        const j = await res.json().catch(() => ({}))
-                                        toast.error(j?.error || 'Failed to delete user')
-                                        return
+                                      const j = await res.json().catch(() => ({}))
+                                      let pid: string | null = j?.id || null
+                                      if (!pid) {
+                                        const csrf = getXsrf()
+                                        const createRes = await fetch(
+                                          `/api/users/${encodeURIComponent(u.id)}/profile`,
+                                          {
+                                            method: 'POST',
+                                            headers: {
+                                              'Accept': 'application/json',
+                                              'Content-Type': 'application/json',
+                                              ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                            },
+                                            credentials: 'same-origin',
+                                          }
+                                        )
+                                        const cj = await createRes.json().catch(() => ({}))
+                                        if (!createRes.ok) {
+                                          toast.error(cj?.error || 'Failed to create profile')
+                                          return
+                                        }
+                                        pid = cj?.id || null
                                       }
-                                      toast.success('User deleted')
-                                      await load()
+                                      if (pid) {
+                                        bypassUnsavedChanges(true)
+                                        router.visit(adminPath(`posts/${pid}/edit`))
+                                      }
                                     } catch {
-                                      toast.error('Failed to delete user')
+                                      toast.error('Failed to open profile')
                                     }
                                   }}
                                 >
-                                  Confirm
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                                  Profile
+                                </button>
+                              </div>
+
+                              {pwdFor === u.id ? (
+                                <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                                  <Input
+                                    type="password"
+                                    value={pwd}
+                                    onChange={(e) => setPwd(e.target.value)}
+                                    placeholder="New"
+                                    className="w-[100px] h-8 text-xs"
+                                  />
+                                  <button
+                                    className="px-2 py-1 text-[10px] border border-line-medium rounded bg-standout-high text-on-high"
+                                    disabled={!!saving[u.id]}
+                                    onClick={() => {
+                                      resetPassword(u.id, pwd)
+                                      setPwdFor(null)
+                                      setPwd('')
+                                    }}
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    className="px-2 py-1 text-[10px] border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                    onClick={() => {
+                                      setPwdFor(null)
+                                      setPwd('')
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  className="px-2 py-1 text-[10px] sm:text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                  onClick={() => setPwdFor(u.id)}
+                                >
+                                  PW
+                                </button>
+                              )}
+                            </>
+                          )}
+                          {canDeleteUser && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button className="px-2 py-1 text-[10px] sm:text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
+                                  Del
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. The account for {u.email} will be
+                                    permanently removed.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      try {
+                                        const csrf = getXsrf()
+                                        const res = await fetch(
+                                          `/api/users/${encodeURIComponent(u.id)}`,
+                                          {
+                                            method: 'DELETE',
+                                            headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                            credentials: 'same-origin',
+                                          }
+                                        )
+                                        if (!res.ok) {
+                                          const j = await res.json().catch(() => ({}))
+                                          toast.error(j?.error || 'Failed to delete user')
+                                          return
+                                        }
+                                        toast.success('User deleted')
+                                        await load()
+                                      } catch {
+                                        toast.error('Failed to delete user')
+                                      }
+                                    }}
+                                  >
+                                    Confirm
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

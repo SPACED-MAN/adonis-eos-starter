@@ -10,7 +10,7 @@ interface TooManyRequestsProps {
   retryAfter: number
 }
 
-export default function TooManyRequests({ retryAfter }: TooManyRequestsProps) {
+export default function TooManyRequests({ retryAfter = 60 }: TooManyRequestsProps) {
   const adminPath = useAdminPath()
   const [countdown, setCountdown] = useState(retryAfter)
 
@@ -61,11 +61,10 @@ export default function TooManyRequests({ retryAfter }: TooManyRequestsProps) {
             <button
               onClick={() => window.location.reload()}
               disabled={countdown > 0}
-              className={`block w-full px-6 py-3 font-semibold rounded-lg transition-colors ${
-                countdown > 0
+              className={`block w-full px-6 py-3 font-semibold rounded-lg transition-colors ${countdown > 0
                   ? 'bg-neutral-low text-neutral-medium cursor-not-allowed'
                   : 'bg-standout-high text-on-high hover:bg-standout-high'
-              }`}
+                }`}
             >
               Refresh Page
             </button>

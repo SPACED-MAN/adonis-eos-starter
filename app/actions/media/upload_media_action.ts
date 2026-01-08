@@ -156,11 +156,14 @@ export class UploadMediaAction {
 
     const now = new Date()
     const id = crypto.randomUUID()
-    const url = `/uploads/${filename}`
+    let url = `/uploads/${filename}`
 
     // Publish to storage
     try {
-      await storageService.publishFile(destPath, url, mime)
+      const storageUrl = await storageService.publishFile(destPath, url, mime)
+      if (storageUrl) {
+        url = storageUrl
+      }
     } catch {
       /* ignore publish errors; local file remains */
     }
@@ -232,7 +235,8 @@ export class UploadMediaAction {
     })
 
     try {
-      const workflowExecutionService = (await import('#services/workflow_execution_service')).default
+      const workflowExecutionService = (await import('#services/workflow_execution_service'))
+        .default
       await workflowExecutionService.executeWorkflows(
         'media.uploaded',
         {
@@ -254,4 +258,3 @@ export class UploadMediaAction {
 }
 
 export default new UploadMediaAction()
-

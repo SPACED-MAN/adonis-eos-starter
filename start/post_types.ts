@@ -9,10 +9,11 @@ import db from '@adonisjs/lucid/services/db'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import app from '@adonisjs/core/services/app'
 
 // Auto-register all post types found in app/post_types/*
 try {
-  const dir = path.join(process.cwd(), 'app', 'post_types')
+  const dir = app.makePath('app', 'post_types')
   if (fs.existsSync(dir)) {
     const files = fs.readdirSync(dir).filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
     for (const file of files) {

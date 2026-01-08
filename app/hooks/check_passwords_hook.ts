@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 
 /**
- * AdonisJS Build Hook to ensure no 'supersecret' passwords remain in the codebase
+ * AdonisJS Build Hook to ensure no hardcoded default passwords remain in the codebase
  * during production builds.
  */
 export default async function checkPasswordsHook() {
@@ -13,11 +13,11 @@ export default async function checkPasswordsHook() {
 		return
 	}
 
-	console.log('🛡️  Running production security check: scanning for "supersecret" passwords...')
+	console.log('🛡️  Running production security check...')
 
-	const forbiddenString = 'supersecret'
+	const forbiddenString = ['super', 'secret'].join('')
 	const sensitiveDirs = ['database', 'app', 'config']
-	const excludedFiles = ['development-export.json']
+	const excludedFiles = ['development-export.json', 'check_passwords_hook.ts']
 
 	let found = false
 	const findings: string[] = []
@@ -44,7 +44,7 @@ export default async function checkPasswordsHook() {
 	}
 
 	if (found) {
-		console.error('\n❌ SECURITY VIOLATION: Forbidden password string "supersecret" found in production build!')
+		console.error('\n❌ SECURITY VIOLATION: Forbidden hardcoded password found in production build!')
 		findings.forEach(line => console.error(`  - ${line}`))
 		console.error('\nPlease replace these hardcoded passwords with environment variables (e.g., env.get("SEEDER_PASSWORD")) before building for production.\n')
 
@@ -52,7 +52,7 @@ export default async function checkPasswordsHook() {
 		throw new Error('Production security check failed')
 	}
 
-	console.log('✅ Security check passed: No "supersecret" passwords found in sensitive directories.')
+	console.log('✅ Security check passed: No forbidden passwords found in sensitive directories.')
 }
 
 

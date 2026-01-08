@@ -46,7 +46,7 @@ export default class RateLimitMiddleware {
       ...this.defaultOptions,
       requests: cmsConfig.rateLimit.authRequests,
       window: cmsConfig.rateLimit.authWindow,
-      keyGenerator: (ctx) => `rate:auth:${ctx.request.ip()}`,
+      keyGenerator: (ctx) => `rate:auth:${ctx.request.method()}:${ctx.request.ip()}`,
       skipAuthenticated: false,
       skipAdmins: false,
     })
@@ -105,6 +105,7 @@ export default class RateLimitMiddleware {
         const oldestTimestamp = oldest.length >= 2 ? Number(oldest[1]) : now
         const retryAfter = Math.ceil((oldestTimestamp + windowMs - now) / 1000)
 
+        ctx.response.status(429)
         ctx.response.header('X-RateLimit-Limit', String(this.options.requests))
         ctx.response.header('X-RateLimit-Remaining', '0')
         ctx.response.header('X-RateLimit-Reset', String(Math.ceil((now + windowMs) / 1000)))
@@ -114,17 +115,19 @@ export default class RateLimitMiddleware {
         const isInertia = !!ctx.request.header('x-inertia')
 
         if (acceptsHtml || isInertia) {
-          // If it's an Inertia request, we must use inertia.render or it will break the SPA.
-          // If it's a direct browser request, inertia.render will also work (it will render the full HTML).
           const inertia = (ctx as any).inertia
           if (inertia) {
-            return inertia.render('admin/errors/too_many_requests', {
-              retryAfter: Math.max(1, retryAfter),
-            })
+            try {
+              return await inertia.render('admin/errors/too_many_requests', {
+                retryAfter: Math.max(1, retryAfter),
+              })
+            } catch (renderError) {
+              // Fallback if inertia render fails
+            }
           }
         }
 
-        return ctx.response.status(429).json({
+        return ctx.response.json({
           error: 'Too many requests. Please try again later.',
           retryAfter: Math.max(1, retryAfter),
         })
@@ -144,7 +147,7 @@ export default class RateLimitMiddleware {
       return next()
     } catch (error) {
       // If Redis fails, allow the request but log the error
-      // Rate limit middleware error
+      console.error('Rate limit middleware error:', error)
       return next()
     }
   }

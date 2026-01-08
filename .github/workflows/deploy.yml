@@ -31,7 +31,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "build/*,package.json,package-lock.json,ecosystem.config.js"
+          source: "build,package.json,package-lock.json,ecosystem.config.cjs"
           target: "/var/www/adonis-eos"
           strip_components: 0
 
@@ -43,7 +43,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/adonis-eos
-            npm ci --production
+            npm ci --omit=dev
             node build/ace migration:run --force
-            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
-
+            pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs

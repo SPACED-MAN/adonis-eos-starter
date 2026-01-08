@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import env from '#start/env'
 
 /**
  * Supported AI providers
@@ -361,7 +362,7 @@ class AIProviderService {
     if (!apiKey) {
       // Try to get from env if not provided
       const envKey = `AI_PROVIDER_${provider.toUpperCase()}_API_KEY`
-      apiKey = process.env[envKey]
+      apiKey = env.get(envKey as any)
     }
 
     if (!apiKey) {

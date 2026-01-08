@@ -13,10 +13,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import app from '@adonisjs/core/services/app'
 
 // Auto-import all menu templates from app/menus/*
 try {
-  const dir = path.join(process.cwd(), 'app', 'menus')
+  const dir = app.makePath('app', 'menus')
   if (fs.existsSync(dir)) {
     const files = fs
       .readdirSync(dir)

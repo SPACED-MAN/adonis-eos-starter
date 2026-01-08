@@ -11,7 +11,10 @@ module.exports = {
       NODE_ENV: 'production',
       PORT: 3333,
       HOST: '0.0.0.0',
+      ENV_PATH: '/var/www/adonis-eos',
+      ENV_FILE: '.env',
     }
   }]
 }
+
 

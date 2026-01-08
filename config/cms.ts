@@ -75,7 +75,7 @@ const cmsConfig = {
     /** Default window duration in seconds */
     defaultWindow: env.get('CMS_RATE_LIMIT_WINDOW') ?? 60,
     /** Auth endpoint requests per window */
-    authRequests: env.get('CMS_RATE_LIMIT_AUTH_REQUESTS') ?? 5,
+    authRequests: env.get('CMS_RATE_LIMIT_AUTH_REQUESTS') ?? 10,
     /** Auth endpoint window duration */
     authWindow: env.get('CMS_RATE_LIMIT_AUTH_WINDOW') ?? 60,
     /** API endpoint requests per window */

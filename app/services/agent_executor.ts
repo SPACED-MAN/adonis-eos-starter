@@ -761,8 +761,8 @@ Only include fields that you are actually changing. NEVER leave module copy fiel
     let apiKey = config.apiKey
     const envKey = `AI_PROVIDER_${provider.toUpperCase()}_API_KEY`
     if (!apiKey) {
-      // Try environment variable
-      apiKey = process.env[envKey] || ''
+      // Try environment variable via Adonis Env service
+      apiKey = env.get(envKey as any) || ''
     }
 
     if (!apiKey) {

@@ -14,11 +14,14 @@ import {
 } from '~/components/ui/select'
 import { toast } from 'sonner'
 import { getXsrf } from '~/utils/xsrf'
-import { ROLES, type Role } from '~/types/roles'
+import { type Role } from '~/types/roles'
 
 export default function UserEdit() {
   const adminPath = useAdminPath()
   const page = usePage()
+  const me = (page.props as any)?.auth?.user
+  const isSuperAdmin = me?.role === 'admin'
+  const availableRoles = (page.props as any)?.roles || []
   const idParam =
     (page as any)?.props?.id ||
     (() => {
@@ -55,35 +58,35 @@ export default function UserEdit() {
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/users', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const list: Array<{ id: number; email: string; username?: string | null; role: Role }> =
-          Array.isArray(j?.data) ? j.data : []
-        const found = list.find((u) => String((u as any).id) === String(userId))
-        if (alive && found) {
-          const e = (found as any).email || ''
-          const u = ((found as any).username || '') as string
-          const r = ((found as any).role || 'editor') as Role
-          setEmail(e)
-          setUsername(u)
-          setRole(r)
-          setInitialData({ email: e, username: u, role: r })
-        }
-        // Load site settings for profile enablement
+      ; (async () => {
         try {
-          const sres = await fetch('/api/site-settings', { credentials: 'same-origin' })
-          const sj = await sres.json().catch(() => ({}))
-          if (alive) setSiteSettings((sj?.data || null) as any)
-        } catch {
-          /* ignore */
+          setLoading(true)
+          const res = await fetch('/api/users', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          const list: Array<{ id: number; email: string; username?: string | null; role: Role }> =
+            Array.isArray(j?.data) ? j.data : []
+          const found = list.find((u) => String((u as any).id) === String(userId))
+          if (alive && found) {
+            const e = (found as any).email || ''
+            const u = ((found as any).username || '') as string
+            const r = ((found as any).role || 'editor') as Role
+            setEmail(e)
+            setUsername(u)
+            setRole(r)
+            setInitialData({ email: e, username: u, role: r })
+          }
+          // Load site settings for profile enablement
+          try {
+            const sres = await fetch('/api/site-settings', { credentials: 'same-origin' })
+            const sj = await sres.json().catch(() => ({}))
+            if (alive) setSiteSettings((sj?.data || null) as any)
+          } catch {
+            /* ignore */
+          }
+        } finally {
+          if (alive) setLoading(false)
         }
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -229,11 +232,13 @@ export default function UserEdit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r.charAt(0).toUpperCase() + r.slice(1)}
-                        </SelectItem>
-                      ))}
+                      {availableRoles
+                        .filter((r: any) => isSuperAdmin || r.name !== 'admin')
+                        .map((r: any) => (
+                          <SelectItem key={r.name} value={r.name}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -279,7 +284,7 @@ export default function UserEdit() {
                       {profileId ? (
                         <>
                           {Array.isArray(profileData?.customFields) &&
-                          profileData!.customFields!.length > 0 ? (
+                            profileData!.customFields!.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                               {profileData!.customFields!.map((f, idx) => {
                                 const v = (f as any).value

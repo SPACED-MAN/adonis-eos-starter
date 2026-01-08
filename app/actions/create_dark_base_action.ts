@@ -101,13 +101,17 @@ class CreateDarkBaseAction {
       }
     })()
 
+    let finalDarkUrl = darkPublicUrl
     try {
-      await storageService.publishFile(darkAbsPath, darkPublicUrl, mimeType)
+      const storageUrl = await storageService.publishFile(darkAbsPath, darkPublicUrl, mimeType)
+      if (storageUrl) {
+        finalDarkUrl = storageUrl
+      }
     } catch {
       // Ignore publish errors
     }
 
-    const darkSourceUrl = darkPublicUrl
+    const darkSourceUrl = finalDarkUrl
 
     // Update metadata
     const metadata = {

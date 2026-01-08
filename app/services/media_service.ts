@@ -168,14 +168,22 @@ class MediaService {
       }
 
       const info = await pipeline.toFile(outPath)
+      let finalUrl = outUrl
       try {
-        await storageService.publishFile(outPath, outUrl, inferMimeFromExt(parsed.ext))
+        const storageUrl = await storageService.publishFile(
+          outPath,
+          outUrl,
+          inferMimeFromExt(parsed.ext)
+        )
+        if (storageUrl) {
+          finalUrl = storageUrl
+        }
       } catch {
         /* ignore */
       }
       variants.push({
         name: variantName,
-        url: outUrl,
+        url: finalUrl,
         width: info.width,
         height: info.height,
         size: info.size || 0,
@@ -205,12 +213,16 @@ class MediaService {
       })
       .toFile(outPath)
     const size = info.size || 0
+    let finalUrl = outUrl
     try {
-      await storageService.publishFile(outPath, outUrl, 'image/webp')
+      const storageUrl = await storageService.publishFile(outPath, outUrl, 'image/webp')
+      if (storageUrl) {
+        finalUrl = storageUrl
+      }
     } catch {
       /* ignore */
     }
-    return { optimizedPath: outPath, optimizedUrl: outUrl, size }
+    return { optimizedPath: outPath, optimizedUrl: finalUrl, size }
   }
 
   async optimizeVariantsToWebp(
@@ -266,16 +278,16 @@ class MediaService {
       // or oldBase-dark. (dark variants)
       const isRelated = f.startsWith(oldBase + '.') || f.startsWith(oldBase + '-dark')
       if (isRelated && f !== parsed.base) {
-        const suffix = f.startsWith(oldBase + '.') 
-          ? f.slice(oldBase.length) 
+        const suffix = f.startsWith(oldBase + '.')
+          ? f.slice(oldBase.length)
           : f.slice(oldBase.length) // handles -dark cases too
-        
+
         const oldVarPath = path.join(dir, f)
         const newVarName = `${newBaseName}${suffix}`
         const newVarPath = path.join(dir, newVarName)
-        
+
         await fs.rename(oldVarPath, newVarPath)
-        
+
         const oldVarUrl = path.posix.join(path.posix.dirname(oldUrl), f)
         const newVarUrl = path.posix.join(path.posix.dirname(oldUrl), newVarName)
         renamedVariants.push({ oldUrl: oldVarUrl, newUrl: newVarUrl })

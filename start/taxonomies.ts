@@ -8,10 +8,11 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import db from '@adonisjs/lucid/services/db'
+import app from '@adonisjs/core/services/app'
 import taxonomyRegistry, { type RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
 
 async function loadFromFs() {
-  const dir = path.join(process.cwd(), 'app', 'taxonomies')
+  const dir = app.makePath('app', 'taxonomies')
   if (!fs.existsSync(dir)) return
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
   for (const file of files) {

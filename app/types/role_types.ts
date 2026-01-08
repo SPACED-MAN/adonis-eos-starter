@@ -19,6 +19,7 @@ export type PermissionKey =
   | 'admin.database.export'
   | 'admin.database.import'
   // Content / posts
+  | 'posts.view'
   | 'posts.create'
   | 'posts.edit'
   | 'posts.publish'
@@ -33,6 +34,7 @@ export type PermissionKey =
   // Media
   | 'media.view'
   | 'media.upload'
+  | 'media.edit'
   | 'media.replace'
   | 'media.delete'
   | 'media.variants.generate'

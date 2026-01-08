@@ -14,14 +14,20 @@ import moduleRegistry from '#services/module_registry'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import app from '@adonisjs/core/services/app'
 
 // Auto-register all modules found in app/modules/*
 try {
-  const dir = path.join(process.cwd(), 'app', 'modules')
+  const dir = app.makePath('app', 'modules')
   if (fs.existsSync(dir)) {
     const files = fs
       .readdirSync(dir)
-      .filter((f) => (f.endsWith('.ts') || f.endsWith('.js')) && f !== 'base.ts')
+      .filter((f) => {
+        const isScript = f.endsWith('.ts') || f.endsWith('.js')
+        const isBase = f.startsWith('base.')
+        const isShared = f.startsWith('shared_')
+        return isScript && !isBase && !isShared
+      })
 
     for (const file of files) {
       try {

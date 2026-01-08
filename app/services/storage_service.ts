@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { Readable } from 'node:stream'
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 type StorageDriver = 'local' | 'r2'
 
@@ -82,8 +82,6 @@ class R2Driver {
   private publicBaseUrl: string | null
 
   constructor() {
-    // Lazy import to avoid bundling when not used
-    const { S3Client } = require('@aws-sdk/client-s3')
     const accountId = process.env.R2_ACCOUNT_ID || ''
     const endpoint =
       process.env.R2_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : '')
@@ -116,7 +114,6 @@ class R2Driver {
     data: Buffer | Uint8Array | string,
     contentType?: string
   ): Promise<string> {
-    const { PutObjectCommand } = require('@aws-sdk/client-s3')
     const clean = key.replace(/^\/+/, '')
     const Body = typeof data === 'string' ? Buffer.from(data) : data
     const ContentType = contentType || inferContentType(clean)
@@ -127,9 +124,8 @@ class R2Driver {
   }
 
   async publishFile(absPath: string, publicUrlPath: string, contentType?: string): Promise<string> {
-    const { PutObjectCommand } = require('@aws-sdk/client-s3')
     const clean = publicUrlPath.replace(/^\/+/, '')
-    const Body = Readable.from(await fs.readFile(absPath))
+    const Body = await fs.readFile(absPath)
     const ContentType = contentType || inferContentType(clean)
     await this.client.send(
       new PutObjectCommand({ Bucket: this.bucket, Key: clean, Body, ContentType })
@@ -138,7 +134,6 @@ class R2Driver {
   }
 
   async deleteByUrl(publicUrlPath: string): Promise<void> {
-    const { DeleteObjectCommand } = require('@aws-sdk/client-s3')
     const clean = publicUrlPath.replace(/^\/+/, '')
     try {
       await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: clean }))
