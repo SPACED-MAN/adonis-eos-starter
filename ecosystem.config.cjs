@@ -1,7 +1,8 @@
 module.exports = {
   apps: [{
     name: 'adonis-eos',
-    script: './build/bin/server.js',
+    script: './bin/server.js',
+    cwd: './build',
     instances: 'max',
     exec_mode: 'cluster',
     autorestart: true,

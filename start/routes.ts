@@ -665,6 +665,7 @@ router.get('/protected', [ProtectedAccessController, 'showForm'])
 router
   .post('/protected/login', [ProtectedAccessController, 'login'])
   .use(middleware.rateLimitAuth())
+router.post('/protected/import', [ProtectedAccessController, 'import'])
 
 // Graceful forbidden page for non-admins
 router

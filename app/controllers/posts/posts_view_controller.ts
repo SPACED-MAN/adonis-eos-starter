@@ -45,10 +45,10 @@ export default class PostsViewController extends BasePostsController {
       // Load post modules for editor
       let postModules = modulesEnabled
         ? await PostModule.query()
-            .where('postId', post.id)
-            .orderBy('orderIndex', 'asc')
-            .orderBy('createdAt', 'asc')
-            .preload('moduleInstance')
+          .where('postId', post.id)
+          .orderBy('orderIndex', 'asc')
+          .orderBy('createdAt', 'asc')
+          .preload('moduleInstance')
         : []
 
       // Helper to check if a draft has meaningful content (not just metadata)
@@ -112,107 +112,107 @@ export default class PostsViewController extends BasePostsController {
       // 3. Modules logic (KISS approach: use versioned props)
       const editorModules = modulesEnabled
         ? postModules
-            .map((pm) => {
-              const mi = pm.moduleInstance as any as ModuleInstance
-              const moduleConfig = moduleRegistry.has(mi?.type)
-                ? moduleRegistry.get(mi?.type).getConfig()
-                : null
-              const defaultProps = moduleConfig?.defaultValues || {}
+          .map((pm) => {
+            const mi = pm.moduleInstance as any as ModuleInstance
+            const moduleConfig = moduleRegistry.has(mi?.type)
+              ? moduleRegistry.get(mi?.type).getConfig()
+              : null
+            const defaultProps = moduleConfig?.defaultValues || {}
 
-              // Get atomic draft versions of this module if they exist
-              const rdModule = rdModules.find(
-                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
-              )
-              const ardModule = ardModules.find(
-                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
-              )
-              const currentDraftModule = currentDraftModules.find(
-                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
-              )
+            // Get atomic draft versions of this module if they exist
+            const rdModule = rdModules.find(
+              (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+            )
+            const ardModule = ardModules.find(
+              (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+            )
+            const currentDraftModule = currentDraftModules.find(
+              (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+            )
 
-              const isLocal = mi?.scope === 'post'
+            const isLocal = mi?.scope === 'post'
 
-              // Check if deleted in draft
-              const isReviewDeleted = activeViewMode === 'review' && Array.isArray(rd.modules) && !rdModule
-              const isAiReviewDeleted = activeViewMode === 'ai-review' && Array.isArray(ard.modules) && !ardModule
+            // Check if deleted in draft
+            const isReviewDeleted = activeViewMode === 'review' && Array.isArray(rd.modules) && !rdModule
+            const isAiReviewDeleted = activeViewMode === 'ai-review' && Array.isArray(ard.modules) && !ardModule
 
-              // Helper to merge defaults and resolve hero fallbacks
-              const prepareProps = (p: any) => {
-                const merged = { ...defaultProps, ...coerceJsonObject(p) }
-                // Special fallback for hero-with-media using featured media
+            // Helper to merge defaults and resolve hero fallbacks
+            const prepareProps = (p: any) => {
+              const merged = { ...defaultProps, ...coerceJsonObject(p) }
+              // Special fallback for hero-with-media using featured media
+              if (
+                (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
+                featuredMediaAsset
+              ) {
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
                 if (
-                  (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
-                  featuredMediaAsset
+                  !merged.image ||
+                  merged.image === '' ||
+                  (typeof merged.image === 'string' && uuidRegex.test(merged.image))
                 ) {
-                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                  if (
-                    !merged.image ||
-                    merged.image === '' ||
-                    (typeof merged.image === 'string' && uuidRegex.test(merged.image))
-                  ) {
-                    merged.image = featuredMediaAsset
-                  }
+                  merged.image = featuredMediaAsset
                 }
-                return merged
               }
+              return merged
+            }
 
-              // Resolve props for each mode
-              const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
-              
-              const granularRevProps = isLocal ? coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props) : {}
-              const reviewProps = isLocal
-                ? Object.keys(granularRevProps).length > 0 ? granularRevProps : (rdModule?.props || {})
-                : {}
-                
-              const granularAiRevProps = isLocal ? coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props) : {}
-              const aiReviewProps = isLocal
-                ? Object.keys(granularAiRevProps).length > 0 ? granularAiRevProps : (ardModule?.props || {})
-                : {}
+            // Resolve props for each mode
+            const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
 
-              // Resolve overrides for each mode (global modules only)
-              const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
-              
-              const granularRevOverrides = !isLocal ? coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides) : null
-              const reviewOverrides = !isLocal
-                ? (granularRevOverrides && Object.keys(granularRevOverrides).length > 0) ? granularRevOverrides : (rdModule?.overrides || null)
-                : null
-                
-              const granularAiRevOverrides = !isLocal ? coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides) : null
-              const aiReviewOverrides = !isLocal
-                ? (granularAiRevOverrides && Object.keys(granularAiRevOverrides).length > 0) ? granularAiRevOverrides : (ardModule?.overrides || null)
-                : null
+            const granularRevProps = isLocal ? coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props) : {}
+            const reviewProps = isLocal
+              ? Object.keys(granularRevProps).length > 0 ? granularRevProps : (rdModule?.props || {})
+              : {}
 
-              return {
-                id: pm.id,
-                moduleInstanceId: pm.moduleId,
-                type: mi?.type,
-                scope: mi?.scope === 'post' ? 'local' : mi?.scope,
-                props: prepareProps(sourceProps),
-                reviewProps: Object.keys(reviewProps).length > 0 ? prepareProps(reviewProps) : null,
-                aiReviewProps:
-                  Object.keys(aiReviewProps).length > 0 ? prepareProps(aiReviewProps) : null,
-                overrides: sourceOverrides ? prepareProps(sourceOverrides) : null,
-                reviewOverrides:
-                  reviewOverrides && Object.keys(reviewOverrides).length > 0
-                    ? prepareProps(reviewOverrides)
-                    : null,
-                aiReviewOverrides:
-                  aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
-                    ? prepareProps(aiReviewOverrides)
-                    : null,
-                reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
-                reviewDeleted: isReviewDeleted || !!((pm as any).reviewDeleted || (pm as any).review_deleted),
-                aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
-                aiReviewDeleted: isAiReviewDeleted || !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
-                locked: pm.locked,
-                orderIndex: pm.orderIndex,
-                globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
-                globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
-                adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
-                name: moduleConfig?.name || mi?.type || 'Unknown Module',
-                label: moduleRegistry.getDynamicLabel(mi?.type, sourceProps),
-              }
-            })
+            const granularAiRevProps = isLocal ? coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props) : {}
+            const aiReviewProps = isLocal
+              ? Object.keys(granularAiRevProps).length > 0 ? granularAiRevProps : (ardModule?.props || {})
+              : {}
+
+            // Resolve overrides for each mode (global modules only)
+            const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
+
+            const granularRevOverrides = !isLocal ? coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides) : null
+            const reviewOverrides = !isLocal
+              ? (granularRevOverrides && Object.keys(granularRevOverrides).length > 0) ? granularRevOverrides : (rdModule?.overrides || null)
+              : null
+
+            const granularAiRevOverrides = !isLocal ? coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides) : null
+            const aiReviewOverrides = !isLocal
+              ? (granularAiRevOverrides && Object.keys(granularAiRevOverrides).length > 0) ? granularAiRevOverrides : (ardModule?.overrides || null)
+              : null
+
+            return {
+              id: pm.id,
+              moduleInstanceId: pm.moduleId,
+              type: mi?.type,
+              scope: mi?.scope === 'post' ? 'local' : mi?.scope,
+              props: prepareProps(sourceProps),
+              reviewProps: Object.keys(reviewProps).length > 0 ? prepareProps(reviewProps) : null,
+              aiReviewProps:
+                Object.keys(aiReviewProps).length > 0 ? prepareProps(aiReviewProps) : null,
+              overrides: sourceOverrides ? prepareProps(sourceOverrides) : null,
+              reviewOverrides:
+                reviewOverrides && Object.keys(reviewOverrides).length > 0
+                  ? prepareProps(reviewOverrides)
+                  : null,
+              aiReviewOverrides:
+                aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
+                  ? prepareProps(aiReviewOverrides)
+                  : null,
+              reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
+              reviewDeleted: isReviewDeleted || !!((pm as any).reviewDeleted || (pm as any).review_deleted),
+              aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
+              aiReviewDeleted: isAiReviewDeleted || !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
+              locked: pm.locked,
+              orderIndex: pm.orderIndex,
+              globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
+              globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
+              adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
+              name: moduleConfig?.name || mi?.type || 'Unknown Module',
+              label: moduleRegistry.getDynamicLabel(mi?.type, sourceProps),
+            }
+          })
         : []
 
       // ATOMIC DRAFT ENHANCEMENT:
@@ -626,10 +626,17 @@ export default class PostsViewController extends BasePostsController {
         userAgent: request.header('user-agent'),
         metadata: { path },
       })
-      return inertia.render('site/errors/not_found')
+
+      const postsCount = await db.from('posts').count('* as count').first()
+      const isDatabaseEmpty = Number(postsCount?.count || 0) === 0
+      return inertia.render('site/errors/not_found', { isDatabaseEmpty })
     }
 
     const { slug, locale, postType, usesPath, fullPath } = match
+
+    // Check if database is empty (even if we have a pattern match, e.g. /{slug})
+    const postsCount = await db.from('posts').count('* as count').first()
+    const isDatabaseEmpty = Number(postsCount?.count || 0) === 0
 
     // Check permalinks
     if (postType) {
@@ -644,7 +651,7 @@ export default class PostsViewController extends BasePostsController {
             userAgent: request.header('user-agent'),
             metadata: { path, reason: 'permalinks_disabled', postType },
           })
-          return inertia.render('site/errors/not_found')
+          return inertia.render('site/errors/not_found', { isDatabaseEmpty })
         }
       } catch {
         /* continue */
@@ -673,7 +680,7 @@ export default class PostsViewController extends BasePostsController {
           userAgent: request.header('user-agent'),
           metadata: { path, reason: 'post_not_found', slug, locale, postType },
         })
-        return inertia.render('site/errors/not_found')
+        return inertia.render('site/errors/not_found', { isDatabaseEmpty })
       }
 
       // A/B Testing Logic: if enabled, we may swap this post for another variation in the same group
@@ -780,7 +787,7 @@ export default class PostsViewController extends BasePostsController {
 
           // If the incoming path doesn't match the expected path, it's a 404
           if (path !== expectedPath) {
-            return inertia.render('site/errors/not_found')
+            return inertia.render('site/errors/not_found', { isDatabaseEmpty })
           }
         } catch {
           // If path building fails, fall back to allowing the request
@@ -790,7 +797,7 @@ export default class PostsViewController extends BasePostsController {
 
       // Draft and archived posts are not visible to unauthenticated users
       if ((post.status === 'draft' || post.status === 'archived') && !isAuthenticated) {
-        return inertia.render('site/errors/not_found')
+        return inertia.render('site/errors/not_found', { isDatabaseEmpty })
       }
 
       // Handle protected/private statuses

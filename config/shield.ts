@@ -64,6 +64,12 @@ const shieldConfig = defineConfig({
               .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
+      mediaSrc: [
+        "'self'",
+        'data:',
+        'blob:',
+        ...(env.get('R2_PUBLIC_BASE_URL') ? [new URL(env.get('R2_PUBLIC_BASE_URL')!).origin] : []),
+      ],
       connectSrc: [
         "'self'",
         // Allow connections to same origin for API calls

@@ -2,6 +2,7 @@ import app from '@adonisjs/core/services/app'
 import { HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { adminPath } from '#services/admin_path_service'
+import db from '@adonisjs/lucid/services/db'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -22,10 +23,21 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * to return the HTML contents to send as a response.
    */
   protected statusPages: Record<StatusPageRange, StatusPageRenderer> = {
-    '404': (error, { inertia, request }) => {
+    '404': async (error, { inertia, request }) => {
       const isAdmin = request.url().startsWith(adminPath())
       const page = isAdmin ? 'admin/errors/not_found' : 'site/errors/not_found'
-      return inertia.render(page, { error })
+
+      let isDatabaseEmpty = false
+      if (!isAdmin) {
+        try {
+          const postsCount = await db.from('posts').count('* as count').first()
+          isDatabaseEmpty = Number(postsCount?.count || 0) === 0
+        } catch {
+          /* ignore */
+        }
+      }
+
+      return inertia.render(page, { error, isDatabaseEmpty })
     },
     '500..599': (error, { inertia, request }) => {
       const isAdmin = request.url().startsWith(adminPath())

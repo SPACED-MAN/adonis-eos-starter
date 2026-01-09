@@ -19,7 +19,13 @@ The compiled output is written to the `./build` directory. **From this point for
 In production, you should never use a local `.env` file committed to version control. Instead:
 
 - **Platform-managed**: If using a cloud platform (e.g. DigitalOcean App Platform, Heroku), use their dashboard to set environment variables.
-- **Server-based**: Place a secure `.env` file in a protected directory (e.g., `/etc/secrets/.env`) and point your app to it using `ENV_PATH`.
+- **Server-based**: Place a secure `.env` file in a protected directory (e.g., `/var/www/adonis-eos/.env`) and point your app to it using `ENV_PATH`.
+
+> **⚠️ Critical Note on `.env` Syntax:** Many production environment parsers (including PM2) can be sensitive to trailing comments. Ensure your variables do **not** have comments or extra spaces on the same line.
+>
+> **Bad:** `STORAGE_DRIVER=r2  # Use R2 for storage`
+>
+> **Good:** `STORAGE_DRIVER=r2`
 
 ### Essential Production Variables
 
@@ -46,31 +52,53 @@ In production, you should never use a local `.env` file committed to version con
 | `R2_PUBLIC_BASE_URL`         | The public URL of your R2 bucket.                                                                   |
 | `SMTP_*`                     | Credentials for your email provider (for notifications).                                            |
 | `CORS_ORIGINS`               | Comma-separated list of allowed origins (e.g., `https://example.com`). Required in production. |
+| `PROTECTED_ACCESS_USERNAME`  | Username for the "Protected Access" layer and initial data splash page.                             |
+| `PROTECTED_ACCESS_PASSWORD`  | Password for the "Protected Access" layer and initial data splash page.                             |
 
 ## 3. Database & Initial Data
 
-### Migrations
+### Database Setup
 
-Run your migrations on the production server.
-
-**Crucial:** Always run production commands from within the `build` folder. This ensures that ESM aliases (like `#models/*` or `#services/*`) resolve correctly to the compiled JavaScript files rather than the TypeScript source.
+If you are running your own PostgreSQL instance (e.g., on Hetzner), you must manually create the database before running migrations:
 
 ```bash
-cd build
-node ace migration:run --force
+# Connect as the postgres user
+sudo -u postgres psql
+
+# Create the database
+CREATE DATABASE adonis_eos;
+\q
 ```
 
 ### Initial Data Seeding
 
 Adonis EOS follows a convention for first-time production launches using a `production-export.json` file.
 
+> **⚠️ Security Warning:** `production-export.json` contains your entire site structure and content. **NEVER commit this file to GitHub or any other public repository.** It is included in `.gitignore` by default.
+
+#### Method A: Splash Page Upload (Recommended for Fresh Installs)
+
+If you have configured `PROTECTED_ACCESS_USERNAME` and `PROTECTED_ACCESS_PASSWORD`, you can upload your export file directly through the web interface on a fresh installation:
+
+1. Deploy your application and run migrations:
+   ```bash
+   ENV_PATH=./ node build/ace migration:run --force
+   ```
+2. Navigate to your site's root URL (e.g., `https://yourdomain.com`).
+3. Since no content exists, you will see a "Welcome" splash page.
+4. Enter your protected access credentials and select your `production-export.json` file.
+5. Click **Start Import**. The site will automatically refresh once the data is loaded.
+
+#### Method B: CLI Seeding
+
+Alternatively, you can seed the data via the command line:
+
 1. Ensure `database/seed_data/**/*` is included in the `metaFiles` array of your `adonisrc.ts`.
-2. Place your exported site data at `database/seed_data/production-export.json`.
-3. Run the production seeder from the `build` folder:
+2. Securely transfer your `production-export.json` to `database/seed_data/production-export.json` on the server (e.g., via SCP or SFTP).
+3. Run the production seeder from the project root:
 
 ```bash
-cd build
-node ace db:seed --files ./database/seeders/production_import_seeder.js
+ENV_PATH=./ node build/ace db:seed --files ./database/seeders/production_import_seeder.js
 ```
 
 > **Note:** The seeder includes a safety check that allows up to 10 existing users (to account for system users created on boot) but will abort if it detects existing posts or menus to prevent data loss.
@@ -81,13 +109,48 @@ node ace db:seed --files ./database/seeders/production_import_seeder.js
 
 If you see errors stating that a module starting with `#` cannot be found, it is almost always because the command is being run from the project root instead of the `build` folder. In production, the `package.json` inside the `build` folder contains the correct mappings for compiled code.
 
-### Top-Level Await
+### R2 Signature Mismatch & Clock Drift
 
-If your build fails with a "Top-level await" error during SSR bundling, ensure your `vite.config.ts` has `build.target` set to `esnext`.
+If R2 uploads fail with a "Signature Mismatch" error:
+1.  **Check Server Time**: Ensure your server clock is synced. Cloudflare rejects requests if the time drift is > 5 minutes. Use `timedatectl set-ntp on`.
+2.  **Clean Keys**: Ensure your `R2_SECRET_ACCESS_KEY` has no trailing spaces or hidden carriage returns (`\r`).
+3.  **Fresh Token**: If in doubt, generate a brand new API token in the Cloudflare dashboard.
+
+### Media (Video/MP4) Not Rendering
+
+If videos appear as broken links but the URL is correct:
+1.  **MIME Type**: Ensure the file in R2 has `Content-Type: video/mp4` (not `application/octet-stream`).
+2.  **CSP**: Ensure your `config/shield.ts` includes the R2 domain in the `mediaSrc` directive.
+
+### 413 Payload Too Large (Imports)
+
+If the initial data import fails during upload:
+1.  **Nginx**: Increase `client_max_body_size` in your Nginx config (see example below).
+2.  **Bodyparser**: Ensure `config/bodyparser.ts` has a high enough `multipart.limit` (e.g., `100mb`).
 
 ### Database SSL
 
 Most managed cloud databases require SSL. If migrations fail to connect, ensure `DB_SSL=true` and `DB_SSL_REJECT_UNAUTHORIZED=false` are set.
+
+### Running Migration Commands in Production
+
+If `node build/ace migration:run` fails to find your environment variables, you can "force" them by injecting them directly:
+
+```bash
+# Example of "forced" environment injection for production commands
+NODE_ENV=production \
+PORT=3333 \
+HOST=0.0.0.0 \
+CORS_ORIGINS="https://yourdomain.com" \
+APP_KEY="your-key" \
+DB_HOST="127.0.0.1" \
+DB_USER="postgres" \
+DB_PASSWORD="your-password" \
+DB_DATABASE="adonis_eos" \
+STORAGE_DRIVER=r2 \
+R2_PUBLIC_BASE_URL="https://media.yourdomain.com" \
+node build/ace migrate:media:r2
+```
 
 > **Note:** The production seeder will automatically abort if it detects existing data in key tables (users, posts, etc.) to prevent accidental data loss.
 
@@ -213,6 +276,9 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
+        
+        # Increase upload limit for data imports
+        client_max_body_size 100M;
     }
 
     # Serve static assets directly via Nginx

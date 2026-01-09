@@ -32,3 +32,6 @@ public/uploads/*
 
 # Local development notes
 PROMPT-HISTORY.md
+
+# Production export (should never be committed)
+production-export.json

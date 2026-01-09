@@ -20,6 +20,16 @@ function inferContentType(filePathOrKey: string): string {
       return 'image/svg+xml'
     case '.avif':
       return 'image/avif'
+    case '.mp4':
+      return 'video/mp4'
+    case '.webm':
+      return 'video/webm'
+    case '.ogg':
+      return 'video/ogg'
+    case '.mp3':
+      return 'audio/mpeg'
+    case '.wav':
+      return 'audio/wav'
     case '.json':
       return 'application/json'
     case '.txt':
