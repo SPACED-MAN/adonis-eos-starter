@@ -52,9 +52,9 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { BulkAgentModal } from '../../components/agents/BulkAgentModal'
 
-interface PostsIndexProps {}
+interface PostsIndexProps { }
 
-export default function PostsIndexPage({}: PostsIndexProps) {
+export default function PostsIndexPage({ }: PostsIndexProps) {
   const adminPath = useAdminPath()
   const { confirm, alert } = useConfirm()
   // Entire implementation moved here from the former dashboard.tsx
@@ -209,22 +209,22 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   useEffect(() => {
     if (locale) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => null)
-        const fromMeta: string | undefined = json?.meta?.defaultLocale
-        const fromData: string | undefined = Array.isArray(json?.data)
-          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
-          : undefined
-        const effective = fromMeta || fromData
-        if (!cancelled && effective) {
-          setLocale(effective)
+      ; (async () => {
+        try {
+          const res = await fetch('/api/locales', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => null)
+          const fromMeta: string | undefined = json?.meta?.defaultLocale
+          const fromData: string | undefined = Array.isArray(json?.data)
+            ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+            : undefined
+          const effective = fromMeta || fromData
+          if (!cancelled && effective) {
+            setLocale(effective)
+          }
+        } catch {
+          // leave as all locales
         }
-      } catch {
-        // leave as all locales
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -236,7 +236,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical, hasFeedback])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       const res = await fetch('/api/post-types', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
@@ -246,7 +246,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
   // Load taxonomies for filter
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -260,7 +260,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
   // Load terms for selected taxonomy
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       setTerms([])
       setTermId('')
       if (!taxonomy) return
@@ -293,7 +293,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   // Supported locales for translation progress
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/locales', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -778,7 +778,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       setPage(1)
                     }}
                   >
-                    <SelectTrigger className="w-full sm:w-[150px]">
+                    <SelectTrigger aria-label="Filter by status" className="w-full sm:w-[150px]">
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
@@ -800,7 +800,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       setPage(1)
                     }}
                   >
-                    <SelectTrigger className="w-[100px] sm:w-[120px]">
+                    <SelectTrigger aria-label="Filter by locale" className="w-[100px] sm:w-[120px]">
                       <SelectValue placeholder="Locale" />
                     </SelectTrigger>
                     <SelectContent>
@@ -819,7 +819,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       setPage(1)
                     }}
                   >
-                    <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectTrigger aria-label="Filter by post type" className="w-full sm:w-[160px]">
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -831,7 +831,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                  
+
                   {/* Taxonomy filter */}
                   <Select
                     value={taxonomy || 'all'}
@@ -842,7 +842,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       setPage(1)
                     }}
                   >
-                    <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectTrigger aria-label="Filter by taxonomy" className="w-full sm:w-[160px]">
                       <SelectValue placeholder="All taxonomies" />
                     </SelectTrigger>
                     <SelectContent>
@@ -862,7 +862,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                         setPage(1)
                       }}
                     >
-                      <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectTrigger aria-label="Filter by term" className="w-full sm:w-[180px]">
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1031,18 +1031,15 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                     {pendingBulkAction === 'publish' &&
                       `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'draft' &&
-                      `This will move ${selected.size} post${
-                        selected.size === 1 ? '' : 's'
+                      `This will move ${selected.size} post${selected.size === 1 ? '' : 's'
                       } to draft status.`}
                     {pendingBulkAction === 'archive' &&
                       `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'duplicate' &&
-                      `This will create ${selected.size} duplicate post${
-                        selected.size === 1 ? '' : 's'
+                      `This will create ${selected.size} duplicate post${selected.size === 1 ? '' : 's'
                       }.`}
                     {pendingBulkAction === 'regeneratePermalinks' &&
-                      `This will regenerate permalinks for ${selected.size} post${
-                        selected.size === 1 ? '' : 's'
+                      `This will regenerate permalinks for ${selected.size} post${selected.size === 1 ? '' : 's'
                       } based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>

@@ -112,6 +112,8 @@ export const mediaFitField: CustomFieldDefinition = {
  * Standard Lipsum text for default module props
  */
 export const LIPSUM_TITLE = 'Lorem Ipsum Dolor'
-export const LIPSUM_SUBTITLE = 'Consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore.'
-export const LIPSUM_PARAGRAPH = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
+export const LIPSUM_SUBTITLE =
+  'Consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore.'
+export const LIPSUM_PARAGRAPH =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
 export const LIPSUM_CTA = 'Lorem Ipsum'

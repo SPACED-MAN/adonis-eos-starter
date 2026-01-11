@@ -16,7 +16,7 @@ export default function BlogTeaser({ title, excerpt, updatedAt, image, url }: Bl
     if (!iso) return null
     const d = new Date(iso)
     if (Number.isNaN(d.getTime())) return null
-    return d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -43,7 +43,11 @@ export default function BlogTeaser({ title, excerpt, updatedAt, image, url }: Bl
           <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-backdrop-low text-neutral-high">
             Blog
           </span>
-          {dateLabel && <span className="text-xs text-neutral-low">{dateLabel}</span>}
+          {dateLabel && (
+            <span className="text-xs text-neutral-low" suppressHydrationWarning>
+              {dateLabel}
+            </span>
+          )}
         </div>
         <h3 className="mb-2 text-2xl font-bold tracking-tight text-neutral-high">
           <a href={url}>{title}</a>

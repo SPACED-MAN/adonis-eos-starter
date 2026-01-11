@@ -43,13 +43,12 @@ In production, you should never use a local `.env` file committed to version con
 | `REDIS_HOST`                 | Required if using Redis for caching or sessions.                                                    |
 | `REDIS_PORT`                 | Port for your Redis instance (default `6379`).                                                      |
 | `REDIS_PASSWORD`             | Optional password for Redis authentication.                                                         |
-| `STORAGE_DRIVER`             | Set to `r2` for Cloudflare R2 or `s3` for Amazon S3.                                                |
-| `R2_ACCOUNT_ID`              | Your Cloudflare Account ID.                                                                         |
-| `R2_ENDPOINT`                | The S3-compatible endpoint for R2 (e.g., `https://<id>.r2.cloudflarestorage.com`).                  |
-| `R2_ACCESS_KEY_ID`           | R2 API Access Key ID.                                                                               |
-| `R2_SECRET_ACCESS_KEY`       | R2 API Secret Access Key.                                                                           |
-| `R2_BUCKET`                  | The name of your R2 bucket.                                                                         |
-| `R2_PUBLIC_BASE_URL`         | The public URL of your R2 bucket.                                                                   |
+| `STORAGE_DRIVER`             | Set to `r2` for S3-compatible storage or `local`.                                                  |
+| `R2_ENDPOINT`                | The S3-compatible endpoint (e.g., `https://<id>.r2.cloudflarestorage.com`).                        |
+| `R2_ACCESS_KEY_ID`           | API Access Key ID.                                                                                 |
+| `R2_SECRET_ACCESS_KEY`       | API Secret Access Key.                                                                             |
+| `R2_BUCKET`                  | The name of your bucket.                                                                           |
+| `R2_PUBLIC_BASE_URL`         | The public URL of your bucket.                                                                     |
 | `SMTP_*`                     | Credentials for your email provider (for notifications).                                            |
 | `CORS_ORIGINS`               | Comma-separated list of allowed origins (e.g., `https://example.com`). Required in production. |
 | `PROTECTED_ACCESS_USERNAME`  | Username for the "Protected Access" layer and initial data splash page.                             |
@@ -208,7 +207,7 @@ DB_DATABASE=your-db-name \
 DB_SSL=true \
 DB_SSL_REJECT_UNAUTHORIZED=false \
 STORAGE_DRIVER=r2 \
-R2_ACCOUNT_ID=your-id \
+R2_ENDPOINT=https://your-endpoint.com \
 R2_ACCESS_KEY_ID=your-key \
 R2_SECRET_ACCESS_KEY=your-secret \
 R2_BUCKET=your-bucket \

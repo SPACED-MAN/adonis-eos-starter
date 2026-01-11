@@ -97,7 +97,7 @@ export default function ProseWithMedia({
     visible: {
       opacity: 1,
       x: 0,
-      transition: { duration: 1.0, ease: 'easeOut' },
+      transition: { duration: 1.0, ease: 'easeOut' as const },
     },
   }
 
@@ -107,9 +107,14 @@ export default function ProseWithMedia({
       opacity: 1,
       scale: 1,
       x: 0,
-      transition: { duration: 1.0, ease: 'easeOut' },
+      transition: { duration: 1.0, ease: 'easeOut' as const },
     },
   }
+
+  const imageMetadata = typeof imageValue === 'object' ? imageValue?.metadata : null
+  const dynamicAspect = imageMetadata?.width && imageMetadata?.height
+    ? { aspectRatio: `${imageMetadata.width} / ${imageMetadata.height}` }
+    : {}
 
   const imageBlock = showImage ? (
     <div
@@ -126,6 +131,7 @@ export default function ProseWithMedia({
             alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
             loading="lazy"
             decoding="async"
+            size="large"
             objectFit={objectFit}
             playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
             className="w-full h-full"
@@ -260,9 +266,9 @@ export default function ProseWithMedia({
     <section
       className={`${styles.containerClasses} py-12 sm:py-16 relative`}
       data-module="prose-with-media"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground

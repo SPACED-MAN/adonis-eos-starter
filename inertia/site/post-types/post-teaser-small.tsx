@@ -13,7 +13,7 @@ type TeaserProps = {
 export default function PostTeaserSmall({ post }: TeaserProps) {
   const url = post.url || `/posts/${post.slug}`
   const dateText = post.updatedAt
-    ? new Date(post.updatedAt).toLocaleDateString(undefined, {
+    ? new Date(post.updatedAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -24,7 +24,7 @@ export default function PostTeaserSmall({ post }: TeaserProps) {
       <a href={url} className="text-neutral-high hover:underline">
         {post.title}
       </a>
-      {dateText && <span className="text-xs text-neutral-low">{dateText}</span>}
+      {dateText && <span className="text-xs text-neutral-low" suppressHydrationWarning>{dateText}</span>}
     </article>
   )
 }

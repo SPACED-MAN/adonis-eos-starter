@@ -57,18 +57,18 @@ export default class MediaController {
     return response.ok({
       data: rows.map((r) => ({
         id: r.id,
-        url: r.url,
+        url: storageService.resolvePublicUrl(r.url),
         originalFilename: r.originalFilename,
         mimeType: r.mimeType,
         size: Number(r.size),
-        optimizedUrl: r.optimizedUrl || null,
+        optimizedUrl: storageService.resolvePublicUrl(r.optimizedUrl),
         optimizedSize: r.optimizedSize ? Number(r.optimizedSize) : null,
         altText: r.altText,
         title: r.caption,
         caption: r.caption,
         description: r.description,
         categories: Array.isArray(r.categories) ? r.categories : [],
-        metadata: r.metadata || null,
+        metadata: mediaService.resolveMetadataUrls(r.metadata),
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
       })),
@@ -76,9 +76,6 @@ export default class MediaController {
     })
   }
 
-  /**
-   * POST /api/media
-   */
   async upload({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role
     if (!roleRegistry.hasPermission(role, 'media.upload')) {
@@ -170,7 +167,7 @@ export default class MediaController {
         entityId: id,
         metadata: { fields: Object.keys(update) },
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Updated' })
   }
 
@@ -341,19 +338,18 @@ export default class MediaController {
           entityId: id,
           metadata: { targetVariant },
         })
-      } catch {}
+      } catch { }
       return response.ok({ data: { variants: result.variants } })
     }
 
     // Original cropped variant (does not overwrite original) + rebuild all configured variants from this crop
     if (target === 'original-cropped' && cropArgs) {
-      const publicRoot = path.join(process.cwd(), 'public')
       const publicUrl = String(row.url)
-      const absPath = path.join(publicRoot, publicUrl.replace(/^\//, ''))
+      const absPath = await storageService.ensureLocalFile(publicUrl)
       const parsed = path.parse(absPath)
       const outName = `${parsed.name}.cropped${parsed.ext}`
       const outPath = path.join(parsed.dir, outName)
-      const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
+      const outUrl = path.posix.join(storageService.getRelativeDir(publicUrl), outName)
       const info = await sharp(absPath)
         .extract({
           left: cropArgs.left,
@@ -405,7 +401,7 @@ export default class MediaController {
           entityId: id,
           metadata: { cropRect: cropArgs },
         })
-      } catch {}
+      } catch { }
       return response.ok({ data: { variants: [...result.variants, cropped] } })
     }
 
@@ -440,7 +436,7 @@ export default class MediaController {
         entityId: id,
         metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
       })
-    } catch {}
+    } catch { }
     // Return the merged list and updated metadata so the client has all variants (light + dark)
     return response.ok({ data: { variants: metadata.variants, metadata } })
   }
@@ -481,10 +477,10 @@ export default class MediaController {
       })
     }
 
-    const destPath = path.join(process.cwd(), 'public', url.replace(/^\//, ''))
+    const destPath = storageService.getLocalPath(url)
 
-    // Safety check: ensure it's still within public/uploads
-    if (!destPath.startsWith(path.join(process.cwd(), 'public', 'uploads'))) {
+    // Safety check: ensure it's still within uploads directory
+    if (!destPath.startsWith(storageService.getLocalPath('uploads'))) {
       return response.badRequest({ error: 'Invalid file path' })
     }
 
@@ -506,7 +502,7 @@ export default class MediaController {
           updated_at: new Date(),
         })
       }
-    } catch {}
+    } catch { }
 
     return response.ok({ message: 'Content updated', size: stats.size })
   }
@@ -577,9 +573,8 @@ export default class MediaController {
       return response.badRequest({ error: 'Invalid file' })
     }
 
-    const publicRoot = path.join(process.cwd(), 'public')
-    const existingPublicUrl: string = String(row.url)
-    const existingAbsPath = path.join(publicRoot, existingPublicUrl.replace(/^\//, ''))
+    const existingUrl = String(row.url)
+    const existingAbsPath = storageService.getLocalPath(existingUrl)
 
     // Normalize new extension from uploaded file
     const clientExt = (path.extname(clientName) || '').toLowerCase()
@@ -587,6 +582,15 @@ export default class MediaController {
     // Base directory for this media item
     const parsedExisting = path.parse(existingAbsPath)
     const dir = parsedExisting.dir
+
+    // Get a relative path for existing directory to avoid full URL keys in storage
+    let relDir = '/uploads'
+    try {
+      const relPath = existingUrl.startsWith('http') ? new URL(existingUrl).pathname : existingUrl
+      relDir = path.posix.dirname(relPath)
+    } catch {
+      /* fallback to /uploads */
+    }
 
     // For light theme overrides we treat this as a full replace:
     // - Remove old original + all its variants (and dark base, if any)
@@ -609,11 +613,11 @@ export default class MediaController {
         const deleteFile = async (f: string) => {
           try {
             await fs.promises.unlink(path.join(dir, f))
-          } catch {}
+          } catch { }
           try {
-            const url = path.posix.join(path.posix.dirname(existingPublicUrl), f)
-            await storageService.deleteByUrl(url)
-          } catch {}
+            const fileUrl = path.posix.join(relDir, f)
+            await storageService.deleteByUrl(fileUrl)
+          } catch { }
         }
 
         for (const f of files) {
@@ -629,28 +633,31 @@ export default class MediaController {
       }
 
       targetAbsPath = path.join(dir, newFilename)
-      targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), newFilename)
+      targetPublicUrl = path.posix.join(relDir, newFilename)
     } else {
       // Dark theme gets its own base file, using the "-dark" suffix so it is easy to discover
       // alongside the light original (e.g. demo-placeholder.jpg -> demo-placeholder-dark.jpg).
       const baseName = parsedExisting.name
       const darkBaseName = `${baseName}-dark${clientExt || parsedExisting.ext}`
       targetAbsPath = path.join(dir, darkBaseName)
-      targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), darkBaseName)
+      targetPublicUrl = path.posix.join(relDir, darkBaseName)
     }
 
     // Write file to the chosen target path
     let data: Buffer
-    if ((uploadFile as any).tmpPath) {
-      data = await fs.promises.readFile((uploadFile as any).tmpPath)
-    } else if (typeof (uploadFile as any).toBuffer === 'function') {
-      data = await (uploadFile as any).toBuffer()
-    } else if (typeof (uploadFile as any).arrayBuffer === 'function') {
-      const ab = (await (uploadFile as any).arrayBuffer()) as ArrayBuffer
+    const uploadFileMetadata = uploadFile as any
+    if (uploadFileMetadata.tmpPath) {
+      data = await fs.promises.readFile(uploadFileMetadata.tmpPath)
+    } else if (typeof uploadFileMetadata.toBuffer === 'function') {
+      data = await uploadFileMetadata.toBuffer()
+    } else if (typeof uploadFileMetadata.arrayBuffer === 'function') {
+      const ab = (await uploadFileMetadata.arrayBuffer()) as ArrayBuffer
       data = Buffer.from(ab)
     } else {
       return response.badRequest({ error: 'Unsupported upload source' })
     }
+
+    await fs.promises.mkdir(dir, { recursive: true })
     await fs.promises.writeFile(targetAbsPath, data)
 
     // Derive mime and regenerate variants if raster image
@@ -695,7 +702,8 @@ export default class MediaController {
       if (resultUrl) {
         storageUrl = resultUrl
       }
-    } catch {
+    } catch (err) {
+      console.error(`[MediaController] Failed to publish file to storage: ${err.message}`, err)
       /* ignore publish errors; local file remains */
     }
 
@@ -774,7 +782,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Overridden' })
   }
 
@@ -785,17 +793,17 @@ export default class MediaController {
     return response.ok({
       data: {
         id: asset.id,
-        url: asset.url,
+        url: storageService.resolvePublicUrl(asset.url),
         originalFilename: asset.originalFilename,
         mimeType: asset.mimeType,
         size: Number(asset.size || 0),
-        optimizedUrl: asset.optimizedUrl || null,
+        optimizedUrl: storageService.resolvePublicUrl(asset.optimizedUrl),
         optimizedSize: asset.optimizedSize ? Number(asset.optimizedSize) : null,
         altText: asset.altText,
         caption: asset.caption,
         description: asset.description,
         categories: Array.isArray(asset.categories) ? asset.categories : [],
-        metadata: asset.metadata || null,
+        metadata: mediaService.resolveMetadataUrls(asset.metadata),
         createdAt: asset.createdAt,
         updatedAt: asset.updatedAt,
       },
@@ -902,7 +910,7 @@ export default class MediaController {
         const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
         if (!isImage || isSvg) continue
 
-        const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+        const absPath = await storageService.ensureLocalFile(publicUrl)
         const variants = await mediaService.generateVariants(
           absPath,
           publicUrl,
@@ -938,7 +946,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { regenerated: success } })
   }
 
@@ -1027,7 +1035,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: updated, add: addArr, remove: removeArr },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { updated } })
   }
 }

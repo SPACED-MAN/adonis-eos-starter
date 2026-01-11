@@ -20,15 +20,15 @@ export default class InertiaAuthShareMiddleware {
       // Ensure auth state is evaluated for this request
       try {
         await ctx.auth.use('web').check()
-      } catch {}
+      } catch { }
       const user = ctx.auth.use('web').user
       const sharedUser = user
         ? {
-            id: (user as any).id,
-            email: (user as any).email,
-            fullName: (user as any).fullName || null,
-            role: (user as any).role || 'editor',
-          }
+          id: (user as any).id,
+          email: (user as any).email,
+          fullName: (user as any).fullName || null,
+          role: (user as any).role || 'editor',
+        }
         : null
 
       // Get permissions for the current user's role
@@ -48,6 +48,11 @@ export default class InertiaAuthShareMiddleware {
       const locale = ctx.request.header('accept-language')?.split(',')[0]?.split('-')[0] || 'en'
       const primaryMenu = await menuService.getBySlug('primary', locale, { permissions })
 
+      // Filter site settings for public consumption
+      const publicCustomFields = { ...(siteSettings.customFields || {}) }
+      delete publicCustomFields.protected_access_username
+      delete publicCustomFields.protected_access_password
+
       // Pre-resolve media for site settings if not already done by service
       const siteMediaIds = new Set<string>()
       if (siteSettings.logoMediaId) siteMediaIds.add(siteSettings.logoMediaId)
@@ -58,6 +63,7 @@ export default class InertiaAuthShareMiddleware {
 
       const siteSettingsWithMedia = {
         ...siteSettings,
+        customFields: publicCustomFields,
         logoMedia: siteSettings.logoMediaId ? resolvedMedia.get(siteSettings.logoMediaId) : null,
         faviconMedia: siteSettings.faviconMediaId
           ? resolvedMedia.get(siteSettings.faviconMediaId)
@@ -67,12 +73,16 @@ export default class InertiaAuthShareMiddleware {
           : null,
       }
 
+      const isAdminOrEditor = !!(
+        sharedUser && ['admin', 'editor_admin', 'editor'].includes(sharedUser.role)
+      )
+
       inertia.share({
         currentUser: sharedUser,
         auth: { user: sharedUser },
         isAdmin: !!(sharedUser && sharedUser.role === 'admin'),
-        permissions, // Share permissions array with frontend
-        roles, // Share role definitions with frontend
+        permissions: isAdminOrEditor ? permissions : [], // Only share permissions with admins/editors
+        roles: isAdminOrEditor ? roles : [], // Only share role definitions with admins/editors
         siteSettings: siteSettingsWithMedia,
         primaryMenu,
         features: {
@@ -80,17 +90,20 @@ export default class InertiaAuthShareMiddleware {
           taxonomies: taxonomyRegistry.list().length > 0,
           menus: menuTemplateRegistry.list().length > 0,
           locales: localeService.getSupportedLocales().length > 1,
-          agents: agentRegistry.list().length > 0,
-          workflows: workflowRegistry.list().length > 0,
+          agents: isAdminOrEditor && agentRegistry.list().length > 0,
+          workflows: isAdminOrEditor && workflowRegistry.list().length > 0,
           modules: moduleRegistry.getAllConfigs().length > 0,
           analytics: cmsConfig.features.analytics,
-          auditLogs: cmsConfig.features.auditLogs,
-          activeSessions: cmsConfig.features.activeSessions,
+          auditLogs: isAdminOrEditor && cmsConfig.features.auditLogs,
+          activeSessions: isAdminOrEditor && cmsConfig.features.activeSessions,
+          lottie: cmsConfig.features.lottie,
         },
-        mediaAdmin: {
-          thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,
-          modalVariant: process.env.MEDIA_ADMIN_MODAL_VARIANT || null,
-        },
+        mediaAdmin: isAdminOrEditor
+          ? {
+            thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,
+            modalVariant: process.env.MEDIA_ADMIN_MODAL_VARIANT || null,
+          }
+          : null,
         adminPathPrefix: getAdminPathPrefix(),
       })
     }

@@ -51,14 +51,13 @@ class CreateDarkBaseAction {
     }
 
     // Create dark base file
-    const publicRoot = path.join(process.cwd(), 'public')
     const originalPublicUrl: string = String(row.url)
-    const originalAbsPath = path.join(publicRoot, originalPublicUrl.replace(/^\//, ''))
+    const originalAbsPath = await storageService.ensureLocalFile(originalPublicUrl)
 
     const parsed = path.parse(originalAbsPath)
     const darkName = `${parsed.name}-dark${parsed.ext}`
     const darkAbsPath = path.join(parsed.dir, darkName)
-    const darkPublicUrl = path.posix.join(path.posix.dirname(originalPublicUrl), darkName)
+    const darkPublicUrl = path.posix.join(storageService.getRelativeDir(originalPublicUrl), darkName)
 
     // Get env-controlled dark tint settings
     const darkBrightnessRaw = process.env.MEDIA_DARK_BRIGHTNESS

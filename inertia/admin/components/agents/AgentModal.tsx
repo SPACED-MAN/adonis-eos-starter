@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
-import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 import {
   AlertDialog,
   AlertDialogAction,

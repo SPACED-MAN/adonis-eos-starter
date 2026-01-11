@@ -44,7 +44,6 @@ export class DeleteMediaAction {
       }
     }
 
-    const publicRoot = path.join(process.cwd(), 'public')
     const originalUrl = String(row.url || '')
     const optimizedUrl = String((row as any).optimized_url || '')
 
@@ -52,7 +51,7 @@ export class DeleteMediaAction {
     const deleteFile = async (fUrl: string) => {
       if (!fUrl) return
       try {
-        const p = path.join(publicRoot, fUrl.replace(/^\//, ''))
+        const p = storageService.getLocalPath(fUrl)
         await fs.promises.unlink(p)
       } catch { }
       try {
@@ -79,7 +78,7 @@ export class DeleteMediaAction {
 
     // Fallback: pattern-based deletion
     try {
-      const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
+      const originalPath = storageService.getLocalPath(originalUrl)
       const parsed = path.parse(originalPath)
       const dir = parsed.dir
       const base = parsed.name
@@ -88,14 +87,14 @@ export class DeleteMediaAction {
         files.map(async (f) => {
           const isRelated = f.startsWith(base + '.') || f.startsWith(base + '-dark')
           if (isRelated && f !== parsed.base) {
-            await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
+            await deleteFile(path.posix.join(storageService.getRelativeDir(originalUrl), f))
           }
         })
       )
     } catch { }
 
     await db.from('media_assets').where('id', id).delete()
-    
+
     await logActivityAction.handle({
       action: 'media.delete',
       userId,

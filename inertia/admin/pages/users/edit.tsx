@@ -3,7 +3,8 @@ import { Head, usePage, router } from '@inertiajs/react'
 import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 import { Input } from '../../../components/ui/input'
 import {
   Select,

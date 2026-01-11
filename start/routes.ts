@@ -18,22 +18,14 @@ const RobotsController = () => import('#controllers/robots_controller')
 const SeoController = () => import('#controllers/seo_controller')
 const SiteSearchController = () => import('#controllers/site_search_controller')
 
-// Homepage - resolve from posts (slug: 'home', type: 'page')
-// This delegates to the post resolution system
+// Homepage - resolve from posts (delegates to the post resolution system)
 router
   .get('/', async ({ request, response, inertia, auth }) => {
     const { default: PostsViewController } = await import(
       '#controllers/posts/posts_view_controller'
     )
     const instance = new PostsViewController()
-    // Manually set the request path to /home so the URL pattern matching works
-    const originalUrl = request.url.bind(request)
-    request.url = () => '/home'
-    try {
-      return await (instance as any).resolve({ request, response, inertia, auth })
-    } finally {
-      request.url = originalUrl
-    }
+    return await (instance as any).resolve({ request, response, inertia, auth })
   })
   .use(middleware.maintenance())
 
@@ -185,6 +177,7 @@ router
   .group(() => {
     router.get('/redirects', [UrlRedirectsController, 'index'])
     router.post('/redirects', [UrlRedirectsController, 'store'])
+    router.post('/redirects/bulk', [UrlRedirectsController, 'bulk'])
     router.put('/redirects/:id', [UrlRedirectsController, 'update'])
     router.delete('/redirects/:id', [UrlRedirectsController, 'destroy'])
     router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings'])
@@ -430,6 +423,7 @@ router
  * Security endpoints (admin)
  */
 const SecurityController = () => import('#controllers/security_controller')
+const PerformanceController = () => import('#controllers/performance_controller')
 router
   .group(() => {
     router.get('/security/sessions', [SecurityController, 'sessions'])
@@ -440,6 +434,11 @@ router
     router.get('/security/posture', [SecurityController, 'posture'])
     router.get('/security/webhooks', [SecurityController, 'webhooks'])
     router.get('/security/login-history', [SecurityController, 'loginHistory'])
+
+    // Performance (admin)
+    router.get('/performance/posture', [PerformanceController, 'posture'])
+    router.post('/performance/cache/clear', [PerformanceController, 'clearCache'])
+    router.post('/performance/temp/purge', [PerformanceController, 'purgeTemp'])
 
     // Analytics (admin)
     router.get('/analytics/summary', [AnalyticsController, 'getSummary'])
@@ -588,6 +587,12 @@ router
 // Admin Security Center
 router
   .get(adminPath('security'), [SecurityController, 'index'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+// Admin Performance Center
+router
+  .get(adminPath('performance'), [PerformanceController, 'index'])
   .use(middleware.auth())
   .use(middleware.admin())
 

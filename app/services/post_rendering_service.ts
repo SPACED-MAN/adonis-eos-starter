@@ -8,6 +8,8 @@ import moduleRegistry from '#services/module_registry'
 import tokenService from '#services/token_service'
 import BaseModule from '#modules/base'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
+import storageService from '#services/storage_service'
+import mediaService from '#services/media_service'
 
 /**
  * Module data for rendering
@@ -204,6 +206,7 @@ class PostRenderingService {
       reviewDraft?: Record<string, unknown> | null
       draftMode?: 'review' | 'ai-review' | 'auto'
       featuredMediaId?: string | null
+      includeAdminMetadata?: boolean
     } = {}
   ): Promise<{
     modules: Array<{
@@ -232,6 +235,7 @@ class PostRenderingService {
       reviewDraft = null,
       draftMode = 'review',
       featuredMediaId = null,
+      includeAdminMetadata = false,
     } = options
 
     // Get removed module IDs from review draft
@@ -272,113 +276,113 @@ class PostRenderingService {
         const module = moduleRegistry.get(pm.type)
         const defaultProps = (module?.getConfig?.().defaultValues || {}) as Record<string, unknown>
 
-      const draftModulesArray = (reviewDraft as any)?.modules || []
-      const draftModuleState = Array.isArray(draftModulesArray)
-        ? draftModulesArray.find((dm: any) => dm.id === pm.id)
-        : null
+        const draftModulesArray = (reviewDraft as any)?.modules || []
+        const draftModuleState = Array.isArray(draftModulesArray)
+          ? draftModulesArray.find((dm: any) => dm.id === pm.id)
+          : null
 
-      let mergedProps: Record<string, unknown>
+        let mergedProps: Record<string, unknown>
 
-      if (useReviewDraft) {
-        if (draftModuleState) {
-          const baseProps = coerceJsonObject(draftModuleState.props)
-          const overrides = coerceJsonObject(draftModuleState.overrides)
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-        } else {
-          // If the module instance itself has review props (global or local), use them.
-          // Note: for global modules, these are stored on the moduleInstance.
-          const reviewProps = (pm as any).reviewProps
-          const hasReviewProps = reviewProps && Object.keys(reviewProps).length > 0
-          const baseProps = hasReviewProps ? reviewProps : pm.props || {}
-
-          const reviewOverrides = (pm as any).reviewOverrides
-          const hasReviewOverrides = reviewOverrides && Object.keys(reviewOverrides).length > 0
-          const overrides = hasReviewOverrides ? reviewOverrides : (pm as any).overrides || {}
-
-          // For global modules, we want to prioritize the global props (baseProps)
-          // and only apply overrides if they are actually DIFFERENT from the baseProps
-          // or are not part of the defaultProps.
-          if (pm.scope === 'global') {
-            const filteredOverrides: Record<string, any> = {}
-            Object.keys(overrides).forEach((key) => {
-              if (
-                overrides[key] !== undefined &&
-                overrides[key] !== null &&
-                overrides[key] !== defaultProps[key]
-              ) {
-                filteredOverrides[key] = overrides[key]
-              }
-            })
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
-          } else {
+        if (useReviewDraft) {
+          if (draftModuleState) {
+            const baseProps = coerceJsonObject(draftModuleState.props)
+            const overrides = coerceJsonObject(draftModuleState.overrides)
             mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          }
-        }
-      } else if (useAiReviewDraft) {
-        if (draftModuleState) {
-          const baseProps = coerceJsonObject(draftModuleState.props)
-          const overrides = coerceJsonObject(draftModuleState.overrides)
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-        } else {
-          const aiReviewProps = (pm as any).aiReviewProps
-          const hasAiReviewProps = aiReviewProps && Object.keys(aiReviewProps).length > 0
-          const baseProps = hasAiReviewProps ? aiReviewProps : pm.props || {}
-
-          const aiReviewOverrides = (pm as any).aiReviewOverrides
-          const hasAiReviewOverrides =
-            aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
-          const overrides = hasAiReviewOverrides ? aiReviewOverrides : (pm as any).overrides || {}
-
-          if (pm.scope === 'global') {
-            const filteredOverrides: Record<string, any> = {}
-            Object.keys(overrides).forEach((key) => {
-              if (
-                overrides[key] !== undefined &&
-                overrides[key] !== null &&
-                overrides[key] !== defaultProps[key]
-              ) {
-                filteredOverrides[key] = overrides[key]
-              }
-            })
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
           } else {
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          }
-        }
-      } else {
-        const baseProps = pm.props || {}
-        const overrides = (pm as any).overrides || {}
+            // If the module instance itself has review props (global or local), use them.
+            // Note: for global modules, these are stored on the moduleInstance.
+            const reviewProps = (pm as any).reviewProps
+            const hasReviewProps = reviewProps && Object.keys(reviewProps).length > 0
+            const baseProps = hasReviewProps ? reviewProps : pm.props || {}
 
-        if (pm.scope === 'global') {
-          const filteredOverrides: Record<string, any> = {}
-          Object.keys(overrides).forEach((key) => {
-            if (
-              overrides[key] !== undefined &&
-              overrides[key] !== null &&
-              overrides[key] !== defaultProps[key]
-            ) {
-              filteredOverrides[key] = overrides[key]
+            const reviewOverrides = (pm as any).reviewOverrides
+            const hasReviewOverrides = reviewOverrides && Object.keys(reviewOverrides).length > 0
+            const overrides = hasReviewOverrides ? reviewOverrides : (pm as any).overrides || {}
+
+            // For global modules, we want to prioritize the global props (baseProps)
+            // and only apply overrides if they are actually DIFFERENT from the baseProps
+            // or are not part of the defaultProps.
+            if (pm.scope === 'global') {
+              const filteredOverrides: Record<string, any> = {}
+              Object.keys(overrides).forEach((key) => {
+                if (
+                  overrides[key] !== undefined &&
+                  overrides[key] !== null &&
+                  overrides[key] !== defaultProps[key]
+                ) {
+                  filteredOverrides[key] = overrides[key]
+                }
+              })
+              mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+            } else {
+              mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
             }
-          })
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
-        } else {
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-        }
-      }
+          }
+        } else if (useAiReviewDraft) {
+          if (draftModuleState) {
+            const baseProps = coerceJsonObject(draftModuleState.props)
+            const overrides = coerceJsonObject(draftModuleState.overrides)
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          } else {
+            const aiReviewProps = (pm as any).aiReviewProps
+            const hasAiReviewProps = aiReviewProps && Object.keys(aiReviewProps).length > 0
+            const baseProps = hasAiReviewProps ? aiReviewProps : pm.props || {}
 
-      return { pm, mergedProps, module, draftModuleState }
-    }).filter((s) => s !== null) as Array<{
-      pm: ModuleRenderData
-      mergedProps: Record<string, unknown>
-      module: BaseModule
-      draftModuleState: any
-    }>
+            const aiReviewOverrides = (pm as any).aiReviewOverrides
+            const hasAiReviewOverrides =
+              aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
+            const overrides = hasAiReviewOverrides ? aiReviewOverrides : (pm as any).overrides || {}
+
+            if (pm.scope === 'global') {
+              const filteredOverrides: Record<string, any> = {}
+              Object.keys(overrides).forEach((key) => {
+                if (
+                  overrides[key] !== undefined &&
+                  overrides[key] !== null &&
+                  overrides[key] !== defaultProps[key]
+                ) {
+                  filteredOverrides[key] = overrides[key]
+                }
+              })
+              mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+            } else {
+              mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+            }
+          }
+        } else {
+          const baseProps = pm.props || {}
+          const overrides = (pm as any).overrides || {}
+
+          if (pm.scope === 'global') {
+            const filteredOverrides: Record<string, any> = {}
+            Object.keys(overrides).forEach((key) => {
+              if (
+                overrides[key] !== undefined &&
+                overrides[key] !== null &&
+                overrides[key] !== defaultProps[key]
+              ) {
+                filteredOverrides[key] = overrides[key]
+              }
+            })
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+          } else {
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          }
+        }
+
+        return { pm, mergedProps, module, draftModuleState }
+      }).filter((s) => s !== null) as Array<{
+        pm: ModuleRenderData
+        mergedProps: Record<string, unknown>
+        module: BaseModule
+        draftModuleState: any
+      }>
 
     // Batch resolve post references across all modules for performance
     const allPostIds = new Set<string>()
     const allMediaIds = new Set<string>()
 
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (featuredMediaId && uuidRegex.test(featuredMediaId)) {
       allMediaIds.add(featuredMediaId.toLowerCase())
     }
@@ -421,7 +425,7 @@ class PostRenderingService {
       this.resolveMediaAssets(Array.from(allMediaIds)),
     ])
 
-    const injectResolved = (obj: any): any => {
+    const injectResolvedFn = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return obj
       if (obj.kind === 'post' && obj.postId) {
         const path = resolvedPaths.get(String(obj.postId))
@@ -430,15 +434,15 @@ class PostRenderingService {
         }
         return obj
       }
-      if (Array.isArray(obj)) return obj.map(injectResolved)
+      if (Array.isArray(obj)) return obj.map(injectResolvedFn)
       const out: any = {}
-      for (const [k, v] of Object.entries(obj)) out[k] = injectResolved(v)
+      for (const [k, v] of Object.entries(obj)) out[k] = injectResolvedFn(v)
       return out
     }
 
     const renderedModules = moduleStates.map(({ pm, mergedProps, module, draftModuleState }) => {
       const fieldSchema = module.getConfig().fieldSchema || []
-      const propsWithPosts = injectResolved(mergedProps)
+      const propsWithPosts = injectResolvedFn(mergedProps)
       let finalProps = this.injectResolvedMedia(fieldSchema, propsWithPosts, resolvedMedia)
 
       // Helper to apply Hero fallback to a prop set
@@ -479,22 +483,22 @@ class PostRenderingService {
       // Helper to filter overrides for global modules
       const filterOverrides = (overrides: Record<string, any> | null | undefined) => {
         if (!overrides || pm.scope !== 'global') return overrides
-        const filtered: Record<string, any> = {}
+        const filteredOverridesMap: Record<string, any> = {}
         Object.keys(overrides).forEach((key) => {
           if (
             overrides[key] !== undefined &&
             overrides[key] !== null &&
             overrides[key] !== defaultProps[key]
           ) {
-            filtered[key] = overrides[key]
+            filteredOverridesMap[key] = overrides[key]
           }
         })
-        return Object.keys(filtered).length > 0 ? filtered : null
+        return Object.keys(filteredOverridesMap).length > 0 ? filteredOverridesMap : null
       }
 
       let sourcePropsResolved = this.injectResolvedMedia(
         fieldSchema,
-        injectResolved({ ...defaultProps, ...(pm.props || {}) }),
+        injectResolvedFn({ ...defaultProps, ...(pm.props || {}) }),
         resolvedMedia
       )
       if (sourcePropsResolved) {
@@ -504,10 +508,10 @@ class PostRenderingService {
       let sourceOverridesResolved =
         pm.overrides && Object.keys(pm.overrides).length > 0
           ? this.injectResolvedMedia(
-              fieldSchema,
-              injectResolved(filterOverrides(pm.overrides)),
-              resolvedMedia
-            )
+            fieldSchema,
+            injectResolvedFn(filterOverrides(pm.overrides)),
+            resolvedMedia
+          )
           : null
       if (sourceOverridesResolved) {
         sourceOverridesResolved = applyHeroFallback(sourceOverridesResolved)
@@ -516,10 +520,10 @@ class PostRenderingService {
       let reviewPropsResolved =
         (pm as any).reviewProps && Object.keys((pm as any).reviewProps).length > 0
           ? this.injectResolvedMedia(
-              fieldSchema,
-              injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
-              resolvedMedia
-            )
+            fieldSchema,
+            injectResolvedFn({ ...defaultProps, ...(pm as any).reviewProps }),
+            resolvedMedia
+          )
           : null
       if (reviewPropsResolved) {
         reviewPropsResolved = applyHeroFallback(reviewPropsResolved)
@@ -528,10 +532,10 @@ class PostRenderingService {
       let reviewOverridesResolved =
         (pm as any).reviewOverrides && Object.keys((pm as any).reviewOverrides).length > 0
           ? this.injectResolvedMedia(
-              fieldSchema,
-              injectResolved(filterOverrides((pm as any).reviewOverrides)),
-              resolvedMedia
-            )
+            fieldSchema,
+            injectResolvedFn(filterOverrides((pm as any).reviewOverrides)),
+            resolvedMedia
+          )
           : null
       if (reviewOverridesResolved) {
         reviewOverridesResolved = applyHeroFallback(reviewOverridesResolved)
@@ -540,10 +544,10 @@ class PostRenderingService {
       let aiReviewPropsResolved =
         (pm as any).aiReviewProps && Object.keys((pm as any).aiReviewProps).length > 0
           ? this.injectResolvedMedia(
-              fieldSchema,
-              injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
-              resolvedMedia
-            )
+            fieldSchema,
+            injectResolvedFn({ ...defaultProps, ...(pm as any).aiReviewProps }),
+            resolvedMedia
+          )
           : null
       if (aiReviewPropsResolved) {
         aiReviewPropsResolved = applyHeroFallback(aiReviewPropsResolved)
@@ -552,14 +556,16 @@ class PostRenderingService {
       let aiReviewOverridesResolved =
         (pm as any).aiReviewOverrides && Object.keys((pm as any).aiReviewOverrides).length > 0
           ? this.injectResolvedMedia(
-              fieldSchema,
-              injectResolved(filterOverrides((pm as any).aiReviewOverrides)),
-              resolvedMedia
-            )
+            fieldSchema,
+            injectResolvedFn(filterOverrides((pm as any).aiReviewOverrides)),
+            resolvedMedia
+          )
           : null
       if (aiReviewOverridesResolved) {
         aiReviewOverridesResolved = applyHeroFallback(aiReviewOverridesResolved)
       }
+
+      const showReviewMeta = wantReview || includeAdminMetadata
 
       return {
         id: pm.id,
@@ -568,29 +574,32 @@ class PostRenderingService {
         scope: pm.scope || 'local',
         globalSlug: pm.globalSlug || null,
         globalLabel: pm.globalLabel || null,
-        adminLabel: (draftModuleState as any)?.adminLabel || pm.adminLabel || null,
+        adminLabel: showReviewMeta
+          ? (draftModuleState as any)?.adminLabel || pm.adminLabel || null
+          : null,
         label: moduleRegistry.getDynamicLabel(pm.type, finalProps),
         componentName,
         renderingMode,
         props: finalProps,
-        sourceProps: sourcePropsResolved,
-        sourceOverrides: sourceOverridesResolved,
-        reviewProps: reviewPropsResolved,
-        aiReviewProps: aiReviewPropsResolved,
-        overrides: sourceOverridesResolved, // Map sourceOverrides to overrides for consistency
-        reviewOverrides: reviewOverridesResolved,
-        aiReviewOverrides: aiReviewOverridesResolved,
-        reviewAdded: pm.reviewAdded || false,
-        reviewDeleted: pm.reviewDeleted || false,
-        aiReviewAdded: pm.aiReviewAdded || false,
-        aiReviewDeleted: pm.aiReviewDeleted || false,
+        sourceProps: showReviewMeta ? sourcePropsResolved : null,
+        sourceOverrides: showReviewMeta ? sourceOverridesResolved : null,
+        reviewProps: showReviewMeta ? reviewPropsResolved : null,
+        aiReviewProps: showReviewMeta ? aiReviewPropsResolved : null,
+        overrides: showReviewMeta ? sourceOverridesResolved : null, // Map sourceOverrides to overrides for consistency
+        reviewOverrides: showReviewMeta ? reviewOverridesResolved : null,
+        aiReviewOverrides: showReviewMeta ? aiReviewOverridesResolved : null,
+        reviewAdded: showReviewMeta ? pm.reviewAdded || false : false,
+        reviewDeleted: showReviewMeta ? pm.reviewDeleted || false : false,
+        aiReviewAdded: showReviewMeta ? pm.aiReviewAdded || false : false,
+        aiReviewDeleted: showReviewMeta ? pm.aiReviewDeleted || false : false,
       }
     })
 
     // Final Sort: If in review mode and we have a draft snapshot, respect the snapshot order.
     // This is a safety net in case the database-level ordering didn't match the snapshot
     // (e.g. if the snapshot was manually edited or has staged changes not yet in PM columns).
-    if (wantReview && Array.isArray((reviewDraft as any)?.modules)) {
+    const showReviewOrder = wantReview || includeAdminMetadata
+    if (showReviewOrder && Array.isArray((reviewDraft as any)?.modules)) {
       const draftModules = (reviewDraft as any).modules
       renderedModules.sort((a, b) => {
         const idxA = draftModules.findIndex((dm: any) => dm.id === a.id || dm.postModuleId === a.id)
@@ -701,10 +710,12 @@ class PostRenderingService {
       ...(post.robotsJson || DEFAULT_ROBOTS[post.status] || DEFAULT_ROBOTS.draft),
     }
     if (useReview) {
-      if ((reviewDraft as any).noindex !== undefined)
+      if ((reviewDraft as any).noindex !== undefined) {
         robotsConfig.index = !(reviewDraft as any).noindex
-      if ((reviewDraft as any).nofollow !== undefined)
+      }
+      if ((reviewDraft as any).nofollow !== undefined) {
         robotsConfig.follow = !(reviewDraft as any).nofollow
+      }
     } else {
       if (post.noindex) robotsConfig.index = false
       if (post.nofollow) robotsConfig.follow = false
@@ -846,15 +857,29 @@ class PostRenderingService {
       jsonLdGraph.length === 1
         ? jsonLdGraph[0]
         : {
-            '@context': 'https://schema.org',
-            '@graph': jsonLdGraph,
-          }
+          '@context': 'https://schema.org',
+          '@graph': jsonLdGraph,
+        }
+
+    // Identify LCP image from modules (first few modules' primary image)
+    let lcpImageUrl: string | undefined
+    for (let i = 0; i < Math.min(modules.length, 3); i++) {
+      const module = modules[i]
+      const props = module.props || {}
+      // Common image prop names in modules that often serve as LCP
+      const imageAsset = props.backgroundImage || props.image
+      if (imageAsset && typeof imageAsset === 'object' && imageAsset.url) {
+        lcpImageUrl = imageAsset.url
+        break
+      }
+    }
 
     return {
       canonical,
       alternates,
       robots,
       jsonLd,
+      lcpImageUrl,
       og: {
         title: socialTitle,
         description: socialDescription || undefined,
@@ -888,9 +913,10 @@ class PostRenderingService {
     options: {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
+      includeAdminMetadata?: boolean
     } = {}
   ): PostRenderData {
-    const { wantReview = false, reviewDraft = null } = options
+    const { wantReview = false, reviewDraft = null, includeAdminMetadata = false } = options
     const useReview = wantReview && reviewDraft
 
     const rd = (post as any).reviewDraft || (post as any).review_draft || null
@@ -927,8 +953,8 @@ class PostRenderingService {
       featuredMediaId: useReview
         ? ((reviewDraft as any).featuredMediaId ?? post.featuredMediaId)
         : post.featuredMediaId,
-      reviewDraft: this.hasMeaningfulContent(rd) ? rd : null,
-      aiReviewDraft: this.hasMeaningfulContent(ard) ? ard : null,
+      reviewDraft: (wantReview || includeAdminMetadata) && this.hasMeaningfulContent(rd) ? rd : null,
+      aiReviewDraft: (wantReview || includeAdminMetadata) && this.hasMeaningfulContent(ard) ? ard : null,
     }
   }
 
@@ -942,11 +968,15 @@ class PostRenderingService {
       host: string
       wantReview?: boolean
       draftMode?: 'review' | 'ai-review' | 'auto'
-    } = { protocol: 'https', host: 'localhost' }
+      role?: string
+      permissions?: string[]
+    } = { protocol: 'https', host: 'localhost', permissions: [] }
   ): Promise<PageRenderData> {
     const reviewDraft = (post as any).reviewDraft || (post as any).review_draft || null
     const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft || null
-    const { wantReview = false, draftMode = 'review' } = options
+    const { wantReview = false, draftMode = 'review', role = '', permissions = [] } = options
+
+    const isAdminOrEditor = role === 'admin' || permissions.length > 0
 
     // Load site settings and custom fields first for token resolution
     const siteSettings = await siteSettingsService.get()
@@ -966,8 +996,15 @@ class PostRenderingService {
     if (siteSettings.defaultOgMediaId) siteMediaIds.add(siteSettings.defaultOgMediaId)
 
     const siteResolvedMedia = await this.resolveMediaAssets(Array.from(siteMediaIds))
+
+    // Filter site settings for public consumption
+    const publicSiteCustomFields = { ...(siteSettings.customFields || {}) }
+    delete publicSiteCustomFields.protected_access_username
+    delete publicSiteCustomFields.protected_access_password
+
     const siteSettingsWithMedia = {
       ...siteSettings,
+      customFields: publicSiteCustomFields,
       logoMedia: siteSettings.logoMediaId ? siteResolvedMedia.get(siteSettings.logoMediaId) : null,
       faviconMedia: siteSettings.faviconMediaId
         ? siteResolvedMedia.get(siteSettings.faviconMediaId)
@@ -989,39 +1026,60 @@ class PostRenderingService {
     const postData = this.resolvePostFields(post, {
       wantReview,
       reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+      includeAdminMetadata: isAdminOrEditor,
     })
     postData.author = author
+
+    const publicCustomFields = { ...customFields }
+    delete publicCustomFields.protected_access_username
+    delete publicCustomFields.protected_access_password
 
     const tokenContext = {
       post, // Use raw model (published/base values) for initial token resolution
       author,
       siteSettings: siteSettingsWithMedia,
-      customFields,
+      customFields: publicCustomFields,
     }
 
     // Determine the active mode for database ordering
     const activeMode = wantReview
-      ? (draftMode === 'ai-review' ? 'ai-review' : (draftMode === 'review' ? 'review' : (reviewDraft ? 'review' : 'ai-review')))
+      ? draftMode === 'ai-review'
+        ? 'ai-review'
+        : draftMode === 'review'
+          ? 'review'
+          : reviewDraft
+            ? 'review'
+            : 'ai-review'
       : 'source'
 
     // Load modules with mode-aware ordering
-    const modulesRaw = await this.loadPostModules(post.id, { 
+    const modulesRaw = await this.loadPostModules(post.id, {
       includeReviewFields: true,
       mode: activeMode as any
     })
 
     // Pre-calculate available modes from ALL modules (before filtering)
     const hasReviewModuleContent = modulesRaw.some(
-      (pm) => (pm.reviewProps && Object.keys(pm.reviewProps).length > 0) || (pm.reviewOverrides && Object.keys(pm.reviewOverrides).length > 0) || pm.reviewAdded
+      (pm) =>
+        (pm.reviewProps && Object.keys(pm.reviewProps).length > 0) ||
+        (pm.reviewOverrides && Object.keys(pm.reviewOverrides).length > 0) ||
+        pm.reviewAdded,
     )
     const hasAiReviewModuleContent = modulesRaw.some(
-      (pm) => (pm.aiReviewProps && Object.keys(pm.aiReviewProps).length > 0) || (pm.aiReviewOverrides && Object.keys(pm.aiReviewOverrides).length > 0) || pm.aiReviewAdded
+      (pm) =>
+        (pm.aiReviewProps && Object.keys(pm.aiReviewProps).length > 0) ||
+        (pm.aiReviewOverrides && Object.keys(pm.aiReviewOverrides).length > 0) ||
+        pm.aiReviewAdded,
     )
+
+    const canSaveReview = role === 'admin' || permissions.includes('posts.review.save')
+    const canApproveReview = role === 'admin' || permissions.includes('posts.review.approve')
+    const canApproveAiReview = role === 'admin' || permissions.includes('posts.ai-review.approve')
 
     const availableModes = {
       hasSource: modulesRaw.some((pm) => !pm.reviewAdded && !pm.aiReviewAdded) || !!post.id,
-      hasReview: (this.hasMeaningfulContent(reviewDraft) || hasReviewModuleContent),
-      hasAiReview: (this.hasMeaningfulContent(aiReviewDraft) || hasAiReviewModuleContent),
+      hasReview: (this.hasMeaningfulContent(reviewDraft) || hasReviewModuleContent) && (canSaveReview || canApproveReview),
+      hasAiReview: (this.hasMeaningfulContent(aiReviewDraft) || hasAiReviewModuleContent) && canApproveAiReview,
     }
 
     const { modules } = await this.buildModulesForView(modulesRaw, {
@@ -1034,28 +1092,28 @@ class PostRenderingService {
             : (reviewDraft as any),
       draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
       featuredMediaId: postData.featuredMediaId,
+      includeAdminMetadata: isAdminOrEditor,
     })
 
-    // Resolve tokens in post data (title, excerpt, meta fields)
-    // Note: this uses the raw post in context to avoid recursion if draft contains tokens
+    // Resolve recursive tokens in post data
     const resolvedPostData = tokenService.resolveRecursive(postData, tokenContext)
-
-    // Update tokenContext with the resolved post data for module/SEO resolution
-    // This allows modules to see draft values for fields other than themselves
     tokenContext.post = resolvedPostData
 
     // Resolve tokens in modules
-    const resolvedModules = modules.map((m) => ({
-      ...m,
-      props: tokenService.resolveRecursive(m.props, tokenContext),
-      overrides: tokenService.resolveRecursive(m.overrides, tokenContext),
-      sourceProps: tokenService.resolveRecursive(m.sourceProps, tokenContext),
-      sourceOverrides: tokenService.resolveRecursive(m.sourceOverrides, tokenContext),
-      reviewProps: tokenService.resolveRecursive(m.reviewProps, tokenContext),
-      reviewOverrides: tokenService.resolveRecursive(m.reviewOverrides, tokenContext),
-      aiReviewProps: tokenService.resolveRecursive(m.aiReviewProps, tokenContext),
-      aiReviewOverrides: tokenService.resolveRecursive(m.aiReviewOverrides, tokenContext),
-    }))
+    const resolvedModules = modules.map((m) => {
+      const resolve = (obj: any) => tokenService.resolveRecursive(obj, tokenContext)
+      return {
+        ...m,
+        props: resolve(m.props),
+        overrides: resolve(m.overrides),
+        sourceProps: resolve(m.sourceProps),
+        sourceOverrides: resolve(m.sourceOverrides),
+        reviewProps: resolve(m.reviewProps),
+        reviewOverrides: resolve(m.reviewOverrides),
+        aiReviewProps: resolve(m.aiReviewProps),
+        aiReviewOverrides: resolve(m.aiReviewOverrides),
+      }
+    })
 
     // Build SEO
     // SEO is currently derived from reviewDraft; for AI review previews, fall back to aiReviewDraft
@@ -1175,16 +1233,16 @@ class PostRenderingService {
         const id = String(asset.id).toLowerCase()
         map.set(id, {
           id: asset.id,
-          url: asset.url,
+          url: storageService.resolvePublicUrl(asset.url),
           mimeType: asset.mimeType,
           altText: asset.altText,
           caption: asset.caption,
           description: asset.description,
-          metadata: asset.metadata || {},
-          optimizedUrl: asset.optimizedUrl,
+          metadata: mediaService.resolveMetadataUrls(asset.metadata),
+          optimizedUrl: storageService.resolvePublicUrl(asset.optimizedUrl),
           // Explicitly expose dark mode properties if they exist in metadata
-          darkSourceUrl: asset.metadata?.darkSourceUrl,
-          darkOptimizedUrl: asset.metadata?.darkOptimizedUrl,
+          darkSourceUrl: storageService.resolvePublicUrl(asset.metadata?.darkSourceUrl),
+          darkOptimizedUrl: storageService.resolvePublicUrl(asset.metadata?.darkOptimizedUrl),
         })
       })
     } catch (e) {
@@ -1242,8 +1300,8 @@ class PostRenderingService {
     const pattern = await urlPatternService.getDefaultPattern(post.type, post.locale)
     if (pattern?.aggregatePostId) {
       // Load aggregate post - we need to find the variation for the current locale
-      const Post = (await import('#models/post')).default
-      const aggPostBase = await Post.find(pattern.aggregatePostId)
+      const { default: PostModel } = await import('#models/post')
+      const aggPostBase = await PostModel.find(pattern.aggregatePostId)
 
       if (aggPostBase) {
         // Try to find translation for the current locale

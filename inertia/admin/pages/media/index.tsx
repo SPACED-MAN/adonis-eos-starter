@@ -63,7 +63,15 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 
-type Variant = { name: string; url: string; width?: number; height?: number; size?: number }
+type Variant = {
+  name: string
+  url: string
+  width?: number
+  height?: number
+  size?: number
+  optimizedUrl?: string | null
+  optimizedSize?: number | null
+}
 type MediaItem = {
   id: string
   url: string
@@ -742,13 +750,16 @@ export default function MediaIndex() {
   function getVariantUrlByName(m: any, name: string | null): string | null {
     if (!name || !m?.metadata?.variants) return null
     const v = (m.metadata.variants as any[]).find((x) => x.name === name)
-    return v?.url || null
+    return v?.optimizedUrl || v?.url || null
   }
 
   function getVariantLabel(v: any): string {
     const dims = v?.width && v?.height ? `${v.width}x${v.height}` : ''
-    const kb = v?.size ? `${Math.round((v.size || 0) / 1024)} KB` : ''
-    const meta = [dims, kb].filter(Boolean).join(', ')
+    const sizeInKb = v?.size ? Math.round((v.size || 0) / 1024) : 0
+    const optInKb = v?.optimizedSize ? Math.round((v.optimizedSize || 0) / 1024) : 0
+
+    const sizeStr = optInKb > 0 ? `${optInKb} KB (WebP)` : sizeInKb > 0 ? `${sizeInKb} KB` : ''
+    const meta = [dims, sizeStr].filter(Boolean).join(', ')
     return meta ? `${v.name} (${meta})` : v.name
   }
 
@@ -800,7 +811,8 @@ export default function MediaIndex() {
         // Prefer a dedicated dark base if one exists, otherwise fall back to the largest dark variant,
         // and finally to the light original.
         const darkSource = (meta as any).darkSourceUrl as string | undefined
-        let urlToUse: string | null = darkSource || null
+        const darkOptimized = (meta as any).darkOptimizedUrl as string | undefined
+        let urlToUse: string | null = darkOptimized || darkSource || null
 
         if (!urlToUse && variants.length > 0) {
           const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
@@ -809,20 +821,22 @@ export default function MediaIndex() {
               (a, b) => (b.width || b.height || 0) - (a.width || a.height || 0)
             )
             const best = sortedDesc[0]
-            urlToUse = best?.url || null
+            urlToUse = best?.optimizedUrl || best?.url || null
           }
         }
 
-        if (!urlToUse) urlToUse = m.url || null
+        if (!urlToUse) urlToUse = m.optimizedUrl || m.url || null
         if (!urlToUse) return m.url
         // Cache‑bust dark preview so newly written files are visible immediately
         return `${urlToUse}?v=${darkPreviewVersion}`
       }
-      return textContentVersion > 0 ? `${m.url}?v=${textContentVersion}` : m.url
+
+      const baseUrl = m.optimizedUrl || m.url
+      return textContentVersion > 0 ? `${baseUrl}?v=${textContentVersion}` : baseUrl
     }
 
     const vUrl = getVariantUrlByName(m, selectedVariantName)
-    if (!vUrl) return m.url
+    if (!vUrl) return m.optimizedUrl || m.url
     if (theme === 'dark') {
       // Also cache‑bust explicitly selected dark variants (e.g. thumb-dark)
       return `${vUrl}?v=${darkPreviewVersion}`
@@ -1083,6 +1097,8 @@ export default function MediaIndex() {
                       const isImage =
                         (m.mimeType && m.mimeType.startsWith('image/')) ||
                         /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                      const isSvg = m.mimeType === 'image/svg+xml' || m.url?.toLowerCase().endsWith('.svg')
+                      const canOptimize = isImage && !isSvg
                       const checked = selectedIds.has(m.id)
                       return (
                         <div
@@ -1151,7 +1167,7 @@ export default function MediaIndex() {
                               </TooltipContent>
                             </Tooltip>
 
-                            {isImage && (
+                            {canOptimize && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
@@ -1184,7 +1200,15 @@ export default function MediaIndex() {
                                     }}
                                     aria-label="Optimize"
                                   >
-                                    <FontAwesomeIcon icon={faTruckArrowRight} size="sm" />
+                                    <FontAwesomeIcon
+                                      icon={faTruckArrowRight}
+                                      size="sm"
+                                      className={
+                                        m.optimizedSize && m.optimizedSize > 0
+                                          ? 'text-neutral-low'
+                                          : ''
+                                      }
+                                    />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -1295,6 +1319,8 @@ export default function MediaIndex() {
                           const isImage =
                             (m.mimeType && m.mimeType.startsWith('image/')) ||
                             /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                          const isSvg = m.mimeType === 'image/svg+xml' || m.url?.toLowerCase().endsWith('.svg')
+                          const canOptimize = isImage && !isSvg
                           const checked = selectedIds.has(m.id)
                           return (
                             <TableRow key={m.id}>
@@ -1347,7 +1373,7 @@ export default function MediaIndex() {
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
-                                  {isImage && (
+                                  {canOptimize && (
                                     <button
                                       className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
                                       onClick={async () => {
@@ -1382,6 +1408,11 @@ export default function MediaIndex() {
                                       <FontAwesomeIcon
                                         icon={faTruckArrowRight}
                                         size="sm"
+                                        className={
+                                          m.optimizedSize && m.optimizedSize > 0
+                                            ? 'text-neutral-low'
+                                            : ''
+                                        }
                                       />
                                     </button>
                                   )}

@@ -23,12 +23,19 @@ export default class CacheControlMiddleware {
     const contentType = ctx.response.getHeader('content-type') as string | undefined
     if ((ctx.response.getStatus() ?? 200) >= 200 && (ctx.response.getStatus() ?? 200) < 400) {
       if (contentType && contentType.includes('text/html')) {
-        // CDN-friendly caching
+        // If user is authenticated, never cache publicly
+        const user = ctx.auth?.use('web').user
+        if (user) {
+          ctx.response.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+          return
+        }
+
+        // CDN-friendly caching for anonymous visitors
         ctx.response.header(
           'Cache-Control',
-          'public, max-age=60, s-maxage=3600, stale-while-revalidate=604800'
+          `public, max-age=${cmsConfig.cache.publicMaxAge || 60}, s-maxage=${cmsConfig.cache.cdnMaxAge || 3600}, stale-while-revalidate=${cmsConfig.cache.staleWhileRevalidate || 604800}`
         )
-        ctx.response.header('Vary', 'Accept-Encoding')
+        ctx.response.header('Vary', 'Accept-Encoding, Accept, X-Inertia')
       }
     }
   }

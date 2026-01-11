@@ -20,16 +20,17 @@ export default class UrlRedirectsController {
         .where('posts.type', type)
         .select('url_redirects.*')
     }
-    const rows = await query
+    const rows = await query.preload('post')
     return response.ok({
       data: rows.map((r) => ({
         id: r.id,
-        fromPath: (r as any).fromPath ?? (r as any).from_path,
-        toPath: (r as any).toPath ?? (r as any).to_path,
-        httpStatus: (r as any).httpStatus ?? (r as any).http_status,
-        locale: (r as any).locale ?? null,
-        postId: (r as any).postId ?? (r as any).post_id ?? null,
-        createdAt: (r as any).createdAt ?? (r as any).created_at,
+        fromPath: r.fromPath,
+        toPath: r.toPath,
+        httpStatus: r.httpStatus,
+        locale: r.locale ?? null,
+        postId: r.postId ?? null,
+        postTitle: r.post?.title ?? null,
+        createdAt: r.createdAt.toISO(),
       })),
       meta: { count: rows.length },
     })
@@ -49,7 +50,8 @@ export default class UrlRedirectsController {
       toPath,
       httpStatus = 301,
       locale = null,
-    } = request.only(['fromPath', 'toPath', 'httpStatus', 'locale'])
+      postId = null,
+    } = request.only(['fromPath', 'toPath', 'httpStatus', 'locale', 'postId'])
     if (!fromPath || !toPath) {
       return response.badRequest({ error: 'fromPath and toPath are required' })
     }
@@ -58,6 +60,7 @@ export default class UrlRedirectsController {
       toPath,
       httpStatus,
       locale: locale || null,
+      postId: postId || null,
     })
     return response.created({ data: created, message: 'Redirect created' })
   }
@@ -99,6 +102,39 @@ export default class UrlRedirectsController {
       return response.notFound({ error: 'Redirect not found' })
     }
     return response.noContent()
+  }
+
+  /**
+   * POST /api/redirects/bulk
+   * Body: { action: 'delete', ids: string[] }
+   */
+  async bulk({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to perform bulk actions' })
+    }
+
+    const { action, ids } = request.only(['action', 'ids'])
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return response.badRequest({ error: 'No IDs provided' })
+    }
+
+    if (action === 'delete') {
+      await UrlRedirect.query().whereIn('id', ids).delete()
+      return response.ok({ message: `${ids.length} redirects deleted` })
+    }
+
+    if (action === 'status-301') {
+      await UrlRedirect.query().whereIn('id', ids).update({ http_status: 301, updated_at: new Date() })
+      return response.ok({ message: `${ids.length} redirects updated to 301` })
+    }
+
+    if (action === 'status-302') {
+      await UrlRedirect.query().whereIn('id', ids).update({ http_status: 302, updated_at: new Date() })
+      return response.ok({ message: `${ids.length} redirects updated to 302` })
+    }
+
+    return response.badRequest({ error: 'Invalid action' })
   }
 
   /**

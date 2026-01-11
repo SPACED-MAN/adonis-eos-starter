@@ -71,6 +71,7 @@ export interface PostSeoData {
     description?: string
     image?: string
   }
+  lcpImageUrl?: string
 }
 
 /**

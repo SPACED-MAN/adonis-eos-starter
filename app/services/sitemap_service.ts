@@ -17,6 +17,7 @@ type PostRow = {
   publishedAt: Date | null
   canonicalUrl: string | null
   robotsJson: Record<string, any> | null
+  noindex: boolean
 }
 
 type SitemapCacheEntry = { xml: string; expiresAt: number }
@@ -37,6 +38,7 @@ function replaceTokens(pattern: string, values: Record<string, string>): string 
     out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), val)
   }
   if (!out.startsWith('/')) out = '/' + out
+  if (out.length > 1 && out.endsWith('/')) out = out.slice(0, -1)
   return out
 }
 
@@ -93,7 +95,8 @@ class SitemapService {
         db.raw('updated_at as "updatedAt"'),
         db.raw('published_at as "publishedAt"'),
         db.raw('canonical_url as "canonicalUrl"'),
-        db.raw('robots_json as "robotsJson"')
+        db.raw('robots_json as "robotsJson"'),
+        'noindex'
       )
       .where('status', 'published')
       .andWhere((q) => {
@@ -122,10 +125,12 @@ class SitemapService {
         : null,
       canonicalUrl: r.canonicalUrl ? String(r.canonicalUrl) : null,
       robotsJson: r.robotsJson && typeof r.robotsJson === 'object' ? r.robotsJson : null,
+      noindex: Boolean(r.noindex),
     }))
 
-    // Filter out noindex
+    // Filter out noindex (check both boolean column and robotsJson legacy field)
     const indexable = rows.filter((row) => {
+      if (row.noindex) return false
       const robots = row.robotsJson || {}
       return robots.index !== false
     })
@@ -245,8 +250,8 @@ class SitemapService {
         const xDefaultLine =
           defaultAlt && locById.get(defaultAlt.id)
             ? `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(
-                locById.get(defaultAlt.id)!
-              )}" />`
+              locById.get(defaultAlt.id)!
+            )}" />`
             : null
 
         const lines = ['  <url>', `    <loc>${escapeXml(u.loc)}</loc>`]

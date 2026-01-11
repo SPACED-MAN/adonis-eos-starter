@@ -22,6 +22,7 @@ const shieldConfig = defineConfig({
       scriptSrc: [
         "'self'",
         "'unsafe-inline'", // Required for theme detection script in inertia_layout.edge
+        'https://static.cloudflareinsights.com', // Cloudflare analytics
         // Add CDN domains if using external script CDN
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
@@ -72,6 +73,7 @@ const shieldConfig = defineConfig({
       ],
       connectSrc: [
         "'self'",
+        'https://cloudflareinsights.com', // Cloudflare analytics beacons
         // Allow connections to same origin for API calls
       ],
       frameSrc: ["'self'"], // Allow self-hosted iframes (needed for admin analytics heatmaps)

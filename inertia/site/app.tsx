@@ -3,16 +3,35 @@
 
 import '../css/app.css'
 import './lib/icons'
-import { hydrateRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
-import { SiteAdminBar } from './components/SiteAdminBar'
+
 import { initAnalytics } from './utils/analytics'
 import { ThemeProvider } from '../utils/ThemeContext'
-import { TooltipProvider } from '~/components/ui/tooltip'
-import { ConfirmDialogProvider } from '~/components/ConfirmDialogProvider'
+import { useState, useEffect } from 'react'
 
-let appName = import.meta.env.VITE_APP_NAME || 'EOS'
+function AdminBarWrapper({
+  isAuthenticated,
+  initialPageProps,
+}: {
+  isAuthenticated: boolean
+  initialPageProps: any
+}) {
+  const [Component, setComponent] = useState<any>(null)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      import('./components/AdminBarWrapper').then((m) => setComponent(() => m.AdminBarWrapper))
+    }
+  }, [isAuthenticated])
+
+  if (!Component) return null
+
+  return <Component isAuthenticated={isAuthenticated} initialPageProps={initialPageProps} />
+}
+
+let appName = import.meta.env.VITE_APP_NAME || 'Adonis EOS'
 
 createInertiaApp({
   progress: {
@@ -40,18 +59,26 @@ createInertiaApp({
     const initialIsDark = (props.initialPage?.props as any)?.isDark
     const currentUser = (props.initialPage?.props as any)?.currentUser
     const isAuthenticated =
-      !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+      !!currentUser && ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
 
-    hydrateRoot(
-      el,
+    const p = props as any
+    const { key, ref, ...restProps } = p
+    const app = (
       <ThemeProvider initialIsDark={initialIsDark}>
-        <TooltipProvider>
-          <ConfirmDialogProvider>
-            <App {...props} />
-            {isAuthenticated && <SiteAdminBar initialProps={props.initialPage.props} />}
-          </ConfirmDialogProvider>
-        </TooltipProvider>
+        <App key={key} {...restProps} />
+        {isAuthenticated && (
+          <AdminBarWrapper
+            isAuthenticated={isAuthenticated}
+            initialPageProps={props.initialPage.props}
+          />
+        )}
       </ThemeProvider>
     )
+
+    if (el.hasChildNodes()) {
+      hydrateRoot(el, app)
+    } else {
+      createRoot(el).render(app)
+    }
   },
 })

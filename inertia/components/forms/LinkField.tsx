@@ -328,17 +328,15 @@ export const LinkField: React.FC<LinkFieldProps> = ({
         {/* Row 1: Mode Selector & Target Toggle */}
         <div className="flex items-center gap-3">
           <div
-            className={`flex-1 flex p-1 bg-backdrop-medium/40 rounded-xl ${
-              modules.length > 0 ? 'max-w-[260px]' : 'max-w-[200px]'
-            }`}
+            className={`flex-1 flex p-1 bg-backdrop-medium/40 rounded-xl ${modules.length > 0 ? 'max-w-[260px]' : 'max-w-[200px]'
+              }`}
           >
             <button
               type="button"
-              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                mode === 'post'
+              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${mode === 'post'
                   ? 'bg-backdrop-low text-neutral-high shadow-sm'
                   : 'text-neutral-low hover:text-neutral-medium'
-              }`}
+                }`}
               onClick={() => {
                 setMode('post')
                 const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
@@ -353,11 +351,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             </button>
             <button
               type="button"
-              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                mode === 'url'
+              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${mode === 'url'
                   ? 'bg-backdrop-low text-neutral-high shadow-sm'
                   : 'text-neutral-low hover:text-neutral-medium'
-              }`}
+                }`}
               onClick={() => {
                 setMode('url')
                 const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
@@ -370,11 +367,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             {modules.length > 0 && (
               <button
                 type="button"
-                className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                  mode === 'anchor'
+                className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${mode === 'anchor'
                     ? 'bg-backdrop-low text-neutral-high shadow-sm'
                     : 'text-neutral-low hover:text-neutral-medium'
-                }`}
+                  }`}
                 onClick={() => {
                   setMode('anchor')
                   const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
@@ -405,11 +401,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                           return { ...prev, target: nextTarget }
                         })
                       }}
-                      className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${
-                        currentTarget === '_blank'
+                      className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${currentTarget === '_blank'
                           ? 'bg-standout-high/10 border-standout-high/30 text-standout-high shadow-inner'
                           : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low shadow-sm'
-                      }`}
+                        }`}
                     >
                       <FontAwesomeIcon icon={faExternalLinkAlt} className="size-3.5" />
                     </button>
@@ -430,9 +425,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <Input
                 type="url"
                 placeholder="https://example.com"
-                className={`rounded-xl border-line-medium focus:ring-standout-high/20 focus:border-standout-high h-[42px] bg-backdrop-low shadow-inner pl-4 pr-10 transition-all ${
-                  urlError ? 'border-danger ring-1 ring-danger/20' : ''
-                }`}
+                className={`rounded-xl border-line-medium focus:ring-standout-high/20 focus:border-standout-high h-[42px] bg-backdrop-low shadow-inner pl-4 pr-10 transition-all ${urlError ? 'border-danger ring-1 ring-danger/20' : ''
+                  }`}
                 value={link && link.kind === 'url' ? link.url : ''}
                 onChange={(e) => {
                   const val = e.target.value
@@ -476,16 +470,19 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                   const baseTarget = prev && (prev as any).target === '_blank' ? '_blank' : '_self'
                   return val
                     ? {
-                        kind: 'anchor',
-                        anchor: val,
-                        moduleId: selectedModule?.id,
-                        target: baseTarget,
-                      }
+                      kind: 'anchor',
+                      anchor: val,
+                      moduleId: selectedModule?.id,
+                      target: baseTarget,
+                    }
                     : null
                 })
               }}
             >
-              <SelectTrigger className="w-full h-[42px] rounded-xl border-line-medium bg-backdrop-low shadow-sm focus:ring-standout-high/20 focus:border-standout-high">
+              <SelectTrigger
+                aria-label="Select anchor"
+                className="w-full h-[42px] rounded-xl border-line-medium bg-backdrop-low shadow-sm focus:ring-standout-high/20 focus:border-standout-high"
+              >
                 <SelectValue placeholder="Select a module anchor…" />
               </SelectTrigger>
               <SelectContent className="bg-backdrop-low border-line-low rounded-xl shadow-xl z-100">
@@ -517,9 +514,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className={`w-full text-left px-4 h-[42px] border rounded-xl bg-backdrop-low text-neutral-high hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-between group overflow-hidden ${
-                    selectedPostId ? 'border-standout-high/30' : 'border-line-medium'
-                  }`}
+                  className={`w-full text-left px-4 h-[42px] border rounded-xl bg-backdrop-low text-neutral-high hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-between group overflow-hidden ${selectedPostId ? 'border-standout-high/30' : 'border-line-medium'
+                    }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {loading ? (
@@ -527,9 +523,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                     ) : (
                       <FontAwesomeIcon
                         icon={faSearch}
-                        className={`size-3.5 shrink-0 transition-colors ${
-                          selectedPostId ? 'text-standout-high' : 'text-neutral-low/60 group-hover:text-neutral-medium'
-                        }`}
+                        className={`size-3.5 shrink-0 transition-colors ${selectedPostId ? 'text-standout-high' : 'text-neutral-low/60 group-hover:text-neutral-medium'
+                          }`}
                       />
                     )}
                     <span className="truncate text-sm font-medium">
@@ -590,8 +585,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                             key={p.id}
                             type="button"
                             className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${isSelected
-                                ? 'border-standout-high bg-standout-high/5 ring-1 ring-standout-high/20'
-                                : 'border-transparent hover:bg-backdrop-medium'
+                              ? 'border-standout-high bg-standout-high/5 ring-1 ring-standout-high/20'
+                              : 'border-transparent hover:bg-backdrop-medium'
                               }`}
                             onClick={() => {
                               setLink({

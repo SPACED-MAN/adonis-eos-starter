@@ -31,6 +31,8 @@ server.use([
   () => import('@adonisjs/cors/cors_middleware'),
   () => import('@adonisjs/vite/vite_middleware'),
   () => import('@adonisjs/inertia/inertia_middleware'),
+  // Run early hints for frontend performance
+  () => import('#middleware/early_hints_middleware'),
   // Run redirects for all requests (including unmatched routes)
   () => import('#middleware/redirects_middleware'),
 ])

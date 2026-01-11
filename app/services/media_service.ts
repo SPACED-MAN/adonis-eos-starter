@@ -136,7 +136,7 @@ class MediaService {
       const variantName = suffix ? `${spec.name}${suffix}` : spec.name
       const outName = `${parsed.name}.${variantName}${parsed.ext}`
       const outPath = path.join(parsed.dir, outName)
-      const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
+      const outUrl = path.posix.join(storageService.getRelativeDir(publicUrl), outName)
 
       let pipeline = sharp(inputPath)
       // Apply cropRect or focal crop (for cover)
@@ -177,6 +177,16 @@ class MediaService {
         )
         if (storageUrl) {
           finalUrl = storageUrl
+
+          // If we are using R2, we can delete the local variant file after publishing
+          // since it's just a derivative and can be regenerated from the original.
+          if (storageService.isR2()) {
+            try {
+              await fs.unlink(outPath)
+            } catch {
+              /* ignore */
+            }
+          }
         }
       } catch {
         /* ignore */
@@ -205,7 +215,7 @@ class MediaService {
     const alreadyWebp = parsed.ext.toLowerCase() === '.webp'
     const outName = alreadyWebp ? `${parsed.name}.optimized.webp` : `${parsed.name}.webp`
     const outPath = path.join(parsed.dir, outName)
-    const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
+    const outUrl = path.posix.join(storageService.getRelativeDir(publicUrl), outName)
     const quality = Number(process.env.MEDIA_WEBP_QUALITY || 82)
     const info = await sharp(inputPath)
       .webp({
@@ -226,8 +236,7 @@ class MediaService {
   }
 
   async optimizeVariantsToWebp(
-    variants: VariantInfo[],
-    publicRoot: string
+    variants: VariantInfo[]
   ): Promise<VariantInfo[]> {
     const results: VariantInfo[] = []
     for (const v of variants) {
@@ -235,7 +244,7 @@ class MediaService {
         results.push(v)
         continue
       }
-      const absPath = path.join(publicRoot, v.url.replace(/^\//, ''))
+      const absPath = await storageService.ensureLocalFile(v.url)
       try {
         const optimized = await this.optimizeToWebp(absPath, v.url)
         if (optimized) {
@@ -267,7 +276,7 @@ class MediaService {
     const dir = parsed.dir
     const ext = parsed.ext
     const newPath = path.join(dir, `${newBaseName}${ext}`)
-    const newUrl = path.posix.join(path.posix.dirname(oldUrl), `${newBaseName}${ext}`)
+    const newUrl = path.posix.join(storageService.getRelativeDir(oldUrl), `${newBaseName}${ext}`)
     await fs.rename(oldPath, newPath)
 
     const files = await fs.readdir(dir)
@@ -288,12 +297,37 @@ class MediaService {
 
         await fs.rename(oldVarPath, newVarPath)
 
-        const oldVarUrl = path.posix.join(path.posix.dirname(oldUrl), f)
-        const newVarUrl = path.posix.join(path.posix.dirname(oldUrl), newVarName)
+        const oldVarUrl = path.posix.join(storageService.getRelativeDir(oldUrl), f)
+        const newVarUrl = path.posix.join(storageService.getRelativeDir(oldUrl), newVarName)
         renamedVariants.push({ oldUrl: oldVarUrl, newUrl: newVarUrl })
       }
     }
     return { newPath, newUrl, renamedVariants }
+  }
+
+  /**
+   * Helper to resolve all URLs within metadata (variants, dark source, etc.)
+   */
+  resolveMetadataUrls(metadata: any): any {
+    if (!metadata) return null
+    const m = { ...metadata }
+
+    if (m.darkSourceUrl) {
+      m.darkSourceUrl = storageService.resolvePublicUrl(m.darkSourceUrl)
+    }
+    if (m.darkOptimizedUrl) {
+      m.darkOptimizedUrl = storageService.resolvePublicUrl(m.darkOptimizedUrl)
+    }
+
+    if (Array.isArray(m.variants)) {
+      m.variants = m.variants.map((v: any) => ({
+        ...v,
+        url: storageService.resolvePublicUrl(v.url),
+        optimizedUrl: storageService.resolvePublicUrl(v.optimizedUrl),
+      }))
+    }
+
+    return m
   }
 }
 

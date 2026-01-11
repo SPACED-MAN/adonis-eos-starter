@@ -48,6 +48,7 @@ export type CanonicalPost = {
     featuredMediaId?: string | null
     customFields?: Array<{ slug: string; value: any }>
     taxonomyTermIds?: string[]
+    scheduledAt?: string | null
   }
   modules: CanonicalModule[]
   translations?: Array<{ id: string; locale: string }>
@@ -193,6 +194,7 @@ export default class PostSerializerService {
       noindex: Boolean((post as any).noindex),
       nofollow: Boolean((post as any).nofollow),
       featuredMediaId: (post as any).featuredMediaId ?? (post as any).featured_media_id ?? null,
+      scheduledAt: post.scheduledAt ? post.scheduledAt.toISO() : null,
     }
 
     if (mode === 'review') {
@@ -238,6 +240,9 @@ export default class PostSerializerService {
             : {}),
           ...(reviewDraft.taxonomyTermIds !== undefined
             ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
+            : {}),
+          ...(reviewDraft.scheduledAt !== undefined
+            ? { scheduledAt: reviewDraft.scheduledAt }
             : {}),
         }
       }
@@ -288,6 +293,9 @@ export default class PostSerializerService {
             ...(reviewDraft.taxonomyTermIds !== undefined
               ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
               : {}),
+            ...(reviewDraft.scheduledAt !== undefined
+              ? { scheduledAt: reviewDraft.scheduledAt }
+              : {}),
           }
         }
         // Then merge ai_review_draft on top
@@ -335,6 +343,9 @@ export default class PostSerializerService {
           ...(aiReviewDraft.taxonomyTermIds !== undefined
             ? { taxonomyTermIds: aiReviewDraft.taxonomyTermIds }
             : {}),
+          ...(aiReviewDraft.scheduledAt !== undefined
+            ? { scheduledAt: aiReviewDraft.scheduledAt }
+            : {}),
         }
       } else {
         // No ai_review_draft, fall back to review_draft if exists
@@ -379,6 +390,9 @@ export default class PostSerializerService {
               : {}),
             ...(reviewDraft.taxonomyTermIds !== undefined
               ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
+              : {}),
+            ...(reviewDraft.scheduledAt !== undefined
+              ? { scheduledAt: reviewDraft.scheduledAt }
               : {}),
           }
         }

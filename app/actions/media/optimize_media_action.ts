@@ -1,6 +1,6 @@
-import path from 'node:path'
 import db from '@adonisjs/lucid/services/db'
 import mediaService from '#services/media_service'
+import storageService from '#services/storage_service'
 import logActivityAction from '#actions/log_activity_action'
 
 export interface OptimizeMediaOptions {
@@ -17,30 +17,23 @@ export class OptimizeMediaAction {
     const mime = String(row.mime_type || '')
     const publicUrl: string = String(row.url)
     const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
-    
+
     if (!isImage) {
       throw new Error('Only images can be optimized')
     }
 
-    const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
-    
+    const absPath = await storageService.ensureLocalFile(publicUrl)
+
     const result = await mediaService.optimizeToWebp(absPath, publicUrl)
     if (!result) throw new Error('Unsupported image type for optimization')
 
     const metadata = (row.metadata || {}) as any
     if (Array.isArray(metadata.variants)) {
-      metadata.variants = await mediaService.optimizeVariantsToWebp(
-        metadata.variants,
-        path.join(process.cwd(), 'public')
-      )
+      metadata.variants = await mediaService.optimizeVariantsToWebp(metadata.variants)
     }
 
     if (metadata.darkSourceUrl) {
-      const darkAbsPath = path.join(
-        process.cwd(),
-        'public',
-        metadata.darkSourceUrl.replace(/^\//, '')
-      )
+      const darkAbsPath = await storageService.ensureLocalFile(metadata.darkSourceUrl)
       try {
         const darkOptimized = await mediaService.optimizeToWebp(darkAbsPath, metadata.darkSourceUrl)
         if (darkOptimized) {

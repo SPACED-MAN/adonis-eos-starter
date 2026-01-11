@@ -1,15 +1,32 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, Suspense, lazy } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { slugify, getModuleAnchors } from '~/utils/strings'
 import { useAnchorScroll } from '../hooks/useAnchorScroll'
+import { ModuleContext } from '../../components/ModuleContext'
 import {
-  InlineEditorProvider,
+  StaticInlineEditorProvider,
   useInlineEditor,
 } from '../../components/inline-edit/InlineEditorContext'
-import { InlineOverlay } from '../../components/inline-edit/InlineOverlay'
+import { useState } from 'react'
+
+function InlineEditorShellWrapper({ children, ...props }: any) {
+  const [Component, setComponent] = useState<any>(null)
+
+  useEffect(() => {
+    import('../../components/inline-edit/InlineEditorShell').then((m) =>
+      setComponent(() => m.default)
+    )
+  }, [])
+
+  if (!Component) {
+    return <StaticInlineEditorProvider {...props}>{children}</StaticInlineEditorProvider>
+  }
+
+  return <Component {...props}>{children}</Component>
+}
 
 interface PostPageProps {
   post: {
@@ -51,6 +68,7 @@ interface PostPageProps {
     canonical?: string
     alternates?: Array<{ locale: string; href: string }>
     robots?: string
+    lcpImageUrl?: string
     og?: { title?: string; description?: string; url?: string; type?: string }
     twitter?: { card?: string; title?: string; description?: string }
     jsonLd?: any
@@ -77,14 +95,16 @@ function getModuleComponent(type: string): any {
 /**
  * Live module list that responds to context changes (e.g. reordering)
  */
-function LiveModuleList({ postId }: { postId: string }) {
-  const { modules, enabled: isInlineEnabled } = useInlineEditor()
+function ModuleList({ postId, initialModules }: { postId: string; initialModules: any[] }) {
+  const editor = useInlineEditor()
+  const modules = editor?.modules || initialModules
+  const isInlineEnabled = editor?.enabled || false
 
   const anchors = useMemo(() => getModuleAnchors(modules), [modules])
 
   return (
     <main className="overflow-x-clip">
-      {modules.map((module) => {
+      {modules.map((module, index) => {
         const Component = getModuleComponent(module.type)
         if (!Component) return null
         const anchor = anchors.get(module.id)?.replace('#', '')
@@ -93,12 +113,20 @@ function LiveModuleList({ postId }: { postId: string }) {
             key={module.id}
             id={anchor}
             data-module-id={module.id}
-            data-inline-module={module.id}
-            data-inline-scope={module.scope || 'local'}
-            data-inline-global-slug={module.globalSlug || undefined}
-            data-inline-global-label={module.globalLabel || undefined}
+            {...(isInlineEnabled
+              ? {
+                'data-inline-module': module.id,
+                'data-inline-scope': module.scope || 'local',
+                'data-inline-global-slug': module.globalSlug || undefined,
+                'data-inline-global-label': module.globalLabel || undefined,
+              }
+              : {})}
           >
-            <Component {...module.props} __postId={postId} __moduleId={module.id} />
+            <Suspense fallback={<div className="min-h-[100px] flex items-center justify-center bg-backdrop-low/50 animate-pulse rounded-lg m-4" />}>
+              <ModuleContext.Provider value={{ isFirst: index === 0, index }}>
+                <Component {...module.props} __postId={postId} __moduleId={module.id} />
+              </ModuleContext.Provider>
+            </Suspense>
           </div>
         )
       })}
@@ -119,7 +147,7 @@ export default function PostTypeDefault({
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
   const isAuthenticated =
-    !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+    !!currentUser && ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
 
   const memoizedModules = useMemo(
     () =>
@@ -147,7 +175,7 @@ export default function PostTypeDefault({
   // Track A/B variation in Google Analytics dataLayer if available
   useEffect(() => {
     if (post.abVariation && typeof window !== 'undefined' && (window as any).dataLayer) {
-      ;(window as any).dataLayer.push({
+      ; (window as any).dataLayer.push({
         event: 'ab_variation_view',
         ab_variation: post.abVariation,
         ab_group_id: post.abGroupId || post.id,
@@ -163,11 +191,33 @@ export default function PostTypeDefault({
     siteSettings?.defaultMetaDescription ||
     null
 
+  const content = (
+    <>
+      <SiteHeader />
+      <ModuleList postId={post.id} initialModules={memoizedModules} />
+      <SiteFooter />
+    </>
+  )
+
+  const staticProvider = (
+    <StaticInlineEditorProvider
+      postId={post.id}
+      post={post}
+      translations={translations}
+      modules={memoizedModules}
+      availableModes={availableModes}
+      abVariations={abVariations}
+    >
+      {content}
+    </StaticInlineEditorProvider>
+  )
+
   return (
     <>
       <Head title={post.metaTitle || post.title}>
         {/* ... existing head content ... */}
         {seo?.canonical && <link rel="canonical" href={seo.canonical} />}
+        {seo?.lcpImageUrl && <link rel="preload" as="image" href={seo.lcpImageUrl} />}
         {seo?.alternates?.map((alt) => (
           <link key={alt.locale} rel="alternate" hrefLang={alt.locale} href={alt.href} />
         ))}
@@ -193,20 +243,20 @@ export default function PostTypeDefault({
         )}
       </Head>
 
-      <InlineEditorProvider
-        postId={post.id}
-        post={post}
-        translations={translations}
-        customFields={customFields}
-        abVariations={abVariations}
-        modules={memoizedModules}
-        availableModes={availableModes}
-      >
-        <SiteHeader />
-        <LiveModuleList postId={post.id} />
-        <SiteFooter />
-        {isAuthenticated && <InlineOverlay />}
-      </InlineEditorProvider>
+      {isAuthenticated ? (
+        <InlineEditorShellWrapper
+          postId={post.id}
+          post={post}
+          translations={translations}
+          modules={memoizedModules}
+          availableModes={availableModes}
+          abVariations={abVariations}
+        >
+          {content}
+        </InlineEditorShellWrapper>
+      ) : (
+        staticProvider
+      )}
     </>
   )
 }

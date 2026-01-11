@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { pickMediaVariantUrl, type MediaVariant } from '../lib/media'
+import { pickMediaVariant, type MediaVariant } from '../lib/media'
 import { useTheme } from './ThemeContext'
 
 export interface MediaObject {
@@ -8,6 +8,8 @@ export interface MediaObject {
     variants?: MediaVariant[]
     darkSourceUrl?: string | null
     playMode?: 'autoplay' | 'inline' | 'modal'
+    width?: number | null
+    height?: number | null
     [key: string]: any
   } | null
   mimeType?: string | null
@@ -16,6 +18,71 @@ export interface MediaObject {
   caption?: string | null
   description?: string | null
   [key: string]: any
+}
+
+/**
+ * Hook to seamlessly resolve a media asset (URL + dimensions + srcset) based on the current theme.
+ */
+export function useMediaAsset(
+  image: MediaObject | string | null | undefined,
+  variant?: string | null
+): { url: string | null; width: number | null; height: number | null; srcset?: string } {
+  const { isDark } = useTheme()
+
+  return useMemo(() => {
+    if (!image) return { url: null, width: null, height: null }
+
+    if (typeof image === 'string') {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(image)) {
+        return { url: null, width: null, height: null }
+      }
+      return { url: image, width: null, height: null }
+    }
+
+    const url = image.url || (image as any).baseUrl
+    if (!url) return { url: null, width: null, height: null }
+
+    const variants = (image.metadata?.variants || (image as any).variants || []) as MediaVariant[]
+
+    const picked = pickMediaVariant(url, variants, variant, {
+      darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
+      darkOptimizedUrl: image.metadata?.darkOptimizedUrl || (image as any).darkOptimizedUrl,
+      darkOptimizedWidth: image.metadata?.darkOptimizedWidth || (image as any).darkOptimizedWidth,
+      darkOptimizedHeight: image.metadata?.darkOptimizedHeight || (image as any).darkOptimizedHeight,
+      optimizedUrl:
+        image.optimizedUrl || image.metadata?.optimizedUrl || (image as any).optimizedUrl,
+      optimizedWidth: image.width || image.metadata?.width || (image as any).width,
+      optimizedHeight: image.height || image.metadata?.height || (image as any).height,
+      isDark,
+    })
+
+    // Generate srcset from available variants of the same theme
+    const themeVariants = variants.filter((v) => {
+      const isVarDark = String(v.name || '').endsWith('-dark')
+      return isDark ? isVarDark : !isVarDark
+    })
+
+    // Sort by width for srcset
+    const sorted = [...themeVariants].sort((a, b) => (a.width || 0) - (b.width || 0))
+    const srcset =
+      sorted.length > 0
+        ? sorted
+          .map((v) => {
+            const vUrl = v.optimizedUrl || v.url
+            return vUrl && v.width ? `${vUrl} ${v.width}w` : null
+          })
+          .filter(Boolean)
+          .join(', ')
+        : undefined
+
+    return {
+      url: picked.optimizedUrl || picked.url || null,
+      width: picked.width || null,
+      height: picked.height || null,
+      srcset,
+    }
+  }, [image, variant, isDark])
 }
 
 /**
@@ -30,43 +97,6 @@ export function useMediaUrl(
   image: MediaObject | string | null | undefined,
   variant?: string | null
 ): string | null {
-  const { isDark } = useTheme()
-
-  return useMemo(() => {
-    if (!image) return null
-
-    let resolved: any = null
-
-    if (typeof image === 'string') {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (uuidRegex.test(image)) {
-        // If it's a raw UUID string, it means it's not resolved yet.
-        // We return null so the renderer doesn't try to use it as a URL.
-        return null
-      }
-      resolved = image
-    } else if (typeof image === 'object' && image !== null) {
-      const url = image.url || (image as any).baseUrl
-      if (url) {
-        resolved = pickMediaVariantUrl(
-          url,
-          image.metadata?.variants || (image as any).variants || [],
-          variant,
-          {
-            darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
-            darkOptimizedUrl: image.metadata?.darkOptimizedUrl || (image as any).darkOptimizedUrl,
-            optimizedUrl: image.optimizedUrl || image.metadata?.optimizedUrl || (image as any).optimizedUrl,
-            isDark,
-          }
-        )
-      }
-    }
-
-    if (resolved && typeof resolved !== 'string') {
-      console.warn('[useMediaUrl] resolved value is not a string:', resolved, { image, variant })
-      return null
-    }
-
-    return resolved
-  }, [image, variant, isDark])
+  const asset = useMediaAsset(image, variant)
+  return asset.url
 }

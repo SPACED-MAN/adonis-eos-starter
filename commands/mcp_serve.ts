@@ -18,6 +18,7 @@ import CreatePost from '#actions/posts/create_post'
 import AddModuleToPost from '#actions/posts/add_module_to_post'
 import UpdatePostModule from '#actions/posts/update_post_module'
 import RevisionService from '#services/revision_service'
+import storageService from '#services/storage_service'
 import PostSerializerService from '#services/post_serializer_service'
 import CreateTranslation from '#actions/translations/create_translation'
 import previewService from '#services/preview_service'
@@ -2389,7 +2390,7 @@ function createServerInstance() {
           if (u.startsWith('http')) {
             return true
           }
-          const absPath = path.join(process.cwd(), 'public', u.replace(/^\//, ''))
+          const absPath = storageService.getLocalPath(u)
           try {
             await fs.access(absPath)
             return true

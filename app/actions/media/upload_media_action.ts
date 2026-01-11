@@ -71,7 +71,7 @@ export class UploadMediaAction {
       throw new Error('Invalid file data')
     }
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+    const uploadsDir = storageService.getLocalPath('uploads')
     await fs.promises.mkdir(uploadsDir, { recursive: true })
     const ext = (path.extname(clientName) || '').toLowerCase()
 

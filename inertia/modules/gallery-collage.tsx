@@ -163,6 +163,7 @@ export default function GalleryCollage({
 											<MediaRenderer
 												image={media}
 												alt={media.altText || caption || 'Collage Image'}
+												size={item.size}
 												objectFit="cover"
 												className="w-full h-full object-cover block transition-all duration-700"
 											/>

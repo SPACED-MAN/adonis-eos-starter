@@ -1,19 +1,7 @@
 import { useEffect } from 'react'
 import { router } from '@inertiajs/react'
 import { useConfirm } from '../components/ConfirmDialogProvider'
-
-/**
- * Global flag to skip the dirty check when we manually re-trigger a visit
- * after user confirmation.
- */
-let isBypassingGuard = false
-
-/**
- * Manually bypass the unsaved changes guard for the next navigation/reload.
- */
-export function bypassUnsavedChanges(bypass: boolean = true) {
-  isBypassingGuard = bypass
-}
+import { getIsBypassingGuard, bypassUnsavedChanges } from './unsavedChangesState'
 
 /**
  * Hook to prevent navigation/refresh when there are unsaved changes.
@@ -26,14 +14,14 @@ export function useUnsavedChanges(isDirty: boolean) {
     if (typeof window === 'undefined') return
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && !isBypassingGuard) {
+      if (isDirty && !getIsBypassingGuard()) {
         e.preventDefault()
         e.returnValue = ''
       }
     }
 
     const stopInertiaListener = router.on('before', async (event) => {
-      if (isDirty && !isBypassingGuard) {
+      if (isDirty && !getIsBypassingGuard()) {
         // Prevent immediate navigation
         event.preventDefault()
 
@@ -46,13 +34,13 @@ export function useUnsavedChanges(isDirty: boolean) {
         })
 
         if (confirmed) {
-          isBypassingGuard = true
+          bypassUnsavedChanges(true)
           // Re-trigger the original visit
           router.visit(event.detail.visit.url, event.detail.visit)
           // Reset bypass flag after a short delay or after the visit finishes
           // Usually, the page will unmount, but if it's a persistent layout, we need to reset.
           setTimeout(() => {
-            isBypassingGuard = false
+            bypassUnsavedChanges(false)
           }, 100)
         }
       }
@@ -65,5 +53,3 @@ export function useUnsavedChanges(isDirty: boolean) {
     }
   }, [isDirty, confirm])
 }
-
-

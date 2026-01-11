@@ -522,6 +522,13 @@ export default class PostsViewController extends BasePostsController {
           jsonldOverrides: post.jsonldOverrides,
           featuredMediaId: (post as any).featuredMediaId || (post as any).featured_media_id || null,
           featuredMediaAsset, // Pass the resolved asset object
+          noindex: !!post.noindex,
+          nofollow: !!post.nofollow,
+          socialTitle: post.socialTitle,
+          socialDescription: post.socialDescription,
+          socialImageId: post.socialImageId,
+          scheduledAt: post.scheduledAt ? post.scheduledAt.toISO() : null,
+          orderIndex: post.orderIndex,
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,
@@ -560,7 +567,7 @@ export default class PostsViewController extends BasePostsController {
    * GET /preview/:id
    * Preview a post using a signed token
    */
-  async preview({ params, request, response, inertia }: HttpContext) {
+  async preview({ params, request, response, inertia, auth }: HttpContext) {
     const { id } = params
     const token = String(request.input('token', ''))
     const signature = String(request.input('sig', ''))
@@ -585,12 +592,20 @@ export default class PostsViewController extends BasePostsController {
     const host = postRenderingService.getHostFromRequest(request)
     const viewParam = String(request.input('view', '')).toLowerCase()
 
+    // Get user role and permissions for mode calculation
+    const user = auth.use('web').user
+    const roleName = (user as any)?.role
+    const roleDefinition = roleName ? roleRegistry.get(roleName) : null
+    const permissions = roleDefinition?.permissions || []
+
     const pageData = await postRenderingService.buildPageData(post, {
       protocol,
       host,
       wantReview: true, // Always show latest draft version in preview
       draftMode:
         viewParam === 'ai-review' ? 'ai-review' : viewParam === 'review' ? 'review' : 'auto',
+      role: roleName,
+      permissions,
     })
 
     // Get post-type-specific additional props (delegated to service)
@@ -605,6 +620,7 @@ export default class PostsViewController extends BasePostsController {
       modules: pageData.modules,
       breadcrumbTrail: pageData.breadcrumbTrail,
       isPreview: true,
+      availableModes: pageData.availableModes,
       ...additionalProps,
     })
   }
@@ -813,23 +829,26 @@ export default class PostsViewController extends BasePostsController {
         }
       }
 
-      const protocol = postRenderingService.getProtocolFromRequest(request)
-      const host = postRenderingService.getHostFromRequest(request)
+    const protocol = postRenderingService.getProtocolFromRequest(request)
+    const host = postRenderingService.getHostFromRequest(request)
 
-      const pageData = await postRenderingService.buildPageData(post, {
-        protocol,
-        host,
-        wantReview,
-        draftMode:
-          viewParam === 'ai-review' ? 'ai-review' : viewParam === 'review' ? 'review' : 'auto',
-      })
+    // Get user role and permissions for mode calculation
+    const user = auth.use('web').user
+    const roleName = (user as any)?.role
+    const roleDefinition = roleName ? roleRegistry.get(roleName) : null
+    const permissions = roleDefinition?.permissions || []
+
+    const pageData = await postRenderingService.buildPageData(post, {
+      protocol,
+      host,
+      wantReview,
+      draftMode:
+        viewParam === 'ai-review' ? 'ai-review' : viewParam === 'review' ? 'review' : 'auto',
+      role: roleName,
+      permissions,
+    })
 
       // Get post-type-specific additional props (delegated to service)
-      const user = auth.use('web').user
-      const role = (user as any)?.role
-      const roleDefinition = role ? roleRegistry.get(role) : null
-      const permissions = roleDefinition?.permissions || []
-
       const additionalProps = await postTypeViewService.getAdditionalProps(post, { permissions })
 
       // Load variations if user is authenticated and A/B testing is enabled
@@ -886,6 +905,7 @@ export default class PostsViewController extends BasePostsController {
         inertiaOverride: overrideComponent ? { key: `${post.type}:${post.slug}` } : null,
         abVariations,
         translations,
+        availableModes: pageData.availableModes,
         ...additionalProps,
       })
     } catch (error) {

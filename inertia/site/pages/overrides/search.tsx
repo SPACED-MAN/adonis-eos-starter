@@ -125,8 +125,8 @@ export default function SearchPage(props: {
                             </p>
                           )}
                         </div>
-                        <div className="shrink-0 text-[11px] text-neutral-low whitespace-nowrap">
-                          Updated {new Date(r.updatedAt).toLocaleDateString()}
+                        <div className="shrink-0 text-[11px] text-neutral-low whitespace-nowrap" suppressHydrationWarning>
+                          Updated {new Date(r.updatedAt).toLocaleDateString('en-US')}
                         </div>
                       </div>
                     </li>

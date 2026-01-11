@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import db from '@adonisjs/lucid/services/db'
 import mediaService from '#services/media_service'
+import storageService from '#services/storage_service'
 import logActivityAction from '#actions/log_activity_action'
 
 export interface RenameMediaOptions {
@@ -22,9 +23,9 @@ export class RenameMediaAction {
     if (!row) throw new Error('Media not found')
 
     const oldUrl: string = String(row.url)
-    const oldPath = path.join(process.cwd(), 'public', oldUrl.replace(/^\//, ''))
+    const oldPath = storageService.getLocalPath(oldUrl)
     const parsed = path.parse(oldPath)
-    
+
     let base = newName
     let ext = parsed.ext
     const provided = path.parse(newName)
@@ -32,7 +33,7 @@ export class RenameMediaAction {
       base = provided.name
       ext = provided.ext.startsWith('.') ? provided.ext : `.${provided.ext}`
     }
-    
+
     base = base
       .toLowerCase()
       .replace(/[^a-z0-9._-]+/g, '-')
@@ -61,25 +62,26 @@ export class RenameMediaAction {
 
     let metadata = row.metadata || {}
     if (metadata && (metadata as any).variants && Array.isArray((metadata as any).variants)) {
-      ;(metadata as any).variants = (metadata as any).variants.map((v: any) => {
+      ; (metadata as any).variants = (metadata as any).variants.map((v: any) => {
         const found = renamedVariants.find((rv) => rv.oldUrl === v.url)
         if (found) {
           return { ...v, url: found.newUrl }
         }
-        if (typeof v.url === 'string' && v.url.startsWith(path.posix.dirname(oldUrl))) {
-          const trailing = v.url.substring(path.posix.dirname(oldUrl).length + 1)
+        const relDir = storageService.getRelativeDir(oldUrl)
+        if (typeof v.url === 'string' && v.url.startsWith(relDir)) {
+          const trailing = v.url.substring(relDir.length + 1)
           if (trailing.startsWith(`${parsed.name}.`)) {
             const variantName = trailing.slice(parsed.name.length + 1)
             return {
               ...v,
-              url: path.posix.join(path.posix.dirname(oldUrl), `${newBase}.${variantName}`),
+              url: path.posix.join(relDir, `${newBase}.${variantName}`),
             }
           }
         }
         return v
       })
     }
-    
+
     await db
       .from('media_assets')
       .where('id', id)
@@ -92,7 +94,7 @@ export class RenameMediaAction {
 
     const oldUrlEsc = oldUrl.replace(/'/g, "''")
     const newUrlEsc = newUrl.replace(/'/g, "''")
-    
+
     // Update references in JSONB fields
     await db.raw(
       `UPDATE module_instances SET props = REPLACE(props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE props::text LIKE '%${oldUrlEsc}%'`

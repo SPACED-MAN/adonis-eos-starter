@@ -16,9 +16,9 @@ export const createPostValidator = vine.compile(
     slug: vine
       .string()
       .trim()
-      .minLength(1)
+      .minLength(0)
       .maxLength(255)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      .regex(/^[a-z0-9]*(?:-[a-z0-9]+)*$/),
     title: vine.string().trim().minLength(1).maxLength(500),
     status: vine
       .enum(['draft', 'review', 'scheduled', 'published', 'private', 'protected', 'archived'])
@@ -44,9 +44,10 @@ export const updatePostValidator = vine.compile(
     slug: vine
       .string()
       .trim()
-      .minLength(1)
+      .minLength(0)
       .maxLength(255)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .regex(/^[a-z0-9]*(?:-[a-z0-9]+)*$/)
+      .nullable()
       .optional(),
     title: vine.string().trim().minLength(1).maxLength(500).optional(),
     status: vine
@@ -202,9 +203,10 @@ export const createTranslationValidator = vine.compile(
     slug: vine
       .string()
       .trim()
-      .minLength(1)
+      .minLength(0)
       .maxLength(255)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .regex(/^[a-z0-9]*(?:-[a-z0-9]+)*$/)
+      .nullable()
       .optional(),
     title: vine.string().trim().minLength(1).maxLength(500).optional(),
     metaTitle: vine.string().trim().maxLength(255).nullable().optional(),

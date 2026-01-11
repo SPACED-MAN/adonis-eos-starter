@@ -12,7 +12,7 @@ export default class BulkPostsAction {
   static async handle(input: {
     action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks'
     ids: string[]
-    role?: 'admin' | 'editor' | 'translator'
+    role?: 'admin' | 'editor_admin' | 'editor' | 'translator'
     userId?: number
   }): Promise<{ message: string; count: number }> {
     const { action, ids, role, userId } = input

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faWrench,
@@ -10,7 +10,7 @@ import {
   faPencil,
 } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
-import { useAdminPath, buildAdminPath } from '~/utils/adminPath'
+import { buildAdminPath } from '~/utils/adminPath'
 import { DevTools } from '../../admin/components/DevTools'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
@@ -31,7 +31,9 @@ import {
   SelectValue,
 } from '~/components/ui/select'
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '~/components/ui/tooltip'
+import { ConfirmDialogProvider } from '~/components/ConfirmDialogProvider'
+import '../lib/admin-icons'
 
 type InlineBridge = {
   enabled: boolean
@@ -39,7 +41,7 @@ type InlineBridge = {
   mode: 'source' | 'review' | 'ai-review'
   toggle: () => void
   setMode: (m: 'source' | 'review' | 'ai-review') => void
-  dirty: boolean
+  isDirty: boolean
   saveAll: () => Promise<void>
   saveForReview: () => Promise<void>
   availableModes: { hasSource: boolean; hasReview: boolean; hasAiReview: boolean }
@@ -63,7 +65,7 @@ type InlineBridge = {
   translations?: any[]
 }
 
-export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
+export default function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   // Use buildAdminPath directly because SiteAdminBar is rendered outside <App /> context in site/app.tsx
   const prefix = initialProps?.adminPathPrefix || 'admin'
   const adminPath = (path?: string) => buildAdminPath(prefix, path)
@@ -74,7 +76,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     mode: 'source',
     toggle: () => { },
     setMode: () => { },
-    dirty: false,
+    isDirty: false,
     saveAll: async () => { },
     saveForReview: async () => { },
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
@@ -90,6 +92,51 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     updateModuleLabel: () => { },
     duplicateModule: () => { },
   })
+
+  const handleSaveAll = useCallback(async () => {
+    const bridge = (window as any).__inlineBridge
+    if (bridge?.saveAll) {
+      await bridge.saveAll()
+    } else {
+      await inline.saveAll()
+    }
+  }, [inline.saveAll])
+
+  const handleSaveForReview = useCallback(async () => {
+    const bridge = (window as any).__inlineBridge
+    if (bridge?.saveForReview) {
+      await bridge.saveForReview()
+    } else {
+      await inline.saveForReview()
+    }
+  }, [inline.saveForReview])
+
+  const handleSetMode = useCallback((m: 'source' | 'review' | 'ai-review') => {
+    const bridge = (window as any).__inlineBridge
+    if (bridge?.setMode) {
+      bridge.setMode(m)
+    } else {
+      inline.setMode(m)
+    }
+  }, [inline.setMode])
+
+  const handleToggle = useCallback(() => {
+    const bridge = (window as any).__inlineBridge
+    if (bridge?.toggle) {
+      bridge.toggle()
+    } else {
+      inline.toggle()
+    }
+  }, [inline.toggle])
+
+  const handleToggleShowDiffs = useCallback(() => {
+    const bridge = (window as any).__inlineBridge
+    if (bridge?.toggleShowDiffs) {
+      bridge.toggleShowDiffs()
+    } else {
+      inline.toggleShowDiffs()
+    }
+  }, [inline.toggleShowDiffs])
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
@@ -98,16 +145,28 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   }, [])
   useEffect(() => {
     const handler = (e: any) => {
-      if (e?.detail) setInline(e.detail as InlineBridge)
+      if (e?.detail) {
+        const detail = e.detail
+        // Handle both old 'dirty' and new 'isDirty' naming
+        const normalized = {
+          ...detail,
+          isDirty: detail.isDirty ?? detail.dirty ?? false
+        }
+        setInline(normalized as InlineBridge)
+      }
     }
     if (typeof window !== 'undefined' && (window as any).__inlineBridge) {
-      setInline((window as any).__inlineBridge as InlineBridge)
+      const bridge = (window as any).__inlineBridge
+      setInline({
+        ...bridge,
+        isDirty: bridge.isDirty ?? bridge.dirty ?? false
+      } as InlineBridge)
     }
     window.addEventListener('inline:state', handler as EventListener)
     return () => window.removeEventListener('inline:state', handler as EventListener)
   }, [])
 
-  const isSaveEnabled = inline.dirty
+  const isSaveEnabled = inline.isDirty
   const isSaving = inline.isSaving
 
   const getProps = () => {
@@ -121,7 +180,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     if (fromInertia) return fromInertia
 
     // Try to get from router directly if window.Inertia isn't set yet
-    if (router?.page?.props) return router.page.props
+    if ((router as any)?.page?.props) return (router as any).page.props
 
     const fromHistory = (window.history && (window.history.state as any)?.page?.props) || null
     return fromHistory || initialProps || {}
@@ -152,7 +211,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   const isAdmin = !!(currentUser && currentUser.role === 'admin')
   const permissions = (props as any)?.permissions || []
   const isAuthenticated =
-    !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+    !!currentUser &&
+    ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(false)
@@ -324,397 +384,403 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   if (!mounted) return null
 
   return (
-    <>
-      <FeedbackMarkers
-        feedbacks={feedbacks}
-        onMarkerClick={(f) => {
-          setSelectedFeedbackId(f.id)
-          setFeedbackOpen(true)
-        }}
-        visible={true}
-        activeId={selectedFeedbackId}
-      />
-      {/* Unified bottom bar */}
-      <div
-        className="fixed z-50 flex items-center gap-2 pointer-events-auto"
-        style={{ bottom: '16px', right: '16px' }}
-      >
-        {/* Locale Dropdown */}
-        {translations.length > 1 && (
-          <Select
-            value={post?.id}
-            onValueChange={(targetId) => {
-              if (targetId === post?.id) return
-              const target = translations.find((t: any) => t.id === targetId)
-              if (target?.path) {
-                router.visit(target.path)
-              }
-            }}
-          >
-            <SelectTrigger className="h-9 w-20 gap-2 px-2 border-line-medium bg-backdrop-high shadow text-xs font-bold text-neutral-high min-w-[80px]">
-              <div className="flex items-center gap-1.5">
-                <FontAwesomeIcon icon={faGlobe} size="xs" className="text-neutral-medium size-3" />
-                <SelectValue placeholder={(post?.locale || 'en').toUpperCase()}>
-                  {(post?.locale || 'en').toUpperCase()}
-                </SelectValue>
-              </div>
-            </SelectTrigger>
-            <SelectContent align="end">
-              {translations.map((t: any) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.locale.toUpperCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {/* Variations */}
-        {inline.abVariations.length > 1 && (
-          <div className="h-9 inline-flex overflow-hidden rounded-md border bg-backdrop-high shadow bg-backdrop-medium/20">
-            {inline.abVariations.map((v) => (
-              <Tooltip key={v.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
-                      ? 'bg-standout-high text-on-high shadow-inner'
-                      : 'text-neutral-high hover:bg-backdrop-medium'
-                      } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
-                    onClick={() => {
-                      if (v.id === post?.id) return
-                      const url = new URL(window.location.href)
-                      url.searchParams.set('variation_id', v.id)
-                      router.visit(url.toString())
-                    }}
-                  >
-                    Var {v.variation}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Switch to Variation {v.variation}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center gap-4">
-          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
-            {inline.availableModes.hasSource && (
-              <button
-                type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'source' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                onClick={() => inline.setMode('source')}
-              >
-                Source
-              </button>
-            )}
-            {inline.availableModes.hasReview && (
-              <button
-                type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                onClick={() => inline.setMode('review')}
-              >
-                Review
-              </button>
-            )}
-            {inline.availableModes.hasAiReview && (
-              <button
-                type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'ai-review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                onClick={() => inline.setMode('ai-review')}
-              >
-                AI Review
-              </button>
-            )}
-          </div>
-
-          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex">
-                  <button
-                    type="button"
-                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'} ${inline.enabled && isSaveEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                      if (inline.enabled && isSaveEnabled) return
-                      inline.toggle()
-                    }}
-                    aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
-                  >
-                    <FontAwesomeIcon icon={faPencil} />
-                  </button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {inline.enabled && isSaveEnabled
-                    ? 'Save changes to disable editing'
-                    : inline.enabled
-                      ? 'Edits On'
-                      : 'Edits Off'}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                    onClick={() => inline.toggleShowDiffs()}
-                    aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
-                  >
-                    <FontAwesomeIcon icon={faHighlighter} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Highlight changes ({inline.mode === 'review' ? 'vs Source' : 'vs Review'})</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {inline.enabled && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    aria-label="Outline"
-                    onClick={() => setOutlineOpen(true)}
-                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                  >
-                    <FontAwesomeIcon icon={faListUl} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Page Outline</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  aria-label="Feedback"
-                  onClick={() => setFeedbackOpen(true)}
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                >
-                  <FontAwesomeIcon icon={faMessage} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Page Feedback</p>
-              </TooltipContent>
-            </Tooltip>
-            <button
-              aria-label="Admin tools"
-              onClick={() => setOpen((v) => !v)}
-              className={`px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium ${permissions.includes('agents.global') ? 'border-r border-line-medium' : ''}`}
-            >
-              <FontAwesomeIcon icon={faWrench} />
-            </button>
-            <GlobalAgentButton variant="ghost" permissions={permissions} />
-          </div>
-        </div>
-        {inline.enabled && inline.canEdit && (isSaveEnabled || isSaving) && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={isSaving}
-              className={`px-3 py-2 text-xs font-medium rounded-md border transition-all flex items-center gap-2 bg-standout-high text-on-high border-line-medium shadow-md hover:bg-standout-high/90 ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
-              onClick={() => inline.saveAll()}
-            >
-              {isSaving ? (
-                <>
-                  <FontAwesomeIcon icon="spinner" className="animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </button>
-            {inline.mode === 'source' && !inline.availableModes.hasReview && (
-              <button
-                type="button"
-                disabled={isSaving}
-                className={`px-3 py-2 text-xs font-medium rounded-md border transition-all bg-backdrop-high text-neutral-high border-line-medium hover:bg-backdrop-medium shadow-md ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
-                onClick={() => inline.saveForReview()}
-              >
-                {isSaving ? 'Saving...' : 'Save for Review'}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Panel */}
-      {open && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '72px',
-            right: '16px',
-            zIndex: 9999,
-            minWidth: isAdmin ? '600px' : '280px',
-            maxWidth: 'calc(100vw - 32px)',
+    <TooltipProvider>
+      <ConfirmDialogProvider>
+        <FeedbackMarkers
+          feedbacks={feedbacks}
+          onMarkerClick={(f) => {
+            setSelectedFeedbackId(f.id)
+            setFeedbackOpen(true)
           }}
-          className="rounded-lg border border-line-low bg-backdrop-input text-neutral-high shadow-lg overflow-hidden flex flex-col max-h-[80vh]"
+          visible={true}
+          activeId={selectedFeedbackId}
+        />
+        {/* Unified bottom bar */}
+        <div
+          className="fixed z-50 flex items-center gap-2 pointer-events-auto"
+          style={{ bottom: '16px', right: '16px' }}
         >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-line-low bg-backdrop-high">
-            <div className="text-sm font-semibold">Admin</div>
-            <button
-              aria-label="Close"
-              className="text-neutral-medium hover:text-neutral-high p-1"
-              onClick={() => setOpen(false)}
+          {/* ... existing content ... */}
+          {/* Locale Dropdown */}
+          {translations.length > 1 && (
+            <Select
+              value={post?.id}
+              onValueChange={(targetId) => {
+                if (targetId === post?.id) return
+                const target = translations.find((t: any) => t.id === targetId)
+                if (target?.path) {
+                  router.visit(target.path)
+                }
+              }}
             >
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <div className="p-3 space-y-3 text-sm border-b border-line-low">
-              <div className="flex items-center justify-between">
-                <span>Go to Dashboard</span>
-                <a
-                  href={adminPath()}
-                  className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
-                >
-                  Open
-                </a>
-              </div>
-              {post?.id && (
-                <div className="flex items-center justify-between">
-                  <span>Edit this page</span>
-                  <a
-                    href={adminPath(`posts/${post.id}/edit`)}
-                    className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
-                  >
-                    Edit
-                  </a>
+              <SelectTrigger
+                aria-label="Change language"
+                className="h-9 w-20 gap-2 px-2 border-line-medium bg-backdrop-high shadow text-xs font-bold text-neutral-high min-w-[80px]"
+              >
+                <div className="flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faGlobe} size="xs" className="text-neutral-medium size-3" />
+                  <SelectValue placeholder={(post?.locale || 'en').toUpperCase()}>
+                    {(post?.locale || 'en').toUpperCase()}
+                  </SelectValue>
                 </div>
+              </SelectTrigger>
+              <SelectContent align="end">
+                {translations.map((t: any) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.locale.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Variations */}
+          {inline.abVariations.length > 1 && (
+            <div className="h-9 inline-flex overflow-hidden rounded-md border bg-backdrop-high shadow bg-backdrop-medium/20">
+              {inline.abVariations.map((v) => (
+                <Tooltip key={v.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
+                        ? 'bg-standout-high text-on-high shadow-inner'
+                        : 'text-neutral-high hover:bg-backdrop-medium'
+                        } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
+                      onClick={() => {
+                        if (v.id === post?.id) return
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('variation_id', v.id)
+                        router.visit(url.toString())
+                      }}
+                    >
+                      Var {v.variation}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Switch to Variation {v.variation}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-4">
+            <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+              {inline.availableModes?.hasSource && (
+                <button
+                  type="button"
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'source' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  onClick={() => handleSetMode('source')}
+                >
+                  Source
+                </button>
+              )}
+              {inline.availableModes?.hasReview && (
+                <button
+                  type="button"
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  onClick={() => handleSetMode('review')}
+                >
+                  Review
+                </button>
+              )}
+              {inline.availableModes?.hasAiReview && (
+                <button
+                  type="button"
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'ai-review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  onClick={() => handleSetMode('ai-review')}
+                >
+                  AI Review
+                </button>
               )}
             </div>
 
-            {isAdmin && devToolsData && (
-              <div className="bg-backdrop-high">
-                <DevTools data={devToolsData} />
-              </div>
-            )}
+            <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex">
+                    <button
+                      type="button"
+                      className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'} ${inline.enabled && isSaveEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => {
+                        if (inline.enabled && isSaveEnabled) return
+                        inline.toggle()
+                      }}
+                      aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
+                    >
+                      <FontAwesomeIcon icon={faPencil} />
+                    </button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {inline.enabled && isSaveEnabled
+                      ? 'Save changes to disable editing'
+                      : inline.enabled
+                        ? 'Edits On'
+                        : 'Edits Off'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                      onClick={() => inline.toggleShowDiffs()}
+                      aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
+                    >
+                      <FontAwesomeIcon icon={faHighlighter} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Highlight changes ({inline.mode === 'review' ? 'vs Source' : 'vs Review'})</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {inline.enabled && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      aria-label="Outline"
+                      onClick={() => setOutlineOpen(true)}
+                      className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                    >
+                      <FontAwesomeIcon icon={faListUl} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Page Outline</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label="Feedback"
+                    onClick={() => setFeedbackOpen(true)}
+                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  >
+                    <FontAwesomeIcon icon={faMessage} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Page Feedback</p>
+                </TooltipContent>
+              </Tooltip>
+              <button
+                aria-label="Admin tools"
+                onClick={() => setOpen((v) => !v)}
+                className={`px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium ${permissions.includes('agents.global') ? 'border-r border-line-medium' : ''}`}
+              >
+                <FontAwesomeIcon icon={faWrench} />
+              </button>
+              <GlobalAgentButton variant="ghost" permissions={permissions} />
+            </div>
           </div>
+          {inline.enabled && inline.canEdit && (isSaveEnabled || isSaving) && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isSaving}
+                className={`px-3 py-2 text-xs font-medium rounded-md border transition-all flex items-center gap-2 bg-standout-high text-on-high border-line-medium shadow-md hover:bg-standout-high/90 ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
+                onClick={handleSaveAll}
+              >
+                {isSaving ? (
+                  <>
+                    <FontAwesomeIcon icon="spinner" className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+              {inline.mode === 'source' && !inline.availableModes?.hasReview && (
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  className={`px-3 py-2 text-xs font-medium rounded-md border transition-all bg-backdrop-high text-neutral-high border-line-medium hover:bg-backdrop-medium shadow-md ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
+                  onClick={handleSaveForReview}
+                >
+                  {isSaving ? 'Saving...' : 'Save for Review'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Context Menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-[100] bg-backdrop-high border border-line-medium shadow-xl rounded-lg overflow-hidden py-1 min-w-[160px]"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button
-            onClick={() => {
-              setFeedbackOpen(true)
-              // Don't clear contextMenu here, clear it when the dialog closes
+        {/* Panel */}
+        {open && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '72px',
+              right: '16px',
+              zIndex: 9999,
+              minWidth: isAdmin ? '600px' : '280px',
+              maxWidth: 'calc(100vw - 32px)',
             }}
-            className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-backdrop-medium text-neutral-high flex items-center gap-2 uppercase tracking-wider"
+            className="rounded-lg border border-line-low bg-backdrop-input text-neutral-high shadow-lg overflow-hidden flex flex-col max-h-[80vh]"
           >
-            <FontAwesomeIcon icon={faMessage} className="text-standout-high" />
-            Add Feedback here
-          </button>
-        </div>
-      )}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-line-low bg-backdrop-high">
+              <div className="text-sm font-semibold">Admin</div>
+              <button
+                aria-label="Close"
+                className="text-neutral-medium hover:text-neutral-high p-1"
+                onClick={() => setOpen(false)}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
 
-      {/* Feedback Sidebar/Panel */}
-      <Sheet
-        open={feedbackOpen}
-        onOpenChange={(v) => {
-          setFeedbackOpen(v)
-          if (!v) {
-            setContextMenu(null)
-            setSelectedFeedbackId(null)
-            fetchFeedbacks()
-          }
-        }}
-        modal={false}
-      >
-        <SheetContent
-          hideOverlay
-          side="right"
-          className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Feedback</SheetTitle>
-            <SheetDescription>View and manage page feedback</SheetDescription>
-          </SheetHeader>
-          <FeedbackPanel
-            postId={post?.id}
-            mode={inline.mode === 'source' ? 'approved' : inline.mode}
-            initialContext={
-              contextMenu
-                ? {
-                  selector: contextMenu.selector,
-                  xPercent: contextMenu.xPercent,
-                  yPercent: contextMenu.yPercent,
-                }
-                : null
-            }
-            highlightId={selectedFeedbackId}
-            onSelect={(id) => setSelectedFeedbackId(id)}
-            onClose={() => {
-              setFeedbackOpen(false)
+            <div className="flex-1 overflow-auto">
+              <div className="p-3 space-y-3 text-sm border-b border-line-low">
+                <div className="flex items-center justify-between">
+                  <span>Go to Dashboard</span>
+                  <a
+                    href={adminPath()}
+                    className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                  >
+                    Open
+                  </a>
+                </div>
+                {post?.id && (
+                  <div className="flex items-center justify-between">
+                    <span>Edit this page</span>
+                    <a
+                      href={adminPath(`posts/${post.id}/edit`)}
+                      className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                    >
+                      Edit
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {isAdmin && devToolsData && (
+                <div className="bg-backdrop-high">
+                  <DevTools data={devToolsData} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Context Menu */}
+        {contextMenu && (
+          <div
+            className="fixed z-[100] bg-backdrop-high border border-line-medium shadow-xl rounded-lg overflow-hidden py-1 min-w-[160px]"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <button
+              onClick={() => {
+                setFeedbackOpen(true)
+                // Don't clear contextMenu here, clear it when the dialog closes
+              }}
+              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-backdrop-medium text-neutral-high flex items-center gap-2 uppercase tracking-wider"
+            >
+              <FontAwesomeIcon icon={faMessage} className="text-standout-high" />
+              Add Feedback here
+            </button>
+          </div>
+        )}
+
+        {/* Feedback Sidebar/Panel */}
+        <Sheet
+          open={feedbackOpen}
+          onOpenChange={(v) => {
+            setFeedbackOpen(v)
+            if (!v) {
               setContextMenu(null)
               setSelectedFeedbackId(null)
-            }}
-            onJumpToSpot={(ctx, fbId) => {
-              let targetCtx = ctx
-              if (typeof targetCtx === 'string') {
-                try {
-                  targetCtx = JSON.parse(targetCtx)
-                } catch (e) {}
-              }
-              if (targetCtx.selector) {
-                const el = document.querySelector(targetCtx.selector)
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  el.classList.add('ring-2', 'ring-standout-high', 'ring-offset-2')
-                  setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-standout-high', 'ring-offset-2')
-                  }, 3000)
-                }
-              }
-              if (fbId) setSelectedFeedbackId(fbId)
-              // Don't close the sheet when jumping to spot, so the user can still see other feedback
-            }}
-          />
-        </SheetContent>
-      </Sheet>
-
-      {/* Outline Sidebar/Panel */}
-      <Sheet
-        open={outlineOpen}
-        onOpenChange={(v) => setOutlineOpen(v)}
-        modal={false}
-      >
-        <SheetContent
-          hideOverlay
-          side="right"
-          className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
+              fetchFeedbacks()
+            }
+          }}
+          modal={false}
         >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Page Outline</SheetTitle>
-            <SheetDescription>View and reorder page modules</SheetDescription>
-          </SheetHeader>
-          <ModuleOutlinePanel
-            modules={inline.modules}
-            getValue={inline.getValue}
-            postType={post?.type}
-            postId={post?.id}
-            onReorder={(newModules) => inline.reorderModules(newModules)}
-            onAddModule={(payload) => inline.addModule(payload)}
-            onRemoveModule={(id) => inline.removeModule(id)}
-            onUpdateLabel={(id, label) => inline.updateModuleLabel(id, label)}
-            onDuplicateModule={(id) => inline.duplicateModule(id)}
-            onClose={() => setOutlineOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
-    </>
+          <SheetContent
+            hideOverlay
+            side="right"
+            className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Feedback</SheetTitle>
+              <SheetDescription>View and manage page feedback</SheetDescription>
+            </SheetHeader>
+            <FeedbackPanel
+              postId={post?.id}
+              mode={inline.mode === 'source' ? 'approved' : inline.mode}
+              initialContext={
+                contextMenu
+                  ? {
+                    selector: contextMenu.selector,
+                    xPercent: contextMenu.xPercent,
+                    yPercent: contextMenu.yPercent,
+                  }
+                  : null
+              }
+              highlightId={selectedFeedbackId}
+              onSelect={(id) => setSelectedFeedbackId(id)}
+              onClose={() => {
+                setFeedbackOpen(false)
+                setContextMenu(null)
+                setSelectedFeedbackId(null)
+              }}
+              onJumpToSpot={(ctx, fbId) => {
+                let targetCtx = ctx
+                if (typeof targetCtx === 'string') {
+                  try {
+                    targetCtx = JSON.parse(targetCtx)
+                  } catch (e) { }
+                }
+                if (targetCtx.selector) {
+                  const el = document.querySelector(targetCtx.selector)
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    el.classList.add('ring-2', 'ring-standout-high', 'ring-offset-2')
+                    setTimeout(() => {
+                      el.classList.remove('ring-2', 'ring-standout-high', 'ring-offset-2')
+                    }, 3000)
+                  }
+                }
+                if (fbId) setSelectedFeedbackId(fbId)
+                // Don't close the sheet when jumping to spot, so the user can still see other feedback
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+
+        {/* Outline Sidebar/Panel */}
+        <Sheet
+          open={outlineOpen}
+          onOpenChange={(v) => setOutlineOpen(v)}
+          modal={false}
+        >
+          <SheetContent
+            hideOverlay
+            side="right"
+            className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Page Outline</SheetTitle>
+              <SheetDescription>View and reorder page modules</SheetDescription>
+            </SheetHeader>
+            <ModuleOutlinePanel
+              modules={inline.modules}
+              getValue={inline.getValue}
+              postType={post?.type}
+              postId={post?.id}
+              onReorder={(newModules) => inline.reorderModules(newModules)}
+              onAddModule={(payload) => inline.addModule(payload)}
+              onRemoveModule={(id) => inline.removeModule(id)}
+              onUpdateLabel={(id, label) => inline.updateModuleLabel(id, label)}
+              onDuplicateModule={(id) => inline.duplicateModule(id)}
+              onClose={() => setOutlineOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+      </ConfirmDialogProvider>
+    </TooltipProvider>
   )
 }

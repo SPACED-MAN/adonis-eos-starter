@@ -103,7 +103,7 @@ export function initAnalytics(initialPage?: any) {
 function updateState(page: any) {
   currentPostId = page.props?.post?.id || null
   const currentUser = page.props?.currentUser
-  isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+  isAuthenticated = !!currentUser && ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   isEnabled = page.props?.features?.analytics !== false
 }
 

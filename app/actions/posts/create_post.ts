@@ -14,7 +14,7 @@ import dispatchWebhookAction from '#actions/dispatch_webhook_action'
 type CreatePostParams = {
   type: string
   locale: string
-  slug: string
+  slug?: string | null
   title: string
   status?: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
   excerpt?: string | null
@@ -104,12 +104,23 @@ export default class CreatePost {
         })
       }
     }
+
+    // Normalize slug
+    const normalizedSlug = (slug || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-')
+
     // Validate slug uniqueness for this locale
-    const existingPost = await Post.query().where('slug', slug).where('locale', locale).first()
+    const existingPost = await Post.query()
+      .where('slug', normalizedSlug)
+      .where('locale', locale)
+      .first()
 
     if (existingPost) {
       throw new CreatePostException('A post with this slug already exists for this locale', 409, {
-        slug,
+        slug: normalizedSlug,
         locale,
       })
     }
@@ -169,7 +180,7 @@ export default class CreatePost {
         {
           type,
           locale,
-          slug,
+          slug: normalizedSlug,
           title,
           status,
           excerpt,
@@ -205,7 +216,7 @@ export default class CreatePost {
       try {
         const locales = await LocaleService.getSupportedLocales()
         await urlPatternService.ensureDefaultsForPostType(type, locales)
-      } catch {}
+      } catch { }
     }
 
     // Set canonical URL for the post

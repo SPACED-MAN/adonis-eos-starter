@@ -1603,7 +1603,9 @@ const FieldPrimitiveInternal = memo(
               }}
             />
           </div>
-          <Renderer {...props} />
+          {(() => {
+            return <Renderer {...props} />
+          })()}
           <input
             ref={hiddenRef}
             type="hidden"

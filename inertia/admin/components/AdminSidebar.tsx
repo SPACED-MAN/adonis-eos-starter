@@ -239,7 +239,7 @@ export function AdminSidebar() {
             )}
           </SidebarGroup>
         )}
-        {isAdmin && (
+        {(isAdmin || canAccessAgents || canAccessWorkflows) && (
           <SidebarGroup title="System">
             {canAccessAgents && features.agents && (
               <SidebarMenuItem href={adminPath('agents')} active={isActive(adminPath('agents'))}>
@@ -261,6 +261,11 @@ export function AdminSidebar() {
             <SidebarMenuItem href={adminPath('security')} active={isActive(adminPath('security'))}>
               <span className="inline-flex items-center gap-2">
                 <FontAwesomeIcon icon={faShield} size="sm" /> <span>Security</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem href={adminPath('performance')} active={isActive(adminPath('performance'))}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faGauge} size="sm" /> <span>Performance</span>
               </span>
             </SidebarMenuItem>
             <SidebarMenuItem href={adminPath('database')} active={isActive(adminPath('database'))}>

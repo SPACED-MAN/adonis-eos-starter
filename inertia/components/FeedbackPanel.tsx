@@ -220,7 +220,7 @@ export function FeedbackPanel({
                   if (typeof ctx === 'string') {
                     try {
                       ctx = JSON.parse(ctx)
-                    } catch (e) {}
+                    } catch (e) { }
                   }
                   onJumpToSpot(ctx, f.id)
                 }
@@ -284,7 +284,7 @@ export function FeedbackPanel({
       <div className="p-4 border-t border-line-low space-y-3 bg-backdrop-low">
         <div className="flex items-center justify-between gap-2">
           <Select value={newFeedbackType} onValueChange={setNewFeedbackType}>
-            <SelectTrigger className="h-8 text-[10px] w-28">
+            <SelectTrigger aria-label="Feedback type" className="h-8 text-[10px] w-28">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

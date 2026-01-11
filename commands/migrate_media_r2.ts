@@ -6,6 +6,8 @@ import findReplaceService from '#services/find_replace_service'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 
+import env from '#start/env'
+
 export default class MigrateMediaR2 extends BaseCommand {
 	static commandName = 'migrate:media:r2'
 	static description = 'Migrate local media uploads to Cloudflare R2 and update database references'
@@ -35,7 +37,7 @@ export default class MigrateMediaR2 extends BaseCommand {
 			return
 		}
 
-		const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL
+		const publicBaseUrl = env.get('R2_PUBLIC_BASE_URL')
 		if (!publicBaseUrl && !this.dryRun) {
 			this.logger.error('R2_PUBLIC_BASE_URL is not set in your .env file.')
 			return
@@ -80,6 +82,7 @@ export default class MigrateMediaR2 extends BaseCommand {
 	private async findLocalFile(relativePath: string): Promise<string> {
 		const cleanRel = relativePath.replace(/^\//, '')
 		const possiblePaths = [
+			storageService.getLocalPath(cleanRel),
 			path.join(process.cwd(), 'public', cleanRel),
 			path.join(process.cwd(), 'build', 'public', cleanRel),
 		]

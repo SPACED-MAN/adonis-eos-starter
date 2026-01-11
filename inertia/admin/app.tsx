@@ -39,11 +39,13 @@ createInertiaApp({
 
     // If there is no server-rendered markup, do a client render to avoid hydration mismatch
     const hasSSRContent = el.hasChildNodes()
+    const p = props as any
+    const { key, ref, ...restProps } = p
     const app = (
       <ThemeProvider initialIsDark={initialIsDark}>
         <TooltipProvider>
           <ConfirmDialogProvider>
-            <App {...props} />
+            <App key={key} {...restProps} />
             <Toaster />
           </ConfirmDialogProvider>
         </TooltipProvider>

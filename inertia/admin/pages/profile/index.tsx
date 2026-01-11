@@ -5,7 +5,7 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { getXsrf } from '~/utils/xsrf'
 import { toast } from 'sonner'
-import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 
 export default function ProfileIndex() {
   const adminPath = useAdminPath()
@@ -17,7 +17,7 @@ export default function ProfileIndex() {
   } | null>(null)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         setLoading(true)
         const res = await fetch('/api/profile/status', { credentials: 'same-origin' })

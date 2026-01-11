@@ -1,4 +1,6 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Post from './post.js'
 import { DateTime } from 'luxon'
 
 /**
@@ -21,6 +23,11 @@ export default class UrlRedirect extends BaseModel {
 
   @column({ columnName: 'post_id' })
   declare postId: string | null
+
+  @belongsTo(() => Post, {
+    foreignKey: 'postId',
+  })
+  declare post: BelongsTo<typeof Post>
 
   @column({ columnName: 'http_status' })
   declare httpStatus: number

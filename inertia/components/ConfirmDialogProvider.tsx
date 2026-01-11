@@ -1,23 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from './ui/alert-dialog'
+import React, { createContext, useContext, useState, useCallback, ReactNode, lazy, Suspense } from 'react'
+import type { ConfirmOptions } from './ConfirmDialog'
 
-type ConfirmOptions = {
-  title: string
-  description: ReactNode
-  confirmText?: string
-  cancelText?: string
-  variant?: 'default' | 'destructive'
-  hideCancel?: boolean
-}
+const ConfirmDialog = lazy(() => import('./ConfirmDialog'))
 
 type ConfirmContextType = {
   confirm: (options: ConfirmOptions) => Promise<boolean>
@@ -66,27 +50,15 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
       </ConfirmContext.Provider>
 
       {options && (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{options.title}</AlertDialogTitle>
-              <AlertDialogDescription>{options.description}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              {!options.hideCancel && (
-                <AlertDialogCancel onClick={handleCancel}>
-                  {options.cancelText || 'Cancel'}
-                </AlertDialogCancel>
-              )}
-              <AlertDialogAction
-                onClick={handleConfirm}
-                className={options.variant === 'destructive' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
-              >
-                {options.confirmText || 'Continue'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Suspense fallback={null}>
+          <ConfirmDialog
+            open={open}
+            onOpenChange={setOpen}
+            options={options}
+            onCancel={handleCancel}
+            onConfirm={handleConfirm}
+          />
+        </Suspense>
       )}
     </>
   )
@@ -99,5 +71,3 @@ export function useConfirm() {
   }
   return context
 }
-
-

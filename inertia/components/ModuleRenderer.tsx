@@ -75,9 +75,12 @@ function ReactModuleRenderer({
     )
   }
 
+  // Extract special React props if they exist in data to avoid warnings
+  const { key: _k, ref: _r, ...restProps } = props
+
   return (
     <Suspense fallback={<ModuleLoadingFallback />}>
-      <Component {...props} />
+      <Component {...restProps} />
     </Suspense>
   )
 }

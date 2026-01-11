@@ -1,6 +1,7 @@
 import path from 'node:path'
 import db from '@adonisjs/lucid/services/db'
 import mediaService from '#services/media_service'
+import storageService from '#services/storage_service'
 
 type DerivSpec = { name: string; width?: number; height?: number; fit: 'inside' | 'cover' }
 type CropRect = { left: number; top: number; width: number; height: number }
@@ -92,7 +93,7 @@ class GenerateMediaVariantsAction {
       baseUrl = String(row.url)
     }
 
-    absPath = path.join(process.cwd(), 'public', baseUrl.replace(/^\//, ''))
+    absPath = await storageService.ensureLocalFile(baseUrl)
     baseNameEndsWithDark = path.parse(absPath).name.endsWith('-dark')
 
     // Determine variant generation options
@@ -137,8 +138,7 @@ class GenerateMediaVariantsAction {
     if (row.optimized_url || existingMeta.optimizedUrl) {
       try {
         variantsWithProperNames = await mediaService.optimizeVariantsToWebp(
-          variantsWithProperNames as any,
-          path.join(process.cwd(), 'public')
+          variantsWithProperNames as any
         )
       } catch {
         /* ignore */

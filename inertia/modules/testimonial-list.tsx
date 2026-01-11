@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useInlineEditor, useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
@@ -41,13 +41,13 @@ export default function TestimonialList({
 }: TestimonialListProps) {
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
-  const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+  const isAuthenticated = !!currentUser && ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
 
   const [items, setItems] = useState<TestimonialSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [limit, setLimit] = useState(6)
   const [totalCount, setTotalCount] = useState(0)
-  const { enabled } = useInlineEditor()
+  const { enabled } = useInlineEditor() || {}
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)

@@ -15,7 +15,7 @@ import { DateTime } from 'luxon'
 type CreateTranslationParams = {
   postId: string
   locale: string
-  slug?: string
+  slug?: string | null
   title?: string
   metaTitle?: string | null
   metaDescription?: string | null
@@ -157,7 +157,7 @@ export default class CreateTranslation {
     basePost: Post,
     data: {
       locale: string
-      slug?: string
+      slug?: string | null
       title?: string
       metaTitle?: string | null
       metaDescription?: string | null

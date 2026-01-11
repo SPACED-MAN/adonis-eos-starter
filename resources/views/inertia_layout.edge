@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ locale || 'en' }}">
+<html lang="{{ locale || 'en' }}" data-theme="{{ page.component && page.component.startsWith('admin/') ? 'admin' : 'site' }}" class="{{ page.props.isDark ? 'dark' : '' }}">
 
   <head>
     <meta charset="utf-8" />
@@ -10,6 +10,7 @@
     </title>
 
     <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link rel="dns-prefetch" href="https://fonts.bunny.net" />
     <link
       href="https://fonts.bunny.net/css?family=outfit:100,200,300,400,500,600,700,800,900&display=swap"
       rel="stylesheet"
@@ -18,105 +19,38 @@
     {{-- Theme Detection Script (runs before page render to prevent flicker) --}}
     <script>
       (function() {
-        // Detect theme context (admin vs site) from URL
         const adminPrefix = "{{ page.props.adminPathPrefix || 'admin' }}";
         const isAdmin = window.location.pathname.startsWith("/" + adminPrefix);
         const theme = isAdmin ? "admin" : "site";
-        
-        // Site-wide default from settings
         const defaultTheme = "{{ page.props.defaultThemeMode || 'light' }}";
-
-        // Detect dark mode preference
-        // 1. Check localStorage
         const stored = localStorage.getItem("theme-mode");
         let isDark = false;
-        
-        if (stored === "dark") {
-          isDark = true;
-        } else if (stored === "light") {
-          isDark = false;
-        } else {
-          // 2. Check system preferences
-          const mDark = window.matchMedia("(prefers-color-scheme: dark)");
-          const mLight = window.matchMedia("(prefers-color-scheme: light)");
-          
-          if (mDark.matches) {
-            isDark = true;
-          } else if (mLight.matches) {
-            isDark = false;
-          } else {
-            // 3. Fallback to site default if no system preference is detected
-            isDark = defaultTheme === "dark";
-          }
-        }
-
-        // Apply theme to html element before page renders (class strategy)
+        if (stored === "dark") { isDark = true; }
+        else if (stored === "light") { isDark = false; }
+        else if (window.matchMedia("(prefers-color-scheme: dark)").matches) { isDark = true; }
+        else { isDark = defaultTheme === "dark"; }
         const root = document.documentElement;
         root.setAttribute("data-theme", theme);
-        if (isDark) {
-          root.classList.add("dark");
-        } else {
-          root.classList.remove("dark");
-        }
+        if (isDark) { root.classList.add("dark"); }
+        else { root.classList.remove("dark"); }
       })();
     </script>
 
     <style>
       :root {
-        --sand-1: #fdfdfc;
-        --sand-2: #f9f9f8;
-        --sand-3: #f1f0ef;
-        --sand-4: #e9e8e6;
-        --sand-5: #e2e1de;
-        --sand-6: #dad9d6;
-        --sand-7: #cfceca;
-        --sand-8: #bcbbb5;
-        --sand-9: #8d8d86;
-        --sand-10: #82827c;
-        --sand-11: #63635e;
-        --sand-12: #21201c;
+        color-scheme: light dark;
       }
-      
-      /* Ensure body styling is always present to prevent flicker */
-      
       body {
-        min-height: 100vh;
-        width: 100%;
-        overflow-x: hidden;
+        min-height: 100dvh; width: 100%; overflow-x: hidden;
         font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
                 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
       }
-      
-      /* Prevent flash of unstyled content during navigation */
-      
-      #app {
-        min-height: 100vh;
-      }
-      
-      /* Ensure smooth page transitions */
-      
-      #app > div {
-        animation: fadeIn 0.15s ease-in;
-      }
-      
-      @keyframes fadeIn {
-        from {
-          opacity: 0.98;
-        }
-      
-        to {
-          opacity: 1;
-        }
-      }
-      
-      /* Respect user's motion preferences for accessibility */
-      
-      @media (prefers-reduced-motion: reduce) {
-        #app > div {
-          animation: none;
-        }
-      }
+      #app { min-height: 100dvh; }
+      #app > div { animation: fadeIn 0.1s ease-in; will-change: opacity; }
+      @keyframes fadeIn { from { opacity: 0.98; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { #app > div { animation: none; } }
     </style>
+
 
     {{-- Tailwind compiled via Vite (class strategy) --}}
 
@@ -133,7 +67,9 @@
     @endif
 
     {{-- Lottie Player (for SVG animations / JSON) --}}
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    @if(page.props.features && page.props.features.lottie)
+      <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    @endif
   </head>
 
   <body>

@@ -5,12 +5,9 @@ import { type MediaObject } from '../../../utils/useMediaUrl'
 import { LocaleSwitcher } from '../LocaleSwitcher'
 import { MobileNav } from './MobileNav'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import { SearchModal } from '../SearchModal'
 import * as React from 'react'
 import { cn } from '../../../components/ui/utils'
-
-const SearchModal = React.lazy(() =>
-  import('../SearchModal').then((m) => ({ default: m.SearchModal }))
-)
 
 export function NavBar({
   primaryNodes,
@@ -55,7 +52,7 @@ export function NavBar({
             <span
               className={cn(
                 'inline-flex items-center w-auto transition-all duration-300',
-                isScrolled ? 'h-8' : 'h-11'
+                isScrolled ? 'h-5' : 'h-7'
               )}
             >
               {/* Logo image: if menuName exists, use empty alt since it's decorative (menuName is in link text via sr-only) */}
@@ -85,13 +82,7 @@ export function NavBar({
           {/* Public search (Autocomplete Modal) */}
           {showSearch && (
             <div className="hidden lg:block">
-              <React.Suspense
-                fallback={
-                  <div className={cn('w-10 transition-all duration-300', isScrolled ? 'h-8' : 'h-10')} />
-                }
-              >
-                <SearchModal variant="icon" placeholder="Search..." />
-              </React.Suspense>
+              <SearchModal variant="icon" placeholder="Search..." />
             </div>
           )}
           <nav className="hidden lg:flex items-center gap-6">

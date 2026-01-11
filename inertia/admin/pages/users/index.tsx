@@ -3,7 +3,7 @@ import { usePage, router } from '@inertiajs/react'
 import { useAdminPath } from '~/utils/adminPath'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 import { Input } from '../../../components/ui/input'
 import {
   Select,
@@ -254,8 +254,8 @@ export default function UsersIndex() {
             <button
               onClick={() => setActiveTab('list')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'list'
-                  ? 'border-standout-high text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
               User List
@@ -263,8 +263,8 @@ export default function UsersIndex() {
             <button
               onClick={() => setActiveTab('profiles')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'profiles'
-                  ? 'border-standout-high text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
               Profiles

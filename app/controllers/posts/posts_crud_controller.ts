@@ -44,6 +44,7 @@ export default class PostsCrudController extends BasePostsController {
   async store({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
+      | 'editor_admin'
       | 'editor'
       | 'translator'
       | undefined
@@ -100,6 +101,7 @@ export default class PostsCrudController extends BasePostsController {
     const { id } = params
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
+      | 'editor_admin'
       | 'editor'
       | 'translator'
       | undefined
@@ -295,6 +297,7 @@ export default class PostsCrudController extends BasePostsController {
   async bulk({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
+      | 'editor_admin'
       | 'editor'
       | 'translator'
       | undefined
@@ -322,6 +325,7 @@ export default class PostsCrudController extends BasePostsController {
   async reorder({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
+      | 'editor_admin'
       | 'editor'
       | 'translator'
       | undefined

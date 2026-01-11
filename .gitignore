@@ -29,6 +29,8 @@ public/uploads/*
 !public/uploads/logo-eos.svg
 !public/uploads/logo-eos-dark.svg
 !public/uploads/demo-*
+storage/
+tmp/
 
 # Local development notes
 PROMPT-HISTORY.md

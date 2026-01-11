@@ -157,7 +157,6 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   STORAGE_DRIVER: Env.schema.string.optional(),
   STORAGE_LOCAL_ROOT: Env.schema.string.optional(),
-  R2_ACCOUNT_ID: Env.schema.string.optional(),
   R2_ENDPOINT: Env.schema.string.optional(),
   R2_BUCKET: Env.schema.string.optional(),
   R2_ACCESS_KEY_ID: Env.schema.string.optional(),
@@ -230,6 +229,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   CMS_ANALYTICS_ENABLED: Env.schema.boolean.optional(),
   CMS_AUDIT_LOGS_ENABLED: Env.schema.boolean.optional(),
   CMS_ACTIVE_SESSIONS_ENABLED: Env.schema.boolean.optional(),
+  LOTTIE_ENABLED: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------

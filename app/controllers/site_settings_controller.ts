@@ -4,15 +4,25 @@ import roleRegistry from '#services/role_registry'
 import siteCustomFieldsService from '#services/site_custom_fields_service'
 import db from '@adonisjs/lucid/services/db'
 import MediaAsset from '#models/media_asset'
+import storageService from '#services/storage_service'
+import mediaService from '#services/media_service'
 
 export default class SiteSettingsController {
   /**
    * GET /api/site-settings
    */
-  async show({ response }: HttpContext) {
+  async show({ response, auth }: HttpContext) {
+    const user = auth.use('web').user
+    const isAdminOrEditor = !!(user && ['admin', 'editor_admin', 'editor'].includes((user as any).role))
+
     const s = await siteSettingsService.get()
     const defs = siteCustomFieldsService.listDefinitions()
     const vals = await siteCustomFieldsService.getValues()
+
+    // Filter sensitive custom fields
+    const publicCustomFields = { ...vals }
+    delete publicCustomFields.protected_access_username
+    delete publicCustomFields.protected_access_password
 
     // Resolve media IDs in site settings
     const mediaIds = new Set<string>()
@@ -28,9 +38,9 @@ export default class SiteSettingsController {
       assets.forEach((a) => {
         resolvedMedia.set(String(a.id), {
           id: a.id,
-          url: a.url,
+          url: storageService.resolvePublicUrl(a.url),
           mimeType: a.mimeType,
-          metadata: a.metadata || {},
+          metadata: mediaService.resolveMetadataUrls(a.metadata),
           altText: a.altText,
         })
       })
@@ -43,8 +53,8 @@ export default class SiteSettingsController {
         (s.faviconMediaId && resolvedMedia.get(s.faviconMediaId)) || s.faviconMediaId || null,
       defaultOgMedia:
         (s.defaultOgMediaId && resolvedMedia.get(s.defaultOgMediaId)) || s.defaultOgMediaId || null,
-      customFieldDefs: defs,
-      customFields: vals,
+      customFieldDefs: isAdminOrEditor ? defs : [],
+      customFields: isAdminOrEditor ? vals : publicCustomFields,
     }
 
     return response.ok({ data })

@@ -30,6 +30,7 @@ class UrlPatternService {
       out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), val)
     }
     if (!out.startsWith('/')) out = '/' + out
+    if (out.length > 1 && out.endsWith('/')) out = out.slice(0, -1)
     return out
   }
 
@@ -108,14 +109,23 @@ class UrlPatternService {
   private compilePattern(pattern: string): RegExp {
     let source = pattern
     if (!source.startsWith('/')) source = '/' + source
+
+    // Escape slashes for regex
+    source = source.replace(/\//g, '\\/')
+
+    // Replace tokens with named capture groups
+    // Special handling for tokens at the end of the pattern:
+    // If {slug} or {path} is at the end, make the preceding slash optional to allow empty values
     source = source
-      .replace(/\//g, '\\/')
+      .replace(/\\\/\{slug\}$/, '(?:\\/(?<slug>[^\\/]*?))?')
+      .replace(/\\\/\{path\}$/, '(?:\\/(?<path>.*?))?')
       .replace(/\{locale\}/g, '(?<locale>[a-z]{2}(?:-[a-z]{2})?)')
       .replace(/\{yyyy\}/g, '(?<yyyy>\\d{4})')
       .replace(/\{mm\}/g, '(?<mm>\\d{2})')
       .replace(/\{dd\}/g, '(?<dd>\\d{2})')
-      .replace(/\{slug\}/g, '(?<slug>[^\\/]+)')
-      .replace(/\{path\}/g, '(?<path>.+?)')
+      .replace(/\{slug\}/g, '(?<slug>[^\\/]*?)')
+      .replace(/\{path\}/g, '(?<path>.*?)')
+
     return new RegExp('^' + source + '$', 'i')
   }
 
@@ -142,15 +152,19 @@ class UrlPatternService {
       if (m && m.groups) {
         const locale = (m.groups['locale'] as string) || p.locale
         let slug = m.groups['slug'] as string | undefined
-        const pathGroup = m.groups['path'] as string | undefined
-        const usesPath = Boolean(pathGroup)
+        let pathGroup = m.groups['path'] as string | undefined
+        const usesPath = pathGroup !== undefined
 
-        if (!slug && pathGroup) {
+        // Normalize undefined to empty string for slug/path if the pattern expects them
+        if (slug === undefined && p.pattern.includes('{slug}')) slug = ''
+        if (pathGroup === undefined && p.pattern.includes('{path}')) pathGroup = ''
+
+        if (!slug && pathGroup !== undefined) {
           const parts = pathGroup.split('/').filter(Boolean)
-          slug = parts[parts.length - 1]
+          slug = parts[parts.length - 1] || ''
         }
 
-        if (slug) {
+        if (slug !== undefined) {
           return {
             postType: p.postType,
             locale,
@@ -236,12 +250,13 @@ class UrlPatternService {
    * Compute hierarchical parent path for a post: "parent1/parent2".
    * Only includes parents with same type and locale.
    */
-  async getParentPathForPost(postId: string): Promise<string> {
+  async getParentPathForPost(postId: string, trx?: any): Promise<string> {
     // Load the post to get type/locale/parent_id
-    const root = await Post.query()
+    const query = Post.query()
       .where('id', postId)
       .select('id', 'parent_id', 'type', 'locale', 'slug')
-      .first()
+    if (trx) query.useTransaction(trx)
+    const root = await query.first()
     if (!root) return ''
     const type = String(root.type)
     const locale = String(root.locale)
@@ -249,10 +264,11 @@ class UrlPatternService {
     const chain: string[] = []
     const guard = new Set<string>([String(root.id)])
     while (nextParent) {
-      const row = await Post.query()
+      const q = Post.query()
         .where('id', nextParent)
         .select('id', 'parent_id', 'slug', 'type', 'locale')
-        .first()
+      if (trx) q.useTransaction(trx)
+      const row = await q.first()
       if (!row) break
       if (String(row.type) !== type || String(row.locale) !== locale) break
       const slug = String(row.slug || '')
@@ -269,13 +285,14 @@ class UrlPatternService {
    * Build hierarchical path for a post using its current slug from the database.
    * Uses {path} token when present, otherwise {slug}.
    */
-  async buildPostPathForPost(postId: string): Promise<string> {
-    const row = await Post.query()
+  async buildPostPathForPost(postId: string, trx?: any): Promise<string> {
+    const query = Post.query()
       .where('id', postId)
       .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
-      .first()
+    if (trx) query.useTransaction(trx)
+    const row = await query.first()
     if (!row) return '/'
-    return this.buildPostPathForRow(row)
+    return this.buildPostPathForRow(row, undefined, trx)
   }
 
   /**
@@ -292,7 +309,7 @@ class UrlPatternService {
    * This lets callers generate a new URL for a post BEFORE the slug is persisted
    * to the database, by passing a slugOverride.
    */
-  private async buildPostPathForRow(row: any, slugOverride?: string): Promise<string> {
+  private async buildPostPathForRow(row: any, slugOverride?: string, trx?: any): Promise<string> {
     const patternRec = await this.getDefaultPattern(String(row.type), String(row.locale))
     const pattern = patternRec?.pattern || '/{locale}/posts/{slug}'
 
@@ -312,7 +329,7 @@ class UrlPatternService {
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
-    const parentPath = await this.getParentPathForPost(String(row.id))
+    const parentPath = await this.getParentPathForPost(String(row.id), trx)
     const slug = slugOverride ?? String(row.slug)
     const path = parentPath ? `${parentPath}/${slug}` : slug
     return this.replaceTokens(pattern, {
@@ -330,13 +347,14 @@ class UrlPatternService {
    *
    * This is used when generating redirects BEFORE a slug change is persisted.
    */
-  async buildPostPathForPostWithSlug(postId: string, slug: string): Promise<string> {
-    const row = await Post.query()
+  async buildPostPathForPostWithSlug(postId: string, slug: string, trx?: any): Promise<string> {
+    const query = Post.query()
       .where('id', postId)
       .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
-      .first()
+    if (trx) query.useTransaction(trx)
+    const row = await query.first()
     if (!row) return '/'
-    return this.buildPostPathForRow(row, slug)
+    return this.buildPostPathForRow(row, slug, trx)
   }
 
   /**

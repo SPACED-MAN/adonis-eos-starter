@@ -49,6 +49,15 @@ type PopoverState = {
 
 export function InlineOverlay() {
   const adminPath = useAdminPath()
+  const editor = useInlineEditor()
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
+  const [dialogState, setDialogState] = useState<PopoverState | null>(null)
+
+  if (!editor) return null
+
   const {
     enabled,
     canEdit,
@@ -59,11 +68,8 @@ export function InlineOverlay() {
     isGlobalModule,
     showDiffs,
     modules,
-  } = useInlineEditor()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
-  const [dialogState, setDialogState] = useState<PopoverState | null>(null)
+    isDirty,
+  } = editor
 
   function resolveModuleId(el: HTMLElement | null): string | undefined {
     if (!el) return undefined
@@ -184,11 +190,12 @@ export function InlineOverlay() {
         'inline-flex items-center gap-1 text-standout-high hover:underline font-medium'
       link.title = `Edit ${labelText} (opens in new tab)`
       link.setAttribute('aria-label', `Edit ${labelText} (opens in new tab)`)
-      // Render icon client-side instead of using renderToStaticMarkup
+      // Render icon manually using FontAwesome's SVG core if needed, 
+      // or just use a simple SVG string to avoid createRoot complexity.
       const iconContainer = document.createElement('span')
-      iconContainer.className = 'w-4 h-4'
-      const root = createRoot(iconContainer)
-      root.render(<FontAwesomeIcon icon="globe" size="sm" />)
+      iconContainer.className = 'w-4 h-4 flex items-center justify-center'
+      iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-3 h-3 fill-current"><path d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192 192-86 192-192zM57.7 401.9C35.2 365.1 22 321.3 22 274c0-107.1 86.9-194 194-194s194 86.9 194 194c0 47.3-13.2 91.1-35.7 127.9L216 243.4l-158.3 158.5z"/></svg>`
+      
       const textSpan = document.createElement('span')
       textSpan.textContent = `Edit ${labelText}`
       link.appendChild(iconContainer)

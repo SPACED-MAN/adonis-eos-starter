@@ -10,6 +10,22 @@ export default class RobotsController {
     const robotsContent = `User-agent: *
 Allow: /
 
+# Explicitly allow major AI bots
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Bot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 # Sitemap
 Sitemap: ${baseUrl}/sitemap.xml
 `

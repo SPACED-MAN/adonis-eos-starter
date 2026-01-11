@@ -21,43 +21,43 @@ interface TabItem {
 }
 
 interface TabbedFeaturesProps {
-  title?: string
-  subtitle?: string
-  tabs: TabItem[]
-  layout?: 'top' | 'left'
-  content_layout?: 'columns' | 'stacked'
-  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
-  theme?: string
-  backgroundImage?: any
-  backgroundTint?: boolean
-  __moduleId?: string
-  _useReact?: boolean
+	title?: string
+	subtitle?: string
+	tabs: TabItem[]
+	layout?: 'top' | 'left'
+	content_layout?: 'columns' | 'stacked'
+	objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
+	theme?: string
+	backgroundImage?: any
+	backgroundTint?: boolean
+	__moduleId?: string
+	_useReact?: boolean
 }
 
 export default function TabbedFeatures({
-  title: initialTitle,
-  subtitle: initialSubtitle,
-  tabs: initialTabs = [],
-  layout: initialLayout = 'top',
-  content_layout: initialContentLayout = 'columns',
-  objectFit: initialObjectFit = 'contain',
-  theme: initialTheme = 'transparent',
-  backgroundImage: initialBackgroundImage,
-  backgroundTint: initialBackgroundTint,
-  __moduleId,
-  _useReact,
+	title: initialTitle,
+	subtitle: initialSubtitle,
+	tabs: initialTabs = [],
+	layout: initialLayout = 'top',
+	content_layout: initialContentLayout = 'columns',
+	objectFit: initialObjectFit = 'contain',
+	theme: initialTheme = 'transparent',
+	backgroundImage: initialBackgroundImage,
+	backgroundTint: initialBackgroundTint,
+	__moduleId,
+	_useReact,
 }: TabbedFeaturesProps) {
-  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
-  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
-  const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
-  const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
-  const content_layout = useInlineValue(__moduleId, 'content_layout', initialContentLayout) || 'columns'
-  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
-  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
-  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
-  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
+	const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+	const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
+	const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
+	const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
+	const content_layout = useInlineValue(__moduleId, 'content_layout', initialContentLayout) || 'columns'
+	const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
+	const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+	const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+	const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
-  const styles = getSectionStyles(theme)
+	const styles = getSectionStyles(theme)
 	const textColor = styles.textColor
 	const subtextColor = styles.subtextColor
 
@@ -200,10 +200,10 @@ export default function TabbedFeatures({
 			data-inline-options={JSON.stringify(THEME_OPTIONS)}
 		>
 			<SectionBackground
-        backgroundImage={backgroundImage}
-        backgroundTint={backgroundTint}
-        isInteractive={_useReact}
-      />
+				backgroundImage={backgroundImage}
+				backgroundTint={backgroundTint}
+				isInteractive={_useReact}
+			/>
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 				{layout === 'top' && (
 					<>

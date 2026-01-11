@@ -5,9 +5,28 @@ import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
 import cmsConfig from '#config/cms'
 import { ThemeProvider } from '../utils/ThemeContext'
-import { TooltipProvider } from '../components/ui/tooltip'
-import { ConfirmDialogProvider } from '../components/ConfirmDialogProvider'
 import { PassThrough } from 'node:stream'
+import { useState, useEffect } from 'react'
+
+function AdminBarWrapper({
+  isAuthenticated,
+  initialPageProps,
+}: {
+  isAuthenticated: boolean
+  initialPageProps: any
+}) {
+  const [Component, setComponent] = useState<any>(null)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      import('../site/components/AdminBarWrapper').then((m) => setComponent(() => m.AdminBarWrapper))
+    }
+  }, [isAuthenticated])
+
+  if (!Component) return null
+
+  return <Component isAuthenticated={isAuthenticated} initialPageProps={initialPageProps} />
+}
 
 export default async function render(page: any) {
   const componentName = String(page?.component ?? '')
@@ -20,9 +39,12 @@ export default async function render(page: any) {
   }
 
   // Generate cache key from page component and props
+  // We exclude session-specific and transient props to increase cache hit rate
+  const { csrf, errors, errorsBag, success, error, ...stableProps } = page.props
+
   const cacheKey = `ssr:${page.component}:${crypto
     .createHash('md5')
-    .update(JSON.stringify(page.props))
+    .update(JSON.stringify(stableProps))
     .digest('hex')}`
 
   // Check cache first
@@ -36,7 +58,7 @@ export default async function render(page: any) {
 
   // Render if not cached
   try {
-    const html = await createInertiaApp({
+    const { body } = (await createInertiaApp({
       page,
       render: (element) => {
         return new Promise((resolve, reject) => {
@@ -63,7 +85,7 @@ export default async function render(page: any) {
               console.error('SSR Render Error:', err)
             },
           })
-        })
+        }) as any
       },
       resolve: (name) => {
         const sitePages = import.meta.glob('../site/pages/**/*.tsx', { eager: true })
@@ -94,21 +116,30 @@ export default async function render(page: any) {
         return (module as any).default
       },
       setup: ({ App, props }) => {
-        const initialIsDark = (props as any)?.isDark
+        const pageProps = (props as any)?.props
+        const initialIsDark = pageProps?.isDark
+        const currentUser = pageProps?.currentUser
+        const isAuthenticated =
+          !!currentUser &&
+          ['admin', 'editor_admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
+        const p = props as any
+        const { key, ref, ...restProps } = p
         return (
           <ThemeProvider initialIsDark={initialIsDark}>
-            <TooltipProvider>
-              <ConfirmDialogProvider>
-                <App {...props} />
-              </ConfirmDialogProvider>
-            </TooltipProvider>
+            <App key={key} {...restProps} />
+            {isAuthenticated && (
+              <AdminBarWrapper isAuthenticated={isAuthenticated} initialPageProps={pageProps} />
+            )}
           </ThemeProvider>
         )
       },
-    })
+    })) as any
+
+    const html = body as string
 
     // Cache the rendered HTML if enabled
-    if (cacheEnabled) {
+    if (cacheEnabled && html) {
       const ttl = cmsConfig.cache.ssrTtl || 3600
       await redis.setex(cacheKey, ttl, html)
     }

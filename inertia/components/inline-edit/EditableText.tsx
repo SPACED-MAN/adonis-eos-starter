@@ -18,7 +18,8 @@ export function EditableText({
   as: Tag = 'span',
   className,
 }: EditableTextProps) {
-  const { enabled, canEdit, postId: ctxPostId, setValue } = useInlineEditor()
+  const editor = useInlineEditor()
+  const { enabled, canEdit, postId: ctxPostId, setValue } = editor || {}
   const current = useInlineValue(moduleId, path, value)
   const [draft, setDraft] = useState(current)
   const [editing, setEditing] = useState(false)
@@ -41,7 +42,7 @@ export function EditableText({
   const canInlineEdit = enabled && canEdit && effectivePostId && effectiveModuleId
 
   function save(next: string) {
-    if (!canInlineEdit) return
+    if (!canInlineEdit || !setValue) return
     setValue(effectiveModuleId!, path, next)
     setEditing(false)
   }

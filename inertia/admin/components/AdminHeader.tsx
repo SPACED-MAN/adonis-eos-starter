@@ -26,8 +26,8 @@ export function AdminHeader({
   const role: string | undefined = props?.currentUser?.role ?? props?.auth?.user?.role
   const isAdminShared: boolean | undefined = props?.isAdmin
   const isAdmin = isAdminShared === true || role === 'admin'
-  // Fallback: if auth context is present but role not shared, still show links.
-  const showAdminLinks = isAdmin
+  // Show sidebar trigger for any role that has admin access
+  const showAdminLinks = !!role && ['admin', 'editor_admin', 'editor', 'translator'].includes(role)
   return (
     <SidebarProvider>
       <AdminSidebar />

@@ -4,7 +4,7 @@ import { useInlineEditor } from './InlineEditorContext'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type EditableImageProps = {
-  children: (opts: { open: () => void }) => JSX.Element
+  children: (opts: { open: () => void }) => React.ReactNode
   path: string
   moduleId?: string
   postId?: string
@@ -12,18 +12,19 @@ type EditableImageProps = {
 }
 
 export function EditableImage({ children, path, moduleId, postId, title }: EditableImageProps) {
-  const { enabled, canEdit, postId: ctxPostId, setValue } = useInlineEditor()
+  const editor = useInlineEditor()
+  const { enabled, canEdit, postId: ctxPostId, setValue } = editor || {}
   const [open, setOpen] = useState(false)
   const effectivePostId = postId || ctxPostId
   const canInlineEdit = enabled && canEdit && moduleId && effectivePostId
 
   function save(mediaId: string) {
-    if (!canInlineEdit) return
+    if (!canInlineEdit || !setValue) return
     setValue(moduleId!, path, mediaId)
   }
 
   if (!canInlineEdit) {
-    return children({ open: () => {} })
+    return children({ open: () => { } })
   }
 
   return (

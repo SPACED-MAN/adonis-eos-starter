@@ -1,6 +1,6 @@
 import { motion, type Variants } from 'framer-motion'
-import type { Button, LinkValue } from './types'
-import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
+import type { Button } from './types'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
@@ -40,7 +40,7 @@ export default function HeroWithMedia({
   __moduleId,
   _useReact,
 }: HeroWithMediaProps) {
-  const { value: imageValue, enabled, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
+  const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
   const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
@@ -70,7 +70,7 @@ export default function HeroWithMedia({
     visible: {
       opacity: 1,
       x: 0,
-      transition: { duration: 0.8, ease: 'easeOut' },
+      transition: { duration: 0.8, ease: 'easeOut' as const },
     },
   }
 
@@ -80,9 +80,14 @@ export default function HeroWithMedia({
       opacity: 1,
       scale: 1,
       x: 0,
-      transition: { duration: 1.0, ease: 'easeOut' },
+      transition: { duration: 1.0, ease: 'easeOut' as const },
     },
   }
+
+  const imageMetadata = typeof imageValue === 'object' ? imageValue?.metadata : null
+  const dynamicAspect = imageMetadata?.width && imageMetadata?.height
+    ? { aspectRatio: `${imageMetadata.width} / ${imageMetadata.height}` }
+    : {}
 
   const imageBlockContent = (
     <div
@@ -99,8 +104,10 @@ export default function HeroWithMedia({
             alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
             fetchPriority="high"
             decoding="async"
+            size="large"
             objectFit={objectFit}
             playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+            className="w-full h-full"
           />
         )}
       </div>
@@ -159,7 +166,7 @@ export default function HeroWithMedia({
 
       {hasCtas && (
         <div className="flex flex-wrap items-center gap-4">
-          {ctas?.map((cta, index) => (
+          {ctas?.map((cta: Button, index: number) => (
             _useReact ? (
               <motion.div key={index} variants={textVariants}>
                 <ButtonComponent
@@ -220,9 +227,9 @@ export default function HeroWithMedia({
     <section
       className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="hero-with-media"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
@@ -269,7 +276,6 @@ function ButtonComponent({
   url: initialUrl,
   style: initialStyle = 'primary',
   target,
-  rel,
   moduleId,
   inlineObjectPath,
   inlineObjectLabel,

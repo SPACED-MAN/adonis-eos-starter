@@ -8,15 +8,13 @@
  * - Each module lives in `inertia/modules/{type}.tsx`
  *   e.g. type: 'prose'  → prose.tsx
  *        type: 'gallery' → gallery.tsx
- *
- * Static vs React behaviour is controlled by the backend module's
- * `getRenderingMode()` – not by filename suffixes.
  */
 
-import React, { lazy } from 'react'
+import React from 'react'
 
-// Auto-discover all .tsx module files with lazy loading for dynamic imports
-const lazyModules = import.meta.glob('./*.tsx')
+// Auto-discover all .tsx module files eagerly to avoid hydration mismatches
+// with lazy loading and ensure full SSR support.
+const modules = import.meta.glob('./*.tsx', { eager: true })
 
 // Helper to convert kebab-case to PascalCase
 // 'hero-with-media' -> 'HeroWithMedia'
@@ -31,23 +29,23 @@ function toPascalCase(str: string): string {
 const exports: Record<string, any> = {}
 const componentMap: Record<string, any> = {}
 
-for (const [path, loader] of Object.entries(lazyModules)) {
+for (const [path, module] of Object.entries(modules)) {
   // Extract filename: './hero-with-media.tsx' -> 'hero-with-media'
   const fileName = path.replace(/^\.\//, '').replace(/\.tsx$/, '')
+  const component = (module as any).default
 
-  // Create lazy component (only once!)
-  const lazyComponent = lazy(loader as any)
+  if (component) {
+    // Add to kebab-case map
+    componentMap[fileName] = component
 
-  // Add to kebab-case map
-  componentMap[fileName] = lazyComponent
-
-  // Add to PascalCase exports: 'hero-with-media' -> 'HeroWithMedia'
-  const exportName = toPascalCase(fileName)
-  exports[exportName] = lazyComponent
+    // Add to PascalCase exports: 'hero-with-media' -> 'HeroWithMedia'
+    const exportName = toPascalCase(fileName)
+    exports[exportName] = component
+  }
 }
 
 // Export all discovered modules dynamically as PascalCase
 export default exports
 
-export const MODULE_COMPONENTS = componentMap as Record<string, React.LazyExoticComponent<any>>
+export const MODULE_COMPONENTS = componentMap as Record<string, any>
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

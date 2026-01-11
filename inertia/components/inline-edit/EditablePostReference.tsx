@@ -33,7 +33,8 @@ export function EditablePostReference({
   postType,
   label,
 }: EditablePostReferenceProps) {
-  const { getValue, setValue, enabled } = useInlineEditor()
+  const editor = useInlineEditor()
+  const { getValue, setValue, enabled } = editor || {}
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [options, setOptions] = useState<PostOption[]>([])
@@ -41,7 +42,7 @@ export function EditablePostReference({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const current = getValue(moduleId, path, multiple ? [] : null) as ValueShape
+  const current = getValue ? getValue(moduleId, path, multiple ? [] : null) : (multiple ? [] : null) as ValueShape
 
   const normalize = (val: ValueShape): string[] => {
     if (val == null) return []
@@ -54,47 +55,42 @@ export function EditablePostReference({
 
   const selectedIds = normalize(current)
 
-  const selectedLabels = (id: string) => {
-    const hit = options.find((o) => o.id === id)
-    return hit ? `${hit.title} (${hit.type}${hit.locale ? ` · ${hit.locale}` : ''})` : id
-  }
-
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    ;(async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        if (postType) params.set('type', postType)
-        // Use 'q' as standard search param
-        if (query.trim()) params.set('q', query.trim())
-        const res = await fetch(`/api/posts?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error('Failed to load posts')
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        setOptions(
-          list.map((p) => ({
-            id: String(p.id),
-            title: p.title || '(untitled)',
-            slug: p.slug,
-            type: p.type,
-            locale: p.locale,
-          }))
-        )
-      } catch (e) {
-        if (!cancelled) setError((e as Error)?.message || 'Failed to load posts')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          setLoading(true)
+          setError(null)
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          if (postType) params.set('type', postType)
+          // Use 'q' as standard search param
+          if (query.trim()) params.set('q', query.trim())
+          const res = await fetch(`/api/posts?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) throw new Error('Failed to load posts')
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+          setOptions(
+            list.map((p) => ({
+              id: String(p.id),
+              title: p.title || '(untitled)',
+              slug: p.slug,
+              type: p.type,
+              locale: p.locale,
+            }))
+          )
+        } catch (e) {
+          if (!cancelled) setError((e as Error)?.message || 'Failed to load posts')
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -105,45 +101,46 @@ export function EditablePostReference({
     const missing = selectedIds.filter((id) => !selectedMeta[id])
     if (!missing.length) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        params.set('ids', missing.join(','))
-        if (postType) params.set('type', postType)
-        const res = await fetch(`/api/posts?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error('Failed to load selected posts')
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        setSelectedMeta((prev) => {
-          const next = { ...prev }
-          list.forEach((p: any) => {
-            const id = String(p.id)
-            next[id] = {
-              id,
-              title: p.title || '(untitled)',
-              slug: p.slug,
-              type: p.type,
-              locale: p.locale,
-            }
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          params.set('ids', missing.join(','))
+          if (postType) params.set('type', postType)
+          const res = await fetch(`/api/posts?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
           })
-          return next
-        })
-      } catch {
-        // ignore; badges will fall back to id
-      }
-    })()
+          if (!res.ok) throw new Error('Failed to load selected posts')
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+          setSelectedMeta((prev) => {
+            const next = { ...prev }
+            list.forEach((p: any) => {
+              const id = String(p.id)
+              next[id] = {
+                id,
+                title: p.title || '(untitled)',
+                slug: p.slug,
+                type: p.type,
+                locale: p.locale,
+              }
+            })
+            return next
+          })
+        } catch {
+          // ignore; badges will fall back to id
+        }
+      })()
     return () => {
       cancelled = true
     }
   }, [selectedIds, postType, selectedMeta])
 
   const toggleSelect = (id: string) => {
+    if (!setValue) return
     if (multiple) {
       const next = selectedIds.includes(id)
         ? selectedIds.filter((x) => x !== id)
@@ -195,15 +192,16 @@ export function EditablePostReference({
               <button
                 type="button"
                 className="text-neutral-medium hover:text-neutral-high"
-                onClick={() =>
+                onClick={() => {
+                  if (!setValue) return
                   multiple
                     ? setValue(
-                        moduleId,
-                        path,
-                        selectedIds.filter((x) => x !== id)
-                      )
+                      moduleId,
+                      path,
+                      selectedIds.filter((x) => x !== id)
+                    )
                     : setValue(moduleId, path, null)
-                }
+                }}
                 aria-label="Remove"
               >
                 ×
@@ -238,9 +236,8 @@ export function EditablePostReference({
                     <button
                       key={p.id}
                       type="button"
-                      className={`w-full text-left px-3 py-2 rounded border text-sm ${
-                        isSelected ? 'border-standout-high bg-standout-high/5' : 'border-border'
-                      } hover:bg-backdrop-low`}
+                      className={`w-full text-left px-3 py-2 rounded border text-sm ${isSelected ? 'border-standout-high bg-standout-high/5' : 'border-border'
+                        } hover:bg-backdrop-low`}
                       onClick={() => toggleSelect(p.id)}
                     >
                       <div className="text-neutral-high">{p.title}</div>

@@ -21,7 +21,7 @@ export const SiteLink: React.FC<SiteLinkProps> = ({
   className,
   ...props
 }) => {
-  const { modules } = useInlineEditor()
+  const { modules } = useInlineEditor() || {}
   const resolved = React.useMemo(() => resolveLink(url, explicitTarget, modules), [url, explicitTarget, modules])
 
   if (!resolved.href) {

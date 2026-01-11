@@ -7,15 +7,15 @@
  * that was created from the CMS instance.
  *
  * Usage:
- *   npm run sync:quality-ready              # Sync latest from main branch
- *   npm run sync:quality-ready:commit v0.1.1  # Sync specific tag/commit
+ *   npm run sync:adonis-eos              # Sync latest from main branch
+ *   npm run sync:adonis-eos:commit v0.1.1  # Sync specific tag/commit
  */
 
 import { execSync } from 'child_process'
 import { readFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 
-const UPSTREAM_REMOTE_NAME = 'quality-ready'
+const UPSTREAM_REMOTE_NAME = 'adonis-eos'
 const DEFAULT_BRANCH = 'main'
 
 interface SyncOptions {
@@ -39,7 +39,7 @@ function getUpstreamRepoUrl(): string {
   }
 
   // Default to the public  repo
-  return 'https://github.com/spaced-man/quality-ready.git'
+  return 'https://github.com/spaced-man/adonis-eos.git'
 }
 
 /**

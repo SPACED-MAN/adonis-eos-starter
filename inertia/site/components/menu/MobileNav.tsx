@@ -11,12 +11,9 @@ import {
 import { type TreeNode } from './types'
 import { MenuItemLink } from './MenuItemLink'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import { SearchModal } from '../SearchModal'
 import { cn } from '../../../components/ui/utils'
 import * as React from 'react'
-
-const SearchModal = React.lazy(() =>
-  import('../SearchModal').then((m) => ({ default: m.SearchModal }))
-)
 
 export function MobileNav({
   primaryNodes,
@@ -40,7 +37,7 @@ export function MobileNav({
       <div className="lg:hidden flex items-center">
         <button
           className={cn(
-            'flex items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none transition-all duration-300',
+            'flex items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none focus:ring-2 focus:ring-standout-high/30 transition-all duration-300',
             isScrolled ? 'h-8 w-8' : 'h-10 w-10'
           )}
         >
@@ -75,9 +72,7 @@ export function MobileNav({
           <div className="flex flex-col gap-6 py-8">
             {showSearch && (
               <div className="px-2">
-                <React.Suspense fallback={<div className="h-10 w-full" />}>
-                  <SearchModal placeholder="Search site..." variant="navbar" />
-                </React.Suspense>
+                <SearchModal placeholder="Search site..." variant="navbar" />
               </div>
             )}
             <nav className="flex flex-col gap-1">

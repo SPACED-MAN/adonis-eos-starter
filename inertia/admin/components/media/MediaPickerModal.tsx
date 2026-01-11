@@ -15,12 +15,15 @@ import { getMediaLabel, type MediaVariant } from '~/lib/media'
 type MediaItem = {
   id: string
   url: string
+  optimizedUrl?: string | null
+  optimizedSize?: number | null
   originalFilename?: string
   mimeType?: string
   alt?: string | null
   metadata?: {
     variants?: MediaVariant[]
     darkSourceUrl?: string
+    darkOptimizedUrl?: string
   } | null
 }
 

@@ -1,7 +1,7 @@
 import { usePage, router } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
-import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 import {
   Select,
   SelectContent,
@@ -38,7 +38,10 @@ export function LocaleSwitcher({ className = '' }: LocaleSwitcherProps) {
           }
         }}
       >
-        <SelectTrigger className="h-9 gap-2 px-3 py-2 border-line-medium bg-backdrop hover:bg-backdrop-medium transition-colors text-sm font-medium text-neutral-high min-w-[80px]">
+        <SelectTrigger
+          aria-label="Change language"
+          className="h-9 gap-2 px-3 py-2 border-line-medium bg-backdrop hover:bg-backdrop-medium transition-colors text-sm font-medium text-neutral-high min-w-[80px]"
+        >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faGlobe} size="sm" className="text-neutral-medium" />
             <SelectValue placeholder={currentLocale.toUpperCase()}>

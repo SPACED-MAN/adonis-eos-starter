@@ -4,6 +4,7 @@ import { MenuItemLink } from './menu/MenuItemLink'
 import { FontAwesomeIcon, getIconProp } from '../lib/icons'
 import { type MediaVariant } from '../../lib/media'
 import { useMediaUrl } from '../../utils/useMediaUrl'
+import { MediaRenderer } from '../../components/MediaRenderer'
 
 export function SiteFooter() {
   const [items, setItems] = useState<MenuItem[]>([])
@@ -13,8 +14,6 @@ export function SiteFooter() {
   const [socialProfiles, setSocialProfiles] = useState<
     Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>
   >([])
-
-  const logoUrl = useMediaUrl(logoMedia)
 
   useEffect(() => {
     ; (async () => {
@@ -68,8 +67,15 @@ export function SiteFooter() {
             href="/"
             className="flex items-center justify-center text-2xl font-semibold text-neutral-high gap-2"
           >
-            {logoUrl ? (
-              <img src={logoUrl} alt={siteTitle} className="h-8 w-auto" />
+            {logoMedia ? (
+              <MediaRenderer
+                image={logoMedia}
+                alt={siteTitle}
+                size="small"
+                className="h-8 w-auto object-contain"
+                width={200}
+                height={32}
+              />
             ) : (
               <span>{siteTitle}</span>
             )}
@@ -109,7 +115,7 @@ export function SiteFooter() {
           </ul>
         )}
         <div className="items-center max-w-3xl mx-auto">
-          <span className="text-xs text-neutral-low">
+          <span className="text-xs text-neutral-low" suppressHydrationWarning>
             © {new Date().getFullYear()} {siteTitle}. All rights reserved.
           </span>
         </div>

@@ -1,7 +1,9 @@
-import React, { useState, forwardRef, useRef, useEffect } from 'react'
+import React, { useState, forwardRef, useRef, useEffect, useContext } from 'react'
 import { useInView } from 'framer-motion'
+import { usePage } from '@inertiajs/react'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
-import { useMediaUrl, type MediaObject } from '../utils/useMediaUrl'
+import { useMediaAsset, type MediaObject } from '../utils/useMediaUrl'
+import { ModuleContext } from './ModuleContext'
 
 declare global {
   namespace JSX {
@@ -15,6 +17,8 @@ export interface MediaRendererProps {
   url?: string | null | undefined
   image?: MediaObject | string | null | undefined
   variant?: string | null
+  /** Alias for variant, commonly used for media variation sizes like 'thumb' or 'small' */
+  size?: string | null
   mimeType?: string | null
   alt?: string | null
   className?: string
@@ -29,6 +33,9 @@ export interface MediaRendererProps {
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   playMode?: 'autoplay' | 'inline' | 'modal'
   poster?: string | null
+  width?: string | number
+  height?: string | number
+  sizes?: string
 }
 
 export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, MediaRendererProps>(
@@ -37,6 +44,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       url: explicitUrl,
       image,
       variant,
+      size,
       mimeType: explicitMimeType,
       alt = '',
       className = 'w-full h-full object-cover',
@@ -51,16 +59,37 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       objectFit = 'cover',
       playMode = 'autoplay',
       poster,
+      width,
+      height,
+      sizes,
     },
     ref
   ) => {
     const internalRef = useRef<any>(null)
     const combinedRef = (ref as any) || internalRef
+    const [mounted, setMounted] = useState(false)
     const isInView = useInView(combinedRef, { once: true, margin: '0px 0px -100px 0px' })
     const [isModalOpen, setIsModalOpen] = useState(false)
 
+    useEffect(() => {
+      setMounted(true)
+    }, [])
+    const page = usePage()
+    const lottieEnabled = (page.props.features as any)?.lottie !== false
+    const { isFirst } = useContext(ModuleContext)
+
+    // Performance optimizations for LCP (First module's images)
+    const effectiveFetchPriority = fetchPriority || (isFirst ? 'high' : 'auto')
+    const effectiveLoading = loading || (isFirst ? 'eager' : 'lazy')
+    const effectiveDecoding = decoding || (isFirst ? 'sync' : 'async')
+
     // Resolve URL seamlessly if an image object is provided, otherwise fall back to explicit url
-    const resolvedUrl = useMediaUrl(image, variant) || explicitUrl
+    const asset = useMediaAsset(image, variant || size || 'large')
+    const resolvedUrl = asset.url || explicitUrl
+    const intrinsicWidth = asset.width
+    const intrinsicHeight = asset.height
+    const srcset = asset.srcset
+
     const mimeType =
       (typeof image === 'object' && image !== null ? (image as any).mimeType : null) ||
       explicitMimeType
@@ -80,13 +109,14 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(resolvedUrl.split('?')[0].toLowerCase())
 
     const isAutoplayMode = playMode === 'autoplay'
+    const effectiveInView = mounted && isInView
 
     useEffect(() => {
-      if (isVideo && isAutoplayMode && isInView && combinedRef.current) {
+      if (isVideo && isAutoplayMode && effectiveInView && combinedRef.current) {
         // Explicitly set muted and loop properties to ensure autoplay is allowed by browser policies
         combinedRef.current.muted = true
         combinedRef.current.loop = true
-        combinedRef.current.play().catch((err) => {
+        combinedRef.current.play().catch((err: any) => {
           // Fallback or ignore: browsers might still block it if no user interaction
           console.warn('[MediaRenderer] Autoplay failed:', err)
         })
@@ -102,9 +132,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       (typeof mimeType === 'string' && mimeType === 'image/svg+xml') ||
       /\.svg$/i.test(resolvedUrl.split('?')[0].toLowerCase())
 
-    const isAnimation = isLottie || isSvg
-
-    if (isVideo || isLottie || (isSvg && playMode === 'modal')) {
+    if (isVideo || (isLottie && lottieEnabled) || (isSvg && playMode === 'modal')) {
       const isModalMode = playMode === 'modal'
 
       if (isModalMode) {
@@ -127,23 +155,37 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
                     controls={false}
                     poster={poster || undefined}
                     ref={ref as React.Ref<HTMLVideoElement>}
+                    width={width || (intrinsicWidth ? Number(intrinsicWidth) : undefined)}
+                    height={height || (intrinsicHeight ? Number(intrinsicHeight) : undefined)}
+                    // @ts-ignore
+                    fetchPriority={effectiveFetchPriority}
                   />
                 ) : (
                   <img
                     src={resolvedUrl}
+                    srcSet={!isSvg && !isVideo ? srcset : undefined}
+                    sizes={!isSvg && !isVideo ? (sizes || (isFirst ? '100vw' : undefined)) : undefined}
                     alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
                     className={className}
                     style={{ objectFit }}
+                    width={width || (intrinsicWidth ? Number(intrinsicWidth) : undefined)}
+                    height={height || (intrinsicHeight ? Number(intrinsicHeight) : undefined)}
+                    fetchPriority={effectiveFetchPriority}
+                    loading={effectiveLoading}
+                    decoding={effectiveDecoding}
                   />
                 )
               ) : (
                 <div className={className} style={{ objectFit }}>
-                  <lottie-player
-                    src={resolvedUrl}
-                    autoplay={false}
-                    loop={false}
-                    style={{ width: '100%', height: '100%' }}
-                  />
+                  {lottieEnabled && (
+                    // @ts-ignore
+                    <lottie-player
+                      src={resolvedUrl}
+                      autoplay={false}
+                      loop={false}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  )}
                 </div>
               )}
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
@@ -181,19 +223,26 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
                   <div className="w-full h-auto max-h-[80vh] flex items-center justify-center bg-white/5 p-8">
                     <img
                       src={resolvedUrl}
+                      srcSet={!isSvg ? srcset : undefined}
+                      sizes="90vw"
                       alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
                       className="max-w-full max-h-full"
+                      width={intrinsicWidth ? Number(intrinsicWidth) : undefined}
+                      height={intrinsicHeight ? Number(intrinsicHeight) : undefined}
                     />
                   </div>
                 ) : (
                   <div className="w-full h-auto max-h-[80vh] flex items-center justify-center bg-white/5">
-                    <lottie-player
-                      src={resolvedUrl}
-                      autoplay
-                      loop
-                      controls
-                      style={{ width: '100%', height: '100%', maxWidth: '800px' }}
-                    />
+                    {lottieEnabled && (
+                      // @ts-ignore
+                      <lottie-player
+                        src={resolvedUrl}
+                        autoplay
+                        loop
+                        controls
+                        style={{ width: '100%', height: '100%', maxWidth: '800px' }}
+                      />
+                    )}
                   </div>
                 )}
               </DialogContent>
@@ -211,20 +260,29 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
             playsInline={playsInline}
             ref={combinedRef}
             controls={initialControls ?? (isAutoplayMode ? false : true)}
-            autoPlay={initialAutoPlay ?? (isAutoplayMode ? (isInView ? true : false) : false)}
+            autoPlay={initialAutoPlay ?? (isAutoplayMode ? (effectiveInView ? true : false) : false)}
             loop={initialLoop ?? (isAutoplayMode ? true : false)}
             muted={initialMuted ?? (isAutoplayMode ? true : false)}
             poster={poster || undefined}
+            width={width || (intrinsicWidth ? Number(intrinsicWidth) : undefined)}
+            height={height || (intrinsicHeight ? Number(intrinsicHeight) : undefined)}
+            // @ts-ignore
+            fetchPriority={effectiveFetchPriority}
           />
         )
-      } else {
+      } else if (isLottie && lottieEnabled) {
         return (
+          // @ts-ignore
           <lottie-player
             src={resolvedUrl}
             autoplay={initialAutoPlay ?? (isAutoplayMode ? (isInView ? true : false) : false)}
             loop={initialLoop ?? (isAutoplayMode ? true : false)}
             controls={initialControls ?? (isAutoplayMode ? false : true)}
-            style={{ width: '100%', height: '100%', objectFit }}
+            style={{
+              width: width || (intrinsicWidth ? Number(intrinsicWidth) : '100%'),
+              height: height || (intrinsicHeight ? Number(intrinsicHeight) : '100%'),
+              objectFit,
+            }}
             className={className}
           />
         )
@@ -234,13 +292,17 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     return (
       <img
         ref={combinedRef}
-        key={isSvg ? (isInView ? 'in-view' : 'out-of-view') : undefined}
+        key={isSvg ? (effectiveInView ? 'in-view' : 'out-of-view') : undefined}
         src={resolvedUrl}
+        srcSet={!isSvg && !isVideo ? srcset : undefined}
+        sizes={!isSvg && !isVideo ? (sizes || (isFirst ? '100vw' : undefined)) : undefined}
         alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
         className={className}
-        fetchPriority={fetchPriority}
-        decoding={decoding}
-        loading={loading}
+        width={width || (intrinsicWidth ? Number(intrinsicWidth) : undefined)}
+        height={height || (intrinsicHeight ? Number(intrinsicHeight) : undefined)}
+        fetchPriority={effectiveFetchPriority}
+        decoding={effectiveDecoding}
+        loading={effectiveLoading}
         style={{ objectFit }}
       />
     )

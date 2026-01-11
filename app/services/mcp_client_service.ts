@@ -1561,7 +1561,7 @@ class MCPClientService {
         }
 
         // Save to uploads directory
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+        const uploadsDir = storageService.getLocalPath('uploads')
         await fs.mkdir(uploadsDir, { recursive: true })
 
         const filename = `${crypto.randomUUID()}${theme === 'dark' ? '-dark' : ''}${ext}`
@@ -1787,7 +1787,7 @@ class MCPClientService {
         }
 
         // Save to uploads directory
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+        const uploadsDir = storageService.getLocalPath('uploads')
         await fs.mkdir(uploadsDir, { recursive: true })
 
         const filename = `${crypto.randomUUID()}${ext}`
@@ -1864,7 +1864,7 @@ class MCPClientService {
 
         const checkExists = async (u: string) => {
           if (u.startsWith('http')) return true
-          const absPath = path.join(process.cwd(), 'public', u.replace(/^\//, ''))
+          const absPath = storageService.getLocalPath(u)
           try {
             await fs.access(absPath)
             return true

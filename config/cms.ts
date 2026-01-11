@@ -143,6 +143,8 @@ const cmsConfig = {
     auditLogs: env.get('CMS_AUDIT_LOGS_ENABLED') ?? true,
     /** Enable active session management (admin) */
     activeSessions: env.get('CMS_ACTIVE_SESSIONS_ENABLED') ?? true,
+    /** Enable Lottie player script loading */
+    lottie: env.get('LOTTIE_ENABLED') ?? false,
   },
 }
 

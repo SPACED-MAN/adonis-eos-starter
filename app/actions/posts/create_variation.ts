@@ -118,6 +118,8 @@ export default class CreateVariation {
         metaDescription: sourcePost.metaDescription,
         canonicalUrl: sourcePost.canonicalUrl || null, // Variations should point to main post's canonical URL
         robotsJson: { index: false, follow: false }, // Variations shouldn't be indexed directly
+        noindex: true,
+        nofollow: true,
         jsonldOverrides: sourcePost.jsonldOverrides,
         parentId: sourcePost.parentId,
         orderIndex: sourcePost.orderIndex,

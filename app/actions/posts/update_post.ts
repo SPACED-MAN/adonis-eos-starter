@@ -10,7 +10,7 @@ import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 type UpdatePostParams = {
   postId: string
-  slug?: string
+  slug?: string | null
   title?: string
   status?: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
   excerpt?: string | null
@@ -80,8 +80,8 @@ export default class UpdatePost {
     if (trx) post.useTransaction(trx)
 
     // If slug is being changed, normalize and check uniqueness
-    if (slug) {
-      let newSlug = slug
+    if (slug !== undefined) {
+      let newSlug = (slug || '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
@@ -91,11 +91,9 @@ export default class UpdatePost {
         newSlug = newSlug.replace(/^\/+/, '').split('/').pop() || newSlug
       }
       if (newSlug !== post.slug) {
-        const existingPost = await Post.query()
-          .where('slug', newSlug)
-          .where('locale', post.locale)
-          .whereNot('id', postId)
-          .first()
+        const query = Post.query().where('slug', newSlug).where('locale', post.locale).whereNot('id', postId)
+        if (trx) query.useTransaction(trx)
+        const existingPost = await query.first()
 
         if (existingPost) {
           throw new UpdatePostException(
@@ -128,10 +126,10 @@ export default class UpdatePost {
         if (shouldAutoRedirect) {
           // Capture old URL BEFORE changing slug
           const fromPath =
-            post.canonicalUrl || (await urlPatternService.buildPostPathForPost(post.id))
+            post.canonicalUrl || (await urlPatternService.buildPostPathForPost(post.id, trx))
 
           // Generate new URL using the NEW slug but WITHOUT relying on DB state
-          const toPath = await urlPatternService.buildPostPathForPostWithSlug(post.id, newSlug)
+          const toPath = await urlPatternService.buildPostPathForPostWithSlug(post.id, newSlug, trx)
 
           try {
             const existing = await db.from('url_redirects').where('from_path', fromPath).first()
@@ -208,18 +206,22 @@ export default class UpdatePost {
 
     // 3. Update taxonomy assignments if provided
     if (taxonomyTermIds) {
-      await ApplyPostTaxonomyAssignments.handle({
-        postId: post.id,
-        postType: post.type,
-        termIds: taxonomyTermIds,
-      })
+      await ApplyPostTaxonomyAssignments.handle(
+        {
+          postId: post.id,
+          postType: post.type,
+          termIds: taxonomyTermIds,
+        },
+        trx
+      )
     }
 
     // 4. Auto-update canonical URL if slug changed or if it's not set and wasn't explicitly provided.
     // We do this AFTER the first save so buildPostPathForPost can read the latest slug/hierarchy from DB.
-    if ((slug && post.slug !== slug) || (canonicalUrl === undefined && !post.canonicalUrl)) {
+    const slugChanged = slug !== undefined
+    if (slugChanged || (canonicalUrl === undefined && !post.canonicalUrl)) {
       try {
-        const newCanonicalPath = await urlPatternService.buildPostPathForPost(post.id)
+        const newCanonicalPath = await urlPatternService.buildPostPathForPost(post.id, trx)
         if (newCanonicalPath && newCanonicalPath !== post.canonicalUrl) {
           post.canonicalUrl = newCanonicalPath
           await post.save()

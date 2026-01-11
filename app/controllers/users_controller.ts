@@ -6,6 +6,7 @@ import CreatePost from '#actions/posts/create_post'
 import siteSettingsService from '#services/site_settings_service'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import activityLogService from '#services/activity_log_service'
+import storageService from '#services/storage_service'
 import { createUserValidator, updateUserValidator, resetPasswordValidator } from '#validators/user'
 
 export default class UsersController {
@@ -271,7 +272,7 @@ export default class UsersController {
         ip,
         userAgent: typeof ua === 'string' ? ua : null,
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Password updated' })
   }
 
@@ -302,7 +303,7 @@ export default class UsersController {
         entityType: 'user',
         entityId: id,
       })
-    } catch {}
+    } catch { }
     return response.noContent()
   }
 
@@ -350,15 +351,15 @@ export default class UsersController {
               const adminThumb = process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || 'thumb'
               const variants = Array.isArray((meta as any).variants) ? (meta as any).variants : []
               const found = variants.find((v: any) => v?.name === adminThumb)
-              profileThumbUrl = found && found.url ? found.url : (m as any).url
+              profileThumbUrl = storageService.resolvePublicUrl(found && found.url ? found.url : (m as any).url)
 
               // Check for dark variant
               const darkThumb = `${adminThumb}-dark`
               const foundDark = variants.find((v: any) => v?.name === darkThumb)
               if (foundDark && foundDark.url) {
-                profileDarkThumbUrl = foundDark.url
+                profileDarkThumbUrl = storageService.resolvePublicUrl(foundDark.url)
               } else if (meta.darkSourceUrl) {
-                profileDarkThumbUrl = meta.darkSourceUrl
+                profileDarkThumbUrl = storageService.resolvePublicUrl(meta.darkSourceUrl)
               }
             }
           }
@@ -410,7 +411,7 @@ export default class UsersController {
           entityType: 'post',
           entityId: post.id,
         })
-      } catch {}
+      } catch { }
       return response.created({ id: post.id })
     } catch (e: any) {
       const status = e?.statusCode || 400

@@ -1,6 +1,12 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields, LIPSUM_TITLE, LIPSUM_SUBTITLE, LIPSUM_CTA } from './shared_fields.js'
+import {
+  themeField,
+  mediaBackgroundFields,
+  LIPSUM_TITLE,
+  LIPSUM_SUBTITLE,
+  LIPSUM_CTA,
+} from './shared_fields.js'
 
 export default class HeroModule extends BaseModule {
   /**

@@ -28,7 +28,7 @@ export default class MaintenanceMiddleware {
       const isAuthenticated = await auth.use('web').check()
       if (isAuthenticated) {
         const user = auth.use('web').user as any
-        if (user.role === 'admin' || user.role === 'editor') {
+        if (['admin', 'editor_admin', 'editor', 'translator'].includes(user.role)) {
           return next()
         }
       }

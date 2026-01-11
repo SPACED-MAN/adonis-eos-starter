@@ -3,7 +3,18 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { cn } from '~/components/ui/utils'
 
-export const Select = SelectPrimitive.Root
+export const Select = (props: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => {
+  const [isMounted, setIsMounted] = React.useState(false)
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return <div className="h-9 w-full rounded-lg border border-line-input bg-backdrop-input animate-pulse" />
+  }
+
+  return <SelectPrimitive.Root {...props} />
+}
 export const SelectGroup = SelectPrimitive.Group
 export const SelectValue = SelectPrimitive.Value
 

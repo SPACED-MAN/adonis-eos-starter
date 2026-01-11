@@ -5,7 +5,8 @@
  */
 
 import { useForm, usePage, router } from '@inertiajs/react'
-import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { bypassUnsavedChanges } from '~/hooks/unsavedChangesState'
 import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
@@ -768,6 +769,7 @@ export default function Editor({
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredMediaId: post.featuredMediaId || '',
+    scheduledAt: (post as any).scheduledAt || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
   } as any)
@@ -789,6 +791,7 @@ export default function Editor({
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredMediaId: post.featuredMediaId || '',
+    scheduledAt: (post as any).scheduledAt || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
   } as any)
@@ -796,7 +799,7 @@ export default function Editor({
     reviewDraft
       ? {
         title: String(reviewDraft.title ?? post.title),
-        slug: String(reviewDraft.slug ?? post.slug),
+        slug: (reviewDraft.slug === null || reviewDraft.slug === undefined) ? '' : String(reviewDraft.slug ?? post.slug),
         excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
         status: String(reviewDraft.status ?? post.status),
         parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
@@ -824,6 +827,7 @@ export default function Editor({
               ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
               : '',
         featuredMediaId: String(reviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
+        scheduledAt: String(reviewDraft.scheduledAt ?? (post as any).scheduledAt ?? ''),
         customFields: Array.isArray(reviewDraft.customFields)
           ? reviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -869,6 +873,7 @@ export default function Editor({
               ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
               : '',
         featuredMediaId: String(aiReviewDraft.featuredMediaId ?? (post.featuredMediaId || '')),
+        scheduledAt: String(aiReviewDraft.scheduledAt ?? (post as any).scheduledAt ?? ''),
         customFields: Array.isArray(aiReviewDraft.customFields)
           ? aiReviewDraft.customFields
           : Array.isArray(initialCustomFields)
@@ -1142,6 +1147,7 @@ export default function Editor({
         }
       })(),
       featuredMediaId: String(d.featuredMediaId || '').trim() || '',
+      scheduledAt: String(d.scheduledAt || '').trim() || '',
       customFields: Array.isArray(d.customFields)
         ? [...d.customFields]
           .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
@@ -1212,9 +1218,11 @@ export default function Editor({
       .replace(/^-+|-+$/g, '') // Trim dashes from ends
   }
   const [slugAuto, setSlugAuto] = useState<boolean>(() => {
-    const s = String((post as any).slug || '').trim()
+    const s = (post as any).slug
     const t = String((post as any).title || '').trim()
-    if (!s) return true
+    if (s === undefined || s === null) return true
+    if (s === '' && t === '') return true
+    if (s === '') return false // Explicitly empty (homepage)
     if (/^untitled(-[a-z0-9]+)*(-\d+)?$/i.test(s)) return true
     return slugify(t) === s
   })
@@ -1506,7 +1514,7 @@ export default function Editor({
           }
         })
 
-        await saveForReview(finalSnapshot)
+        await saveForReview(finalSnapshot, cleanedSlug)
         return
       }
 
@@ -1528,7 +1536,7 @@ export default function Editor({
           }
         })
 
-        await saveForAiReview(finalSnapshot)
+        await saveForAiReview(finalSnapshot, cleanedSlug)
         return
       }
 
@@ -1556,7 +1564,7 @@ export default function Editor({
 
       const cleanedData = {
         title: data.title,
-        slug: data.slug,
+        slug: cleanedSlug,
         excerpt: data.excerpt?.trim() || null,
         status: data.status,
         parentId: data.parentId?.trim() || null,
@@ -1564,9 +1572,15 @@ export default function Editor({
         metaTitle: data.metaTitle?.trim() || null,
         metaDescription: data.metaDescription?.trim() || null,
         canonicalUrl,
+        socialTitle: data.socialTitle?.trim() || null,
+        socialDescription: data.socialDescription?.trim() || null,
+        socialImageId: data.socialImageId?.trim() || null,
+        noindex: !!data.noindex,
+        nofollow: !!data.nofollow,
         robotsJson: data.robotsJson?.trim() || null,
         jsonldOverrides: data.jsonldOverrides?.trim() || null,
         featuredMediaId: data.featuredMediaId?.trim() || null,
+        scheduledAt: data.scheduledAt?.trim() || null,
         customFields: data.customFields,
         taxonomyTermIds: data.taxonomyTermIds,
       }
@@ -1592,7 +1606,7 @@ export default function Editor({
 
       if (res.ok) {
         toast.success('Saved to Source')
-        initialDataRef.current = pickForm(data)
+        initialDataRef.current = pickForm({ ...data, slug: cleanedSlug })
         setHasStructuralChanges(false)
         // Reload to get fresh data from server, preserving the current view mode
         const currentUrl = new URL(window.location.href)
@@ -1926,6 +1940,14 @@ export default function Editor({
     initialDataRef.current = newData
     if (viewMode === 'source') {
       setData((prev) => ({ ...prev, ...newData }))
+
+      // Also update slugAuto state based on the new post data
+      const s = newData.slug
+      const t = newData.title
+      if (s === '' && t === '') setSlugAuto(true)
+      else if (s === '') setSlugAuto(false)
+      else if (/^untitled(-[a-z0-9]+)*(-\d+)?$/i.test(s)) setSlugAuto(true)
+      else setSlugAuto(slugify(t) === s)
     }
   }, [post, initialCustomFieldsData, initialTaxonomyIds, viewMode, setData])
 
@@ -1934,7 +1956,7 @@ export default function Editor({
     if (reviewDraft) {
       reviewInitialRef.current = {
         title: String(reviewDraft.title ?? post.title),
-        slug: String(reviewDraft.slug ?? post.slug),
+        slug: (reviewDraft.slug === null || reviewDraft.slug === undefined) ? '' : String(reviewDraft.slug ?? post.slug),
         excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
         status: String(reviewDraft.status ?? post.status),
         parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
@@ -1980,7 +2002,7 @@ export default function Editor({
     if (aiReviewDraft) {
       aiReviewInitialRef.current = {
         title: String(aiReviewDraft.title ?? post.title),
-        slug: String(aiReviewDraft.slug ?? post.slug),
+        slug: (aiReviewDraft.slug === null || aiReviewDraft.slug === undefined) ? '' : String(aiReviewDraft.slug ?? post.slug),
         excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
         status: String(aiReviewDraft.status ?? post.status),
         parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
@@ -2034,9 +2056,10 @@ export default function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode])
 
-  async function saveForReview(modulesOverride?: any[]) {
+  async function saveForReview(modulesOverride?: any[], slugOverride?: string) {
     const payload = {
       ...pickForm(data),
+      slug: slugOverride !== undefined ? slugOverride : data.slug,
       mode: 'review',
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       reviewModuleRemovals: Array.from(pendingReviewRemoved),
@@ -2085,9 +2108,10 @@ export default function Editor({
     }
   }
 
-  async function saveForAiReview(modulesOverride?: any[]) {
+  async function saveForAiReview(modulesOverride?: any[], slugOverride?: string) {
     const payload = {
       ...pickForm(data),
+      slug: slugOverride !== undefined ? slugOverride : data.slug,
       mode: 'ai-review',
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
@@ -2148,6 +2172,13 @@ export default function Editor({
       if (currentSlug === post.slug) {
         return post.publicPath
       }
+      // If slug is empty, try to show parent path
+      if (currentSlug === '' && post.publicPath && post.slug) {
+        const parts = post.publicPath.split('/')
+        if (parts[parts.length - 1] === post.slug) {
+          return parts.slice(0, -1).join('/') || '/'
+        }
+      }
       // If slug changed, show the pattern with {path} token
       // (actual path will be calculated on save)
       return pathPattern.replace(/\{locale\}/g, post.locale)
@@ -2167,6 +2198,7 @@ export default function Editor({
       .replace(/\{mm\}/g, mm)
       .replace(/\{dd\}/g, dd)
     if (!out.startsWith('/')) out = '/' + out
+    if (out.length > 1 && out.endsWith('/')) out = out.slice(0, -1)
     return out
   }
 
@@ -3722,13 +3754,10 @@ export default function Editor({
                           className="font-mono text-sm border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
                           value={data.slug}
                           onChange={(e) => {
-                            const v = String(e.target.value || '')
-                              .toLowerCase()
-                              .replace(/[^a-z0-9]+/g, '-')
-                              .replace(/-+/g, '-')
+                            const v = e.target.value
                             setData('slug', v)
-                            // If user clears slug, re-enable auto; otherwise consider it manually controlled
-                            setSlugAuto(v === '')
+                            // Re-enable auto only if both are cleared
+                            setSlugAuto(v === '' && data.title === '')
                           }}
                           onBlur={() => {
                             // Normalize fully on blur

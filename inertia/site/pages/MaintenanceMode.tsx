@@ -31,7 +31,7 @@ export default function Maintenance({ siteTitle }: { siteTitle?: string }) {
           services. We'll be back online shortly. Thank you for your patience!
         </p>
 
-        <div className="pt-8 mt-8 border-t border-line-low text-neutral-low text-sm">
+        <div className="pt-8 mt-8 border-t border-line-low text-neutral-low text-sm" suppressHydrationWarning>
           &copy; {new Date().getFullYear()} {siteTitle || 'Site'}
         </div>
       </div>
